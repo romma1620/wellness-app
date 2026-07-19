@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Теми через CSS-змінні на [data-theme] (html-елемент).
+   Значення взяті 1:1 з дизайну.
+   ============================================================ */
+:root,
+[data-theme="peach"] {
+  --primary: #e5906f;
+  --primary-light: #f7ddcf;
+  --bg: #fdf5f0;
+  --surface: #ffffff;
+  --text: #4b3a33;
+  --muted: #a08c81;
+  --accent: #d98b94;
+  --pos: #4a9d7e;
+  --warn: #c98a3d;
+  --neg: #c26a5a;
+  --ring: rgba(60, 40, 30, 0.45);
+}
+
+[data-theme="mint"] {
+  --primary: #5fb89c;
+  --primary-light: #cfebe0;
+  --bg: #eff8f3;
+  --surface: #ffffff;
+  --text: #31453e;
+  --muted: #7e938b;
+  --accent: #7fafc4;
+  --pos: #3f8f76;
+  --warn: #c98a3d;
+  --neg: #ca6b5c;
+  --ring: rgba(40, 60, 50, 0.45);
+}
+
+[data-theme="lavender"] {
+  --primary: #9384c2;
+  --primary-light: #e4dcf2;
+  --bg: #f5f2fb;
+  --surface: #ffffff;
+  --text: #413952;
+  --muted: #8b84a0;
+  --accent: #b588c4;
+  --pos: #4a9d7e;
+  --warn: #c98a3d;
+  --neg: #b56a86;
+  --ring: rgba(55, 45, 70, 0.45);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Плавний перехід кольорів теми */
+body,
+body * {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.2s ease;
+}
+
+/* Прибираємо стрілки у number-інпутів (використовуємо inputMode) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Приховати скролбар у горизонтальних стрічках */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Спінер */
+@keyframes aura-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.aura-spin {
+  animation: aura-spin 0.7s linear infinite;
+}
+
+/* Поява карток */
+@keyframes aura-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.aura-fade {
+  animation: aura-fade-up 0.3s ease both;
+}

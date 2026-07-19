@@ -1,0 +1,26 @@
+{
+  "name": "aura · щоденник тіла і здоровʼя",
+  "short_name": "aura",
+  "description": "Мʼякий щоденник тіла і здоровʼя: вага, харчування, заміри та цілі.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf5f0",
+  "theme_color": "#e5906f",
+  "lang": "uk",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

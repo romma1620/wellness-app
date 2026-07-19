@@ -1,0 +1,11 @@
+# Нормалізуємо переноси рядків до LF (щоб збірка на Vercel/Linux була стабільною)
+* text=auto eol=lf
+
+# Бінарні файли не чіпати
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
