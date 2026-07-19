@@ -2,7 +2,60 @@
 
 import { FieldLabel, Input } from "@/components/ui";
 import { cn, parseNum } from "@/lib/utils";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+
+// ----------------------- useDecimalBuffer -----------------------
+// Буфер тексту для десяткових інпутів: зберігає рядок як його ввели
+// (зокрема з комою), синхронізується із зовнішнім значенням лише поза фокусом.
+function numToText(v: number | null | undefined): string {
+  return v === null || v === undefined ? "" : String(v).replace(".", ",");
+}
+
+export function useDecimalBuffer(
+  value: number | null,
+  onChange: (v: number | null) => void,
+  opts?: { min?: number; max?: number },
+) {
+  const [text, setText] = useState<string>(() => numToText(value));
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setText(numToText(value));
+  }, [value]);
+
+  const parsed = parseNum(text);
+  const outOfRange =
+    parsed !== null &&
+    ((opts?.min !== undefined && parsed < opts.min) ||
+      (opts?.max !== undefined && parsed > opts.max));
+
+  const inputProps = {
+    inputMode: "decimal" as const,
+    value: text,
+    onFocus: () => {
+      focused.current = true;
+    },
+    onBlur: () => {
+      focused.current = false;
+      onChange(parseNum(text));
+    },
+    onChange: (e: ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      // Дозволяємо лише цифри, кому, крапку та пробіли.
+      if (!/^[0-9.,\s]*$/.test(v)) return;
+      setText(v);
+      const p = parseNum(v);
+      if (p === null) onChange(null);
+      else if (
+        (opts?.min === undefined || p >= opts.min) &&
+        (opts?.max === undefined || p <= opts.max)
+      )
+        onChange(p);
+    },
+  };
+
+  return { text, parsed, outOfRange, inputProps };
+}
 
 // ----------------------- NumberField -----------------------
 export function NumberField({
@@ -22,43 +75,12 @@ export function NumberField({
   min?: number;
   max?: number;
 }) {
-  const [text, setText] = useState<string>(value === null ? "" : String(value).replace(".", ","));
-  const focused = useRef(false);
-
-  // Синхронізуємо зовнішнє значення, якщо поле не в фокусі.
-  useEffect(() => {
-    if (!focused.current) {
-      setText(value === null ? "" : String(value).replace(".", ","));
-    }
-  }, [value]);
-
-  const parsed = parseNum(text);
-  const outOfRange =
-    parsed !== null &&
-    ((min !== undefined && parsed < min) || (max !== undefined && parsed > max));
+  const { outOfRange, inputProps } = useDecimalBuffer(value, onChange, { min, max });
 
   return (
     <div>
       <FieldLabel>{label}</FieldLabel>
-      <Input
-        inputMode="decimal"
-        placeholder={placeholder ?? "—"}
-        value={text}
-        error={outOfRange}
-        suffix={suffix}
-        onFocus={() => (focused.current = true)}
-        onBlur={() => {
-          focused.current = false;
-          onChange(parseNum(text));
-        }}
-        onChange={(e) => {
-          const v = e.target.value;
-          setText(v);
-          const p = parseNum(v);
-          if (p === null) onChange(null);
-          else if ((min === undefined || p >= min) && (max === undefined || p <= max)) onChange(p);
-        }}
-      />
+      <Input placeholder={placeholder ?? "—"} error={outOfRange} suffix={suffix} {...inputProps} />
       {outOfRange && (
         <div className="mt-1 text-[11px] font-bold text-neg">
           Допустимо {min}–{max}

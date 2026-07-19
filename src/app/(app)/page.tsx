@@ -5,6 +5,7 @@ import {
   PresetChips,
   SaveIndicator,
   TagInput,
+  useDecimalBuffer,
   WaterDrops,
   type SaveState,
 } from "@/components/inputs";
@@ -153,6 +154,11 @@ export default function TodayPage() {
   const weekDelta =
     form.weight != null && baselineWeight != null ? form.weight - baselineWeight : null;
 
+  const weightInput = useDecimalBuffer(form.weight, (v) => set("weight", v), {
+    min: 30,
+    max: 200,
+  });
+
   return (
     <div className="flex flex-col gap-[15px]">
       {/* Хедер з датою */}
@@ -209,20 +215,19 @@ export default function TodayPage() {
           <div className="text-[12.5px] font-bold text-muted">Вага</div>
           <div className="mt-1">
             <input
-              inputMode="decimal"
+              {...weightInput.inputProps}
               placeholder="—"
-              value={form.weight === null ? "" : String(form.weight).replace(".", ",")}
-              onChange={(e) => {
-                const raw = e.target.value.replace(",", ".");
-                if (raw === "") return set("weight", null);
-                const n = Number(raw);
-                if (Number.isFinite(n) && n >= 30 && n <= 200) set("weight", n);
-                else if (raw.match(/^\d*[.,]?\d*$/)) set("weight", Number.isFinite(n) ? n : null);
-              }}
               className="w-full bg-transparent text-[40px] font-extrabold leading-none text-ink outline-none placeholder:text-primary-light"
             />
           </div>
-          <div className="mt-1 text-[12px] font-bold text-muted">кг · допустимо 30–200</div>
+          <div
+            className={cn(
+              "mt-1 text-[12px] font-bold",
+              weightInput.outOfRange ? "text-neg" : "text-muted",
+            )}
+          >
+            кг · допустимо 30–200
+          </div>
         </div>
         {weekDelta != null && Math.abs(weekDelta) >= 0.05 && (
           <div className="shrink-0 text-right">
