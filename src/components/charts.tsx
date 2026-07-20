@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -27,7 +28,7 @@ export function WeightChart({ data }: { data: WeightPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={160}>
-      <LineChart data={data} margin={{ top: 8, right: 6, left: -22, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 8, right: 6, left: -8, bottom: 0 }}>
         <CartesianGrid stroke="var(--primary-light)" vertical={false} />
         <XAxis
           dataKey="label"
@@ -90,8 +91,24 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
     return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
   return (
-    <ResponsiveContainer width="100%" height={72}>
-      <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barCategoryGap="22%">
+    <ResponsiveContainer width="100%" height={170}>
+      <BarChart data={data} margin={{ top: 8, right: 6, left: -14, bottom: 0 }} barCategoryGap="22%">
+        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 10.5, fontWeight: 700, fill: "var(--muted)" }}
+          tickLine={false}
+          axisLine={false}
+          interval="preserveStartEnd"
+          minTickGap={12}
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: "var(--muted)" }}
+          tickLine={false}
+          axisLine={false}
+          width={40}
+          tickFormatter={(v: number) => (v === 0 ? "0" : fmt(v / 1000, 0))}
+        />
         <Tooltip
           cursor={{ fill: "var(--primary-light)", opacity: 0.4 }}
           content={({ active, payload, label }: any) =>
@@ -102,7 +119,19 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
             ) : null
           }
         />
-        <Bar dataKey="steps" radius={[4, 4, 4, 4]} fill="var(--primary-light)" />
+        <Legend
+          verticalAlign="top"
+          height={22}
+          content={() => (
+            <div className="flex justify-end pr-1 text-[11px] font-bold text-primary">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
+                кроки, тис.
+              </span>
+            </div>
+          )}
+        />
+        <Bar dataKey="steps" radius={[4, 4, 4, 4]} fill="var(--primary)" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -159,7 +188,7 @@ export function MetricLine({
   const pad = Math.max((max - min) * 0.3, 0.5);
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
         <CartesianGrid stroke="var(--primary-light)" vertical={false} />
         <XAxis
           dataKey="label"

@@ -15,7 +15,7 @@ import type { DailyLog } from "@/lib/types";
 import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const CARE_PRESETS = ["Скраб", "Крем", "Гуаша", "Маска", "Тонік", "Сироватка", "SPF"];
+const CARE_PRESETS = ["Скраб", "Крем", "Гуаша", "Маска"];
 
 type Form = {
   weight: number | null;
@@ -282,16 +282,16 @@ export default function TodayPage() {
       </Card>
 
       {/* Кроки + спорт */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-3">
         <Card>
           <NumberField
             label="Кроки"
-            suffix="тис."
+            suffix="кроків"
             placeholder="0"
             min={0}
-            max={50}
-            value={form.steps == null ? null : form.steps / 1000}
-            onChange={(v) => set("steps", v == null ? null : Math.round(v * 1000))}
+            max={100000}
+            value={form.steps}
+            onChange={(v) => set("steps", v == null ? null : Math.round(v))}
           />
         </Card>
         <Card>

@@ -85,6 +85,61 @@ export function isToday(iso: string): boolean {
   return iso === todayISO();
 }
 
+// ----------------------- Періоди (тиждень / місяць) -----------------------
+
+const MONTHS_NOM = [
+  "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+  "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
+];
+const MONTHS_SHORT = [
+  "січ", "лют", "бер", "кві", "тра", "чер",
+  "лип", "сер", "вер", "жов", "лис", "гру",
+];
+
+export type PeriodType = "week" | "month";
+
+export interface PeriodRange {
+  start: string; // ISO, включно
+  end: string; // ISO, включно
+  days: number;
+}
+
+/**
+ * Календарний період, зсунутий на `offset` назад (0 = поточний).
+ * Тиждень — Пн–Нд; місяць — календарний місяць.
+ */
+export function periodRange(type: PeriodType, offset: number): PeriodRange {
+  const now = new Date();
+  if (type === "week") {
+    const fromMonday = (now.getDay() + 6) % 7; // 0=Sun -> 6, 1=Mon -> 0
+    const start = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - fromMonday - offset * 7,
+    );
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+    return { start: toISODate(start), end: toISODate(end), days: 7 };
+  }
+  const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const end = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0); // останній день місяця
+  return { start: toISODate(start), end: toISODate(end), days: end.getDate() };
+}
+
+/** Підпис періоду: "20–26 лип", "28 лип – 3 сер" або "Липень 2026". */
+export function periodLabel(type: PeriodType, offset: number): string {
+  const { start, end } = periodRange(type, offset);
+  if (type === "month") {
+    const d = parseISODate(start);
+    return `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  const s = parseISODate(start);
+  const e = parseISODate(end);
+  if (s.getMonth() === e.getMonth()) {
+    return `${s.getDate()}–${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
+  }
+  return `${s.getDate()} ${MONTHS_SHORT[s.getMonth()]} – ${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
+}
+
 // ----------------------- Дельти -----------------------
 
 export interface Delta {
