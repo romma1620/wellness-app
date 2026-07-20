@@ -197,10 +197,15 @@ export async function saveWorkout(
     weight: number | null;
     reps: number;
   }[] = [];
+  // set_number — наскрізний лічильник у межах усього тренування (порядок вставки),
+  // а не лічильник у межах вправи: loadWorkoutDraft сортує підходи за set_number
+  // і за першою появою exercise_id відновлює порядок вправ, тож значення мають
+  // бути монотонними по всій сесії, інакше вправи з однаковими set_number
+  // впорядковуються недетерміновано.
+  let n = 0;
   for (const d of exs) {
     const exId = idMap.get(d.key);
     if (!exId) continue;
-    let n = 0;
     for (const s of d.sets) {
       if (s.reps == null || s.reps <= 0) continue;
       n += 1;
