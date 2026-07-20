@@ -102,6 +102,9 @@ export function MeasurementsSection() {
 
   return (
     <div className="flex flex-col gap-[15px]">
+      <div className="px-1 text-[12.5px] font-semibold text-muted">
+        {latest ? `оновлено ${shortDate(latest.date)}` : "ще не заповнено"}
+      </div>
       {needReminder && (
         <div className="flex items-center gap-3 rounded-[18px] bg-primary-light px-4 py-[15px]">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary">
