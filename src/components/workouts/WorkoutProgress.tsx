@@ -48,7 +48,7 @@ export function WorkoutProgress({
   const series = exId ? exerciseSeries(workouts, exId, metric) : [];
   const compare = exId ? compareLastTwo(workouts, exId) : null;
   const rtSeries = rtId ? routineSeries(workouts, rtId) : [];
-  const unit = metric === "tonnage" ? "кг" : metric === "orm" ? "кг" : "кг";
+  const unit = "кг";
 
   return (
     <div className="flex flex-col gap-[15px]">
@@ -78,7 +78,7 @@ export function WorkoutProgress({
           <div className="mb-3">
             <Segmented options={METRIC_OPTS} value={metric} onChange={setMetric} />
           </div>
-          <MetricLine data={series.map((p) => ({ label: p.label, value: p.value }))} />
+          <MetricLine data={series.map((p) => ({ label: p.label, value: p.value }))} unit="кг" />
 
           {/* C. Порівняння з минулим */}
           {compare && (
@@ -130,7 +130,7 @@ export function WorkoutProgress({
               </button>
             ))}
           </div>
-          <MetricLine data={rtSeries} />
+          <MetricLine data={rtSeries} unit="кг" />
           <div className="mt-2 text-center text-[11px] font-semibold text-muted">
             загальний тоннаж сесії, {unit}
           </div>

@@ -21,6 +21,7 @@ import {
   type DraftWorkout,
 } from "@/lib/workouts";
 import {
+  deleteWorkout,
   loadExercises,
   loadRoutineExercises,
   loadRoutines,
@@ -118,6 +119,14 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   }
 
   async function onSave() {
+    const hasValid = draft.exercises.some(
+      (e) => e.name.trim() && e.sets.some((s) => s.reps != null && s.reps > 0),
+    );
+    if (!hasValid) {
+      setError("Додай хоча б одну вправу з підходом.");
+      setSaveState("idle");
+      return;
+    }
     setSaveState("saving");
     setError(null);
     try {
@@ -131,6 +140,17 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
     } catch {
       setSaveState("error");
       setError("Не вдалося зберегти тренування. Спробуй ще раз.");
+    }
+  }
+
+  async function onDelete() {
+    if (!workoutId) return;
+    try {
+      await deleteWorkout(supabase, workoutId);
+      router.push("/workouts");
+      router.refresh();
+    } catch {
+      setError("Не вдалося видалити тренування.");
     }
   }
 
@@ -283,6 +303,16 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       <Button type="button" onClick={onSave} loading={saveState === "saving"}>
         Зберегти
       </Button>
+
+      {workoutId && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="w-full text-center text-[13px] font-extrabold text-neg"
+        >
+          Видалити тренування
+        </button>
+      )}
     </div>
   );
 }
