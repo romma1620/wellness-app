@@ -1,6 +1,6 @@
-export type ThemeName = "peach" | "mint" | "lavender";
+export type ThemeName = "peach" | "mint" | "lavender" | "pink";
 
-export const THEMES: ThemeName[] = ["peach", "mint", "lavender"];
+export const THEMES: ThemeName[] = ["peach", "mint", "lavender", "pink"];
 
 export interface Profile {
   id: string;

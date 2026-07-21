@@ -1,11 +1,11 @@
 "use client";
 
-import { MeasurementsSection } from "@/components/MeasurementsSection";
 import { useTheme } from "@/components/ThemeProvider";
-import { Button, Card, Collapsible, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
+import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, ThemeName } from "@/lib/types";
 import { parseNum } from "@/lib/utils";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -13,6 +13,7 @@ const THEME_SWATCHES: { value: ThemeName; label: string; color: string }[] = [
   { value: "peach", label: "Peach", color: "#E5906F" },
   { value: "mint", label: "Mint", color: "#5FB89C" },
   { value: "lavender", label: "Lavender", color: "#9384C2" },
+  { value: "pink", label: "Pink", color: "#E0759B" },
 ];
 
 export default function SettingsPage() {
@@ -248,9 +249,23 @@ export default function SettingsPage() {
       </Card>
 
       {/* Заміри тіла */}
-      <Collapsible title="Заміри тіла" subtitle="Талія, стегна, груди, нога, рука — раз на 2 тижні">
-        <MeasurementsSection />
-      </Collapsible>
+      <Link
+        href="/measurements"
+        className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-4 active:scale-[.99]"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary-light text-primary">
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7.5h16M3 11h16M3 14.5h16M7 4v4M15 10v4" />
+          </svg>
+        </span>
+        <span className="flex flex-col">
+          <span className="text-[15px] font-extrabold">Заміри тіла</span>
+          <span className="text-[12.5px] font-semibold text-muted">Талія, стегна, груди, нога, рука</span>
+        </span>
+        <svg className="ml-auto text-muted" width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 5l6 6-6 6" />
+        </svg>
+      </Link>
 
       {/* Логаут */}
       <button

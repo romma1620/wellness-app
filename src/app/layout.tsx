@@ -37,7 +37,7 @@ export const viewport: Viewport = {
 };
 
 // Застосовуємо тему до першого рендера, щоб уникнути мигання.
-const themeScript = `(function(){try{var t=localStorage.getItem('aura-theme');if(t==='peach'||t==='mint'||t==='lavender'){document.documentElement.dataset.theme=t;}else{document.documentElement.dataset.theme='peach';}}catch(e){document.documentElement.dataset.theme='peach';}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem('aura-theme');if(t==='peach'||t==='mint'||t==='lavender'||t==='pink'){document.documentElement.dataset.theme=t;}else{document.documentElement.dataset.theme='peach';}}catch(e){document.documentElement.dataset.theme='peach';}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

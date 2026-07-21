@@ -49,6 +49,20 @@
   --ring: rgba(55, 45, 70, 0.45);
 }
 
+[data-theme="pink"] {
+  --primary: #e0759b;
+  --primary-light: #f8d9e6;
+  --bg: #fdf3f7;
+  --surface: #ffffff;
+  --text: #4d3540;
+  --muted: #a58b98;
+  --accent: #c47fb9;
+  --pos: #4a9d7e;
+  --warn: #c98a3d;
+  --neg: #cc5f7d;
+  --ring: rgba(60, 30, 45, 0.45);
+}
+
 html {
   background: var(--bg);
 }

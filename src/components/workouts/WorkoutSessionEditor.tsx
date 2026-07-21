@@ -29,6 +29,7 @@ import {
   saveWorkout,
 } from "@/lib/workouts-db";
 import { humanDate, todayISO } from "@/lib/utils";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -159,9 +160,14 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   return (
     <div className="flex flex-col gap-[15px]">
       <div className="flex items-center justify-between px-1">
-        <h1 className="text-[22px] font-extrabold">
-          {workoutId ? "Редагувати" : "Нове тренування"}
-        </h1>
+        <div className="flex items-center gap-2">
+          <Link href="/workouts" aria-label="Назад" className="text-muted">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
+          </Link>
+          <h1 className="text-[22px] font-extrabold">
+            {workoutId ? "Редагувати" : "Нове тренування"}
+          </h1>
+        </div>
         <SaveIndicator state={saveState} />
       </div>
 
