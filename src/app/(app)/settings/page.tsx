@@ -1,7 +1,8 @@
 "use client";
 
+import { MeasurementsSection } from "@/components/MeasurementsSection";
 import { useTheme } from "@/components/ThemeProvider";
-import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
+import { Button, Card, Collapsible, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, ThemeName } from "@/lib/types";
 import { parseNum } from "@/lib/utils";
@@ -245,6 +246,11 @@ export default function SettingsPage() {
           })}
         </div>
       </Card>
+
+      {/* Заміри тіла */}
+      <Collapsible title="Заміри тіла" subtitle="Талія, стегна, груди, нога, рука — раз на 2 тижні">
+        <MeasurementsSection />
+      </Collapsible>
 
       {/* Логаут */}
       <button

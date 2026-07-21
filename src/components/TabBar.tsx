@@ -40,12 +40,11 @@ const TABS: { href: string; label: string; icon: ReactNode }[] = [
     ),
   },
   {
-    href: "/measurements",
-    label: "Заміри",
+    href: "/workouts",
+    label: "Тренування",
     icon: (
       <svg {...ICON_PROPS}>
-        <rect x="3.5" y="7" width="15" height="8" rx="2.5" />
-        <path d="M7.5 7v2.5M11 7v3.5M14.5 7v2.5" />
+        <path d="M4 8.5v5M18 8.5v5M6.5 7v8M15.5 7v8M6.5 11h9" />
       </svg>
     ),
   },

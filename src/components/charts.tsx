@@ -173,9 +173,11 @@ export function Sparkline({ values }: { values: number[] }) {
 export function MetricLine({
   data,
   height = 150,
+  unit = "см",
 }: {
   data: { label: string; value: number | null }[];
   height?: number;
+  unit?: string;
 }) {
   const vals = data.map((d) => d.value).filter((v): v is number => v != null);
   if (vals.length === 0) {
@@ -210,7 +212,7 @@ export function MetricLine({
           content={({ active, payload, label }: any) =>
             active && payload?.length ? (
               <div className="rounded-lg bg-surface px-2 py-1 text-[11px] font-bold text-primary shadow-card">
-                {label}: {fmt(payload[0].value, 1)} см
+                {label}: {fmt(payload[0].value, 1)} {unit}
               </div>
             ) : null
           }

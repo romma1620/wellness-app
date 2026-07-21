@@ -161,3 +161,110 @@ create policy "avatars_delete_own" on storage.objects
   for delete using (
     bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ============================================================
+--  Тренування: exercises / routines / workouts / sets
+-- ============================================================
+
+-- ---------- Довідник вправ ----------
+create table if not exists public.exercises (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  name         text not null,
+  muscle_group text,   -- 'ноги'|'спина'|'груди'|'плечі'|'руки'|'кор'|'інше' | null
+  created_at   timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+alter table public.exercises enable row level security;
+
+drop policy if exists "exercises_all_own" on public.exercises;
+create policy "exercises_all_own" on public.exercises
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists exercises_user_idx on public.exercises (user_id);
+
+-- ---------- Шаблони тренувань ----------
+create table if not exists public.routines (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  name       text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.routines enable row level security;
+
+drop policy if exists "routines_all_own" on public.routines;
+create policy "routines_all_own" on public.routines
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists routines_user_idx on public.routines (user_id);
+
+-- ---------- Вправи в шаблоні ----------
+create table if not exists public.routine_exercises (
+  id          uuid primary key default gen_random_uuid(),
+  routine_id  uuid not null references public.routines(id) on delete cascade,
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
+  position    integer not null default 0
+);
+
+alter table public.routine_exercises enable row level security;
+
+drop policy if exists "routine_exercises_own" on public.routine_exercises;
+create policy "routine_exercises_own" on public.routine_exercises
+  for all using (
+    exists (select 1 from public.routines r
+            where r.id = routine_id and r.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.routines r
+            where r.id = routine_id and r.user_id = auth.uid())
+  );
+
+create index if not exists routine_exercises_routine_idx
+  on public.routine_exercises (routine_id);
+
+-- ---------- Сесія тренування ----------
+create table if not exists public.workouts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  date       date not null,
+  routine_id uuid references public.routines(id) on delete set null,
+  name       text,
+  note       text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.workouts enable row level security;
+
+drop policy if exists "workouts_all_own" on public.workouts;
+create policy "workouts_all_own" on public.workouts
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists workouts_user_date_idx
+  on public.workouts (user_id, date desc);
+
+-- ---------- Підходи ----------
+create table if not exists public.workout_sets (
+  id          uuid primary key default gen_random_uuid(),
+  workout_id  uuid not null references public.workouts(id) on delete cascade,
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
+  set_number  integer not null,
+  weight      numeric,   -- null для вправ з власною вагою
+  reps        integer not null,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.workout_sets enable row level security;
+
+drop policy if exists "workout_sets_own" on public.workout_sets;
+create policy "workout_sets_own" on public.workout_sets
+  for all using (
+    exists (select 1 from public.workouts w
+            where w.id = workout_id and w.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.workouts w
+            where w.id = workout_id and w.user_id = auth.uid())
+  );
+
+create index if not exists workout_sets_workout_idx
+  on public.workout_sets (workout_id);

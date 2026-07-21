@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   forwardRef,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
@@ -211,6 +212,50 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-[14px] border-[1.5px] border-neg/40 bg-neg/10 px-4 py-3 text-[13px] font-bold text-neg">
       {children}
+    </div>
+  );
+}
+
+// ----------------------- Collapsible -----------------------
+export function Collapsible({
+  title,
+  subtitle,
+  defaultOpen = false,
+  children,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl2 bg-surface shadow-card">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+        aria-expanded={open}
+      >
+        <div>
+          <div className="text-[15px] font-extrabold text-ink">{title}</div>
+          {subtitle && <div className="mt-0.5 text-[12px] font-semibold text-muted">{subtitle}</div>}
+        </div>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 22 22"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")}
+        >
+          <path d="M5 8l6 6 6-6" />
+        </svg>
+      </button>
+      {open && <div className="border-t border-primary-light px-4 pb-4 pt-4">{children}</div>}
     </div>
   );
 }

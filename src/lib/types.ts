@@ -59,3 +59,53 @@ export const MEASUREMENT_META: { key: MeasurementKey; label: string }[] = [
   { key: "leg", label: "Обхват ноги" },
   { key: "arm", label: "Обхват руки" },
 ];
+
+// ----------------------- Тренування -----------------------
+
+export type MuscleGroup = "ноги" | "спина" | "груди" | "плечі" | "руки" | "кор" | "інше";
+
+export const MUSCLE_GROUPS: MuscleGroup[] = [
+  "ноги", "спина", "груди", "плечі", "руки", "кор", "інше",
+];
+
+export interface Exercise {
+  id: string;
+  user_id: string;
+  name: string;
+  muscle_group: MuscleGroup | null;
+  created_at: string;
+}
+
+export interface Routine {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface RoutineExercise {
+  id: string;
+  routine_id: string;
+  exercise_id: string;
+  position: number;
+}
+
+export interface Workout {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  routine_id: string | null;
+  name: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface WorkoutSet {
+  id: string;
+  workout_id: string;
+  exercise_id: string;
+  set_number: number;
+  weight: number | null;
+  reps: number;
+  created_at: string;
+}
