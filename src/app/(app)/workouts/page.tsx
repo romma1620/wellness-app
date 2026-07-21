@@ -3,9 +3,9 @@
 import { Button, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
 import { createClient } from "@/lib/supabase/client";
-import type { Exercise, Routine } from "@/lib/types";
+import type { Exercise } from "@/lib/types";
 import { exerciseCount, workoutTonnage, type LoadedWorkout } from "@/lib/workouts";
-import { loadExercises, loadRoutines, loadWorkoutsWithSets } from "@/lib/workouts-db";
+import { loadExercises, loadWorkoutsWithSets } from "@/lib/workouts-db";
 import { fmtInt, humanDate } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,6 @@ export default function WorkoutsPage() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState<LoadedWorkout[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,14 +26,12 @@ export default function WorkoutsPage() {
         const { data: u } = await supabase.auth.getUser();
         const uid = u.user?.id;
         if (!uid) throw new Error("no-user");
-        const [ws, ex, rt] = await Promise.all([
+        const [ws, ex] = await Promise.all([
           loadWorkoutsWithSets(supabase, uid),
           loadExercises(supabase, uid),
-          loadRoutines(supabase, uid),
         ]);
         setWorkouts(ws);
         setExercises(ex);
-        setRoutines(rt);
       } catch {
         setError("Не вдалося завантажити тренування.");
       } finally {
@@ -88,7 +85,7 @@ export default function WorkoutsPage() {
       )}
 
       {!loading && workouts.length > 0 && (
-        <WorkoutProgress workouts={workouts} exercises={exercises} routines={routines} />
+        <WorkoutProgress workouts={workouts} exercises={exercises} />
       )}
     </div>
   );
