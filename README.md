@@ -39,7 +39,7 @@ npm run dev
 
 | Таблиця        | Поля |
 |----------------|------|
-| `profiles`     | id (=auth.uid), name, avatar_url, height, target_weight, theme (peach/mint/lavender), created_at |
+| `profiles`     | id (=auth.uid), name, avatar_url, height, target_weight, theme (peach/mint/lavender/pink), created_at |
 | `daily_logs`   | id, user_id, date (унікальна на користувача), weight, kcal, protein, fat, carbs, water (0–8), steps, sport, care, comment |
 | `measurements` | id, user_id, date, waist, hips, chest, leg, arm |
 | `rewards`      | id, user_id, weight, gift, achieved |
@@ -58,7 +58,7 @@ RLS: усі політики фільтрують за `auth.uid() = user_id`. S
 
 ## 5. Теми
 
-Три теми (`peach`, `mint`, `lavender`) реалізовані через CSS-змінні на
+Чотири теми (`peach`, `mint`, `lavender`, `pink`) реалізовані через CSS-змінні на
 `html[data-theme]` (див. `src/app/globals.css`). Вибір зберігається в
 `profiles.theme` і застосовується миттєво без перезавантаження. Щоб уникнути
 мигання, тема підтягується з `localStorage` інлайн-скриптом до першого рендера.

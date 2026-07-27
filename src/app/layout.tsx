@@ -1,4 +1,5 @@
 import { RegisterSW } from "@/components/RegisterSW";
+import { THEMES } from "@/lib/types";
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
@@ -37,11 +38,15 @@ export const viewport: Viewport = {
 };
 
 // Застосовуємо тему до першого рендера, щоб уникнути мигання.
-const themeScript = `(function(){try{var t=localStorage.getItem('aura-theme');if(t==='peach'||t==='mint'||t==='lavender'||t==='pink'){document.documentElement.dataset.theme=t;}else{document.documentElement.dataset.theme='peach';}}catch(e){document.documentElement.dataset.theme='peach';}})();`;
+// data-theme свідомо НЕ ставимо в JSX: атрибутом володіє цей скрипт і
+// ThemeProvider, інакше React може перезаписати вибір користувача дефолтом.
+const themeScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem('aura-theme');d.dataset.theme=${JSON.stringify(
+  THEMES,
+)}.indexOf(t)>-1?t:'peach';}catch(e){d.dataset.theme='peach';}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" data-theme="peach" className={nunito.variable} suppressHydrationWarning>
+    <html lang="uk" className={nunito.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

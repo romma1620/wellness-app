@@ -7,9 +7,12 @@
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'theme_name') then
-    create type theme_name as enum ('peach', 'mint', 'lavender');
+    create type theme_name as enum ('peach', 'mint', 'lavender', 'pink');
   end if;
 end$$;
+
+-- Для БД, створених до появи теми "pink" (idempotent, PostgreSQL 12+).
+alter type theme_name add value if not exists 'pink';
 
 -- ============================================================
 --  profiles

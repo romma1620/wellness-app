@@ -19,7 +19,7 @@ const THEME_SWATCHES: { value: ThemeName; label: string; color: string }[] = [
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, error: themeError } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -214,6 +214,11 @@ export default function SettingsPage() {
       {/* Тема */}
       <Card>
         <SectionLabel>Тема застосунку</SectionLabel>
+        {themeError && (
+          <div className="mb-3">
+            <ErrorBanner>{themeError}</ErrorBanner>
+          </div>
+        )}
         <div className="flex justify-around">
           {THEME_SWATCHES.map((s) => {
             const active = theme === s.value;

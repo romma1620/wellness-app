@@ -16,6 +16,7 @@ interface ThemeCtx {
   theme: ThemeName;
   setTheme: (t: ThemeName) => void;
   saving: boolean;
+  error: string | null;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
@@ -37,20 +38,12 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<ThemeName>(initialTheme);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const reconciled = useRef(false);
+  const themeRef = useRef<ThemeName>(initialTheme);
 
-  // Синхронізуємо тему з БД (джерело істини) при першому монтуванні.
-  useEffect(() => {
-    apply(initialTheme);
-    try {
-      localStorage.setItem(STORAGE_KEY, initialTheme);
-    } catch {
-      /* ignore */
-    }
-    reconciled.current = true;
-  }, [initialTheme]);
-
-  const setTheme = useCallback((t: ThemeName) => {
+  const commit = useCallback((t: ThemeName) => {
+    themeRef.current = t;
     setThemeState(t);
     apply(t);
     try {
@@ -58,23 +51,49 @@ export function ThemeProvider({
     } catch {
       /* ignore */
     }
-    setSaving(true);
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      const uid = data.user?.id;
-      if (!uid) {
-        setSaving(false);
-        return;
-      }
-      supabase
-        .from("profiles")
-        .update({ theme: t })
-        .eq("id", uid)
-        .then(() => setSaving(false));
-    });
   }, []);
 
-  return <Ctx.Provider value={{ theme, setTheme, saving }}>{children}</Ctx.Provider>;
+  // Синхронізуємо тему з БД (джерело істини) лише при першому монтуванні:
+  // подальші router.refresh() не повинні перетирати вибір користувача.
+  useEffect(() => {
+    if (reconciled.current) return;
+    reconciled.current = true;
+    commit(initialTheme);
+  }, [initialTheme, commit]);
+
+  const setTheme = useCallback(
+    (t: ThemeName) => {
+      const prev = themeRef.current;
+      if (t === prev) return;
+
+      commit(t); // оптимістично
+      setSaving(true);
+      setError(null);
+
+      void (async () => {
+        try {
+          const supabase = createClient();
+          const { data, error: authErr } = await supabase.auth.getUser();
+          const uid = data.user?.id;
+          if (authErr || !uid) throw authErr ?? new Error("no-user");
+          const { error: updErr } = await supabase
+            .from("profiles")
+            .update({ theme: t })
+            .eq("id", uid);
+          if (updErr) throw updErr;
+        } catch {
+          // Відкочуємось, щоб UI не розійшовся з БД і не «стрибнув» пізніше.
+          commit(prev);
+          setError("Не вдалося зберегти тему.");
+        } finally {
+          setSaving(false);
+        }
+      })();
+    },
+    [commit],
+  );
+
+  return <Ctx.Provider value={{ theme, setTheme, saving, error }}>{children}</Ctx.Provider>;
 }
 
 export function useTheme() {
