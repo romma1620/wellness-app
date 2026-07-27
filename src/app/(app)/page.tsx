@@ -10,146 +10,150 @@ import {
   type SaveState,
 } from "@/components/inputs";
 import { Card, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
+import {
+  applySaved,
+  diffDay,
+  EMPTY_DAY,
+  formFromRow,
+  hasChanges,
+  type DailyForm,
+  type DailyPatch,
+} from "@/lib/daily-log";
+import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
 import { createClient } from "@/lib/supabase/client";
-import type { DailyLog } from "@/lib/types";
 import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CARE_PRESETS = ["Скраб", "Крем", "Гуаша", "Маска"];
+const SAVE_DEBOUNCE_MS = 700;
 
-type Form = {
-  weight: number | null;
-  kcal: number | null;
-  protein: number | null;
-  fat: number | null;
-  carbs: number | null;
-  water: number | null;
-  steps: number | null; // фактичні кроки
-  sport: string;
-  care: string;
-  comment: string;
-};
-
-const EMPTY: Form = {
-  weight: null,
-  kcal: null,
-  protein: null,
-  fat: null,
-  carbs: null,
-  water: null,
-  steps: null,
-  sport: "",
-  care: "",
-  comment: "",
+/**
+ * Форма зберігається разом із датою, якій вона належить: збереження бере дату
+ * звідси, а не з поточного рендера, тож дані одного дня не можуть потрапити в інший.
+ * `loaded` — знімок із сервера, база для обчислення того, що реально змінилось.
+ */
+type DayState = {
+  date: string;
+  loaded: DailyForm;
+  form: DailyForm;
 };
 
 export default function TodayPage() {
   const supabase = useMemo(() => createClient(), []);
   const [date, setDate] = useState(todayISO());
-  const [form, setForm] = useState<Form>(EMPTY);
+  const [day, setDay] = useState<DayState | null>(null);
   const [baselineWeight, setBaselineWeight] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [save, setSave] = useState<SaveState>("idle");
 
+  // Кожне завантаження має свій номер: відповідь, яку встиг обігнати
+  // пізніший запит, ігнорується — інакше форма одного дня лишалась би
+  // на екрані під датою іншого.
+  const reqId = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipSave = useRef(true); // не зберігати одразу після завантаження
+  const pending = useRef<{ date: string; patch: DailyPatch } | null>(null);
+
+  const commit = useCallback(
+    async (target: string, patch: DailyPatch) => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData.user?.id;
+        if (!uid) throw new Error("no-user");
+        await saveDayPatch(supabase, uid, target, patch);
+        // збережене стає новою базою, щоб не потрапити в наступний патч
+        setDay((d) => (d && d.date === target ? { ...d, loaded: applySaved(d.loaded, patch) } : d));
+        setSave("saved");
+      } catch {
+        setSave("error");
+      }
+    },
+    [supabase],
+  );
+
+  /** Негайно відправити відкладене збереження: зміна дня, згортання застосунку, unmount. */
+  const flush = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const p = pending.current;
+    if (!p) return;
+    pending.current = null;
+    void commit(p.date, p.patch);
+  }, [commit]);
 
   const load = useCallback(
     async (d: string) => {
-      setLoading(true);
+      const my = ++reqId.current;
       setLoadError(null);
-      skipSave.current = true;
       try {
         const { data: userData } = await supabase.auth.getUser();
         const uid = userData.user?.id;
         if (!uid) throw new Error("no-user");
 
-        const { data, error } = await supabase
-          .from("daily_logs")
-          .select("*")
-          .eq("user_id", uid)
-          .gte("date", addDays(d, -7))
-          .lte("date", d)
-          .order("date", { ascending: true });
-        if (error) throw error;
+        const { current, baselineWeight: baseline } = await loadDayWindow(supabase, uid, d);
+        if (my !== reqId.current) return; // застаріла відповідь
 
-        const rows = (data ?? []) as DailyLog[];
-        const current = rows.find((r) => r.date === d) ?? null;
-        const baseline = rows.find((r) => r.date !== d && r.weight != null)?.weight ?? null;
+        const form = formFromRow(current);
         setBaselineWeight(baseline);
-
-        setForm(
-          current
-            ? {
-                weight: current.weight,
-                kcal: current.kcal,
-                protein: current.protein,
-                fat: current.fat,
-                carbs: current.carbs,
-                water: current.water,
-                steps: current.steps,
-                sport: current.sport ?? "",
-                care: current.care ?? "",
-                comment: current.comment ?? "",
-              }
-            : EMPTY,
-        );
+        setDay({ date: d, loaded: form, form });
       } catch (err) {
+        if (my !== reqId.current) return;
         setLoadError(
           err instanceof Error && err.message === "no-user"
             ? "Сесія завершилась. Онови сторінку."
             : "Не вдалося завантажити день. Перевір зʼєднання.",
         );
-        setForm(EMPTY);
-      } finally {
-        setLoading(false);
-        // дозволяємо збереження після наступного тіку
-        setTimeout(() => (skipSave.current = false), 0);
+        // без знімка з сервера редагувати нічого — інакше писали б наосліп
+        setDay(null);
       }
     },
     [supabase],
   );
 
   useEffect(() => {
+    flush(); // незбережене з попереднього дня йде в базу, а не в смітник
     load(date);
-  }, [date, load]);
+  }, [date, load, flush]);
 
-  // Автозбереження (debounce).
+  // Автозбереження (debounce). Таймер ніколи не скасовується завантаженням —
+  // тільки замінюється новим патчем того самого дня.
   useEffect(() => {
-    if (skipSave.current || loading) return;
-    if (timer.current) clearTimeout(timer.current);
-    setSave("saving");
-    timer.current = setTimeout(async () => {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const uid = userData.user?.id;
-        if (!uid) throw new Error("no-user");
-        const payload = {
-          user_id: uid,
-          date,
-          ...form,
-          sport: form.sport || null,
-          care: form.care || null,
-          comment: form.comment || null,
-        };
-        const { error } = await supabase
-          .from("daily_logs")
-          .upsert(payload, { onConflict: "user_id,date" });
-        if (error) throw error;
-        setSave("saved");
-      } catch {
-        setSave("error");
-      }
-    }, 700);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form]);
+    if (!day) return;
+    const patch = diffDay(day.loaded, day.form);
+    if (!hasChanges(patch)) return; // load або повернення значення назад
 
-  const set = <K extends keyof Form>(key: K, value: Form[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+    if (pending.current && pending.current.date !== day.date) flush();
+    pending.current = { date: day.date, patch };
+
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      flush();
+    }, SAVE_DEBOUNCE_MS);
+  }, [day, flush]);
+
+  // Згортання застосунку чи вихід зі сторінки не мають зʼїдати останні 700 мс.
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
+
+  const form = day?.form ?? EMPTY_DAY;
+  // Індикатор рахується з реального стану форми, а не з окремого прапорця,
+  // тому не може зависнути в «Збереження…» після перемикання дня.
+  const dirty = day ? hasChanges(diffDay(day.loaded, day.form)) : false;
+
+  const set = <K extends keyof DailyForm>(key: K, value: DailyForm[K]) =>
+    setDay((d) => (d ? { ...d, form: { ...d.form, [key]: value } } : d));
 
   const weekDelta =
     form.weight != null && baselineWeight != null ? form.weight - baselineWeight : null;
@@ -204,7 +208,7 @@ export default function TodayPage() {
       </div>
 
       <div className="flex justify-end px-1">
-        <SaveIndicator state={save} />
+        <SaveIndicator state={dirty ? "saving" : save} />
       </div>
 
       {loadError && <ErrorBanner>{loadError}</ErrorBanner>}
