@@ -1,6 +1,6 @@
 "use client";
 
-import { niceAxis, sparklinePoints } from "@/lib/chart-scale";
+import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
 import {
   Bar,
@@ -22,11 +22,9 @@ export interface WeightPoint {
 }
 
 export function WeightChart({ data }: { data: WeightPoint[] }) {
-  const weights = data.map((d) => d.weight).filter((v): v is number => v != null);
-  const axis = niceAxis(
-    weights.length ? Math.min(...weights) : 0,
-    weights.length ? Math.max(...weights) : 1,
-  );
+  // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
+  // може виходити далеко за межі ваг цього тижня.
+  const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
 
   return (
     <ResponsiveContainer width="100%" height={160}>
@@ -43,6 +41,7 @@ export function WeightChart({ data }: { data: WeightPoint[] }) {
         <YAxis
           domain={axis.domain}
           ticks={axis.ticks}
+          interval={0}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}
@@ -111,6 +110,7 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
         <YAxis
           domain={[axis.domain[0] * 1000, axis.domain[1] * 1000]}
           ticks={axis.ticks.map((t) => t * 1000)}
+          interval={0}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}
@@ -200,6 +200,7 @@ export function MetricLine({
         <YAxis
           domain={axis.domain}
           ticks={axis.ticks}
+          interval={0}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}

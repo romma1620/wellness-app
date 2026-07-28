@@ -175,3 +175,14 @@ export function avg(values: (number | null | undefined)[]): number | null {
 export function cn(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
+
+// ----------------------- Теги -----------------------
+
+/** "Скраб, Крем" -> ["Скраб", "Крем"] */
+export function splitTags(v: string | null | undefined): string[] {
+  if (!v) return [];
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}

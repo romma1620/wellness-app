@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { niceAxis, sparklinePoints } from "./chart-scale";
+import { axisFor, niceAxis, sparklinePoints } from "./chart-scale";
 import { fmtFixed } from "./utils";
 
 function labels(min: number, max: number): string[] {
@@ -167,5 +167,26 @@ describe("fmtFixed", () => {
     expect(fmtFixed(66.5, 1)).toBe("66,5");
     // uk-UA розділяє тисячі нерозривним пробілом.
     expect(fmtFixed(12000, 0).replace(/\s/g, " ")).toBe("12 000");
+  });
+});
+
+describe("axisFor", () => {
+  it("охоплює всі серії, а не лише першу", () => {
+    // Баг: вісь ваги рахувалась тільки з weight. За тиждень з однією вагою 23
+    // домен виходив [22.4, 23.6], а тренд тягнувся з минулого тижня до ~35.
+    // recharts (allowDataOverflow=false) розширював домен під дані, і всі тіки
+    // збивались у нижні відсотки полотна однією нечитабельною плямою.
+    const axis = axisFor([23, null, 30.5, 35]);
+    expect(axis.domain[0]).toBeLessThanOrEqual(23);
+    expect(axis.domain[1]).toBeGreaterThanOrEqual(35);
+  });
+
+  it("ігнорує порожні значення", () => {
+    expect(axisFor([null, 67.2, undefined, 67.9])).toEqual(niceAxis(67.2, 67.9));
+  });
+
+  it("порожній набір дає безпечну вісь", () => {
+    expect(axisFor([])).toEqual(niceAxis(0, 1));
+    expect(axisFor([null, undefined])).toEqual(niceAxis(0, 1));
   });
 });

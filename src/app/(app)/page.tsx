@@ -10,6 +10,7 @@ import {
   type SaveState,
 } from "@/components/inputs";
 import { Card, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
+import { CARE_PRESETS } from "@/lib/care";
 import {
   applySaved,
   diffDay,
@@ -24,7 +25,6 @@ import { createClient } from "@/lib/supabase/client";
 import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const CARE_PRESETS = ["Скраб", "Крем", "Гуаша", "Маска"];
 const SAVE_DEBOUNCE_MS = 700;
 
 /**
