@@ -104,3 +104,21 @@ export function niceAxis(min: number, max: number, targetTicks = 5): NiceAxis {
 
   return { domain: [ticks[0], ticks[ticks.length - 1]], ticks, decimals };
 }
+
+/**
+ * Вісь для всіх серій графіка одразу.
+ *
+ * Домен мусить покривати кожне намальоване значення, а не лише «головну»
+ * серію: recharts за замовчуванням (allowDataOverflow=false) сам розширює
+ * заданий домен під дані. Порахувавши вісь по одній серії, ми отримуємо
+ * тіки для вужчого діапазону, ніж той, у якому графік реально малюється, —
+ * і вони збиваються в купу біля краю.
+ */
+export function axisFor(
+  values: (number | null | undefined)[],
+  targetTicks = 5,
+): NiceAxis {
+  const nums = values.filter((v): v is number => v != null && Number.isFinite(v));
+  if (nums.length === 0) return niceAxis(0, 1, targetTicks);
+  return niceAxis(Math.min(...nums), Math.max(...nums), targetTicks);
+}
