@@ -50,7 +50,8 @@ export default function AnalyticsPage() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [careHistory, setCareHistory] = useState<CareHistoryRow[]>([]);
+  // null = історія ще не завантажилась; [] = завантажилась, але порожня (справжній запасний шлях).
+  const [careHistory, setCareHistory] = useState<CareHistoryRow[] | null>(null);
 
   const { start: curStart, end: curEnd, days: N } = periodRange(period, curOffset);
   const { start: cmpStart, end: cmpEnd } = periodRange(period, cmpOffset);
@@ -104,6 +105,9 @@ export default function AnalyticsPage() {
         const { data: u } = await supabase.auth.getUser();
         const uid = u.user?.id;
         if (!uid) return;
+        // Запит навмисно без ліміту: навіть якщо PostgREST обріже max-rows,
+        // order("date", ascending: true) лишає найстаріші рядки — порядок першої
+        // появи, а отже й колір кожного тега, збережеться.
         const { data, error } = await supabase
           .from("daily_logs")
           .select("date, care")
@@ -168,9 +172,13 @@ export default function AnalyticsPage() {
   );
 
   const careRows = useMemo(() => {
+    // Фільтруємо logs напряму, а не curLogs: curLogs — новий масив щоразу,
+    // це зламало б мемоізацію.
     const inPeriod = logs.filter((l) => l.date >= curStart && l.date <= curEnd);
-    // Якщо історія не завантажилась, кольори будуємо з логів періоду.
-    const colors = buildCareColorMap(careHistory.length ? careHistory : inPeriod);
+    // Якщо історія завантажилась, але порожня — кольори будуємо з логів періоду.
+    const colors = buildCareColorMap(
+      careHistory !== null && careHistory.length ? careHistory : inPeriod,
+    );
     return buildCareMatrix(inPeriod, curStart, N, colors);
   }, [logs, careHistory, curStart, curEnd, N]);
 
@@ -310,13 +318,16 @@ export default function AnalyticsPage() {
             <StepsBars data={stepsData} />
           </Card>
 
-          {/* Догляд за шкірою */}
-          <Card className="!p-[14px]">
-            <div className="mb-2.5 text-[12px] font-bold text-muted">
-              Догляд за шкірою, {period === "week" ? "тиж." : "міс."}
-            </div>
-            <CareDotChart rows={careRows} dates={careDates} />
-          </Card>
+          {/* Догляд за шкірою: картку показуємо лише коли історія доладів
+              вже завантажена, інакше графік на мить мигне тимчасовими кольорами. */}
+          {careHistory !== null && (
+            <Card className="!p-[14px]">
+              <div className="mb-2.5 text-[12px] font-bold text-muted">
+                Догляд за шкірою, {period === "week" ? "тиж." : "міс."}
+              </div>
+              <CareDotChart key={curStart} rows={careRows} dates={careDates} />
+            </Card>
+          )}
         </>
       )}
     </div>

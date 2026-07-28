@@ -53,33 +53,37 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
         {rows.map((row) => (
           <Fragment key={row.key}>
             <div className="truncate pr-1.5 text-[11px] font-bold text-ink">{row.label}</div>
-            {row.days.map((on, i) => (
-              <button
-                key={dates[i]}
-                type="button"
-                disabled={!on}
-                onClick={() => setActive({ key: row.key, iso: dates[i] })}
-                aria-label={on ? `${row.label}, ${shortDate(dates[i])}` : undefined}
-                className="flex h-6 items-center justify-center"
-              >
-                <span
-                  className="rounded-full transition-transform"
-                  style={
-                    on
-                      ? {
-                          width: dot,
-                          height: dot,
-                          background: row.color,
-                          transform:
-                            active?.key === row.key && active.iso === dates[i]
-                              ? "scale(1.35)"
-                              : undefined,
-                        }
-                      : { width: 3, height: 3, background: "var(--primary-light)" }
-                  }
-                />
-              </button>
-            ))}
+            {dates.map((iso, i) => {
+              const on = row.days[i] ?? false;
+              const isActive = active?.key === row.key && active.iso === iso;
+              return on ? (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => setActive({ key: row.key, iso })}
+                  aria-label={`${row.label}, ${shortDate(iso)}`}
+                  aria-pressed={isActive}
+                  className="flex h-6 items-center justify-center"
+                >
+                  <span
+                    className="rounded-full transition-transform"
+                    style={{
+                      width: dot,
+                      height: dot,
+                      background: row.color,
+                      transform: isActive ? "scale(1.35)" : undefined,
+                    }}
+                  />
+                </button>
+              ) : (
+                <span key={iso} className="flex h-6 items-center justify-center">
+                  <span
+                    className="rounded-full transition-transform"
+                    style={{ width: 3, height: 3, background: "var(--primary-light)" }}
+                  />
+                </span>
+              );
+            })}
             <div className="pl-1 text-right text-[10.5px] font-bold text-muted">{row.count}</div>
           </Fragment>
         ))}

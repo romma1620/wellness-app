@@ -130,7 +130,7 @@ export function PresetChips({
   onChange,
   addPlaceholder = "Своє…",
 }: {
-  presets: string[];
+  presets: readonly string[];
   value: string; // comma-separated
   onChange: (v: string) => void;
   addPlaceholder?: string;
