@@ -21,6 +21,15 @@ export function fmt(
   });
 }
 
+/** Як fmt, але з фіксованою кількістю знаків: fmtFixed(67, 1) -> "67,0". */
+export function fmtFixed(value: number | null | undefined, digits: number): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("uk-UA", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
 /** Ціле число з розділювачем тисяч (1 640). */
 export function fmtInt(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";

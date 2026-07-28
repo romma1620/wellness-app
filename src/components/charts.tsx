@@ -1,6 +1,7 @@
 "use client";
 
-import { fmt, fmtInt } from "@/lib/utils";
+import { niceAxis, sparklinePoints } from "@/lib/chart-scale";
+import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
 import {
   Bar,
   BarChart,
@@ -22,9 +23,10 @@ export interface WeightPoint {
 
 export function WeightChart({ data }: { data: WeightPoint[] }) {
   const weights = data.map((d) => d.weight).filter((v): v is number => v != null);
-  const min = weights.length ? Math.min(...weights) : 0;
-  const max = weights.length ? Math.max(...weights) : 1;
-  const pad = Math.max((max - min) * 0.25, 0.5);
+  const axis = niceAxis(
+    weights.length ? Math.min(...weights) : 0,
+    weights.length ? Math.max(...weights) : 1,
+  );
 
   return (
     <ResponsiveContainer width="100%" height={160}>
@@ -39,12 +41,13 @@ export function WeightChart({ data }: { data: WeightPoint[] }) {
           minTickGap={12}
         />
         <YAxis
-          domain={[min - pad, max + pad]}
+          domain={axis.domain}
+          ticks={axis.ticks}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}
-          width={34}
-          tickFormatter={(v: number) => fmt(v, 0)}
+          width={axis.decimals > 0 ? 40 : 34}
+          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
         />
         <Tooltip content={<WeightTooltip />} />
         <Line
@@ -90,6 +93,9 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
   if (!has) {
     return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
+  // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
+  const maxK = Math.max(...data.map((d) => d.steps ?? 0)) / 1000;
+  const axis = niceAxis(0, maxK);
   return (
     <ResponsiveContainer width="100%" height={170}>
       <BarChart data={data} margin={{ top: 8, right: 6, left: -14, bottom: 0 }} barCategoryGap="22%">
@@ -103,11 +109,13 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
           minTickGap={12}
         />
         <YAxis
+          domain={[axis.domain[0] * 1000, axis.domain[1] * 1000]}
+          ticks={axis.ticks.map((t) => t * 1000)}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}
           width={40}
-          tickFormatter={(v: number) => (v === 0 ? "0" : fmt(v / 1000, 0))}
+          tickFormatter={(v: number) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals))}
         />
         <Tooltip
           cursor={{ fill: "var(--primary-light)", opacity: 0.4 }}
@@ -139,22 +147,13 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
 
 /** Легкий SVG-спарклайн (без recharts) для карток. */
 export function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) {
-    return <div className="h-7" />;
-  }
   const w = 100;
   const h = 28;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const step = w / (values.length - 1);
-  const pts = values
-    .map((v, i) => {
-      const x = i * step;
-      const y = h - 4 - ((v - min) / span) * (h - 8);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const points = sparklinePoints(values, w, h, 4);
+  if (points.length === 0) {
+    return <div className="h-7" />;
+  }
+  const pts = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} className="mt-1.5">
       <polyline
@@ -185,9 +184,7 @@ export function MetricLine({
       <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>
     );
   }
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const pad = Math.max((max - min) * 0.3, 0.5);
+  const axis = niceAxis(Math.min(...vals), Math.max(...vals));
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -201,12 +198,13 @@ export function MetricLine({
           minTickGap={16}
         />
         <YAxis
-          domain={[min - pad, max + pad]}
+          domain={axis.domain}
+          ticks={axis.ticks}
           tick={{ fontSize: 10, fill: "var(--muted)" }}
           tickLine={false}
           axisLine={false}
-          width={32}
-          tickFormatter={(v: number) => fmt(v, 0)}
+          width={axis.decimals > 0 ? 40 : 32}
+          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
         />
         <Tooltip
           content={({ active, payload, label }: any) =>
