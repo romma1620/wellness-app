@@ -1,7 +1,7 @@
 "use client";
 
 import { FieldLabel, Input } from "@/components/ui";
-import { cn, parseNum } from "@/lib/utils";
+import { cn, parseNum, splitTags } from "@/lib/utils";
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 
 // ----------------------- useDecimalBuffer -----------------------
@@ -298,10 +298,3 @@ export function SaveIndicator({ state }: { state: SaveState }) {
   return <span className={cn("text-[12px] font-bold", cls)}>{text}</span>;
 }
 
-export function splitTags(v: string | null | undefined): string[] {
-  if (!v) return [];
-  return v
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
