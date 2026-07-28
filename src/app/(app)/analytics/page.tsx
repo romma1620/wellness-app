@@ -1,7 +1,9 @@
 "use client";
 
 import { StepsBars, WeightChart, type WeightPoint } from "@/components/charts";
+import { CareDotChart } from "@/components/CareDotChart";
 import { Card, EmptyState, ErrorBanner, FullLoader, Segmented } from "@/components/ui";
+import { buildCareColorMap, buildCareMatrix, type CareHistoryRow } from "@/lib/care";
 import { createClient } from "@/lib/supabase/client";
 import type { DailyLog } from "@/lib/types";
 import {
@@ -48,6 +50,7 @@ export default function AnalyticsPage() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [careHistory, setCareHistory] = useState<CareHistoryRow[]>([]);
 
   const { start: curStart, end: curEnd, days: N } = periodRange(period, curOffset);
   const { start: cmpStart, end: cmpEnd } = periodRange(period, cmpOffset);
@@ -91,6 +94,32 @@ export default function AnalyticsPage() {
       cancelled = true;
     };
   }, [supabase, fetchStart, latest]);
+
+  // Кольори доглядів мають бути стабільні між періодами, тому порядок першої появи
+  // беремо з усієї історії. Помилка тут не критична — нижче є запасний шлях.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: u } = await supabase.auth.getUser();
+        const uid = u.user?.id;
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("daily_logs")
+          .select("date, care")
+          .eq("user_id", uid)
+          .not("care", "is", null)
+          .order("date", { ascending: true });
+        if (error) throw error;
+        if (!cancelled) setCareHistory((data ?? []) as CareHistoryRow[]);
+      } catch {
+        if (!cancelled) setCareHistory([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, DailyLog>();
@@ -136,6 +165,18 @@ export default function AnalyticsPage() {
         };
       }),
     [byDate, curStart, N, period],
+  );
+
+  const careRows = useMemo(() => {
+    const inPeriod = logs.filter((l) => l.date >= curStart && l.date <= curEnd);
+    // Якщо історія не завантажилась, кольори будуємо з логів періоду.
+    const colors = buildCareColorMap(careHistory.length ? careHistory : inPeriod);
+    return buildCareMatrix(inPeriod, curStart, N, colors);
+  }, [logs, careHistory, curStart, curEnd, N]);
+
+  const careDates = useMemo(
+    () => Array.from({ length: N }, (_, i) => addDays(curStart, i)),
+    [curStart, N],
   );
 
   const hasAnyWeight = weightData.some((d) => d.weight != null);
@@ -267,6 +308,14 @@ export default function AnalyticsPage() {
               Кроки, {period === "week" ? "тиж." : "міс."}
             </div>
             <StepsBars data={stepsData} />
+          </Card>
+
+          {/* Догляд за шкірою */}
+          <Card className="!p-[14px]">
+            <div className="mb-2.5 text-[12px] font-bold text-muted">
+              Догляд за шкірою, {period === "week" ? "тиж." : "міс."}
+            </div>
+            <CareDotChart rows={careRows} dates={careDates} />
           </Card>
         </>
       )}
