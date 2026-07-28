@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCareColorMap,
+  buildCareMatrix,
   careKey,
   CARE_COLORS,
   CARE_FALLBACK_COLOR,
@@ -66,5 +67,71 @@ describe("buildCareColorMap", () => {
     const map = buildCareColorMap([h("2026-01-01", "Міуінг, Масаж")]);
     expect(map.get("міуінг")?.color).toBe(CARE_COLORS[4]);
     expect(map.get("масаж")?.color).toBe(CARE_COLORS[5]);
+  });
+});
+
+describe("buildCareMatrix", () => {
+  const colors = buildCareColorMap([]);
+  const week = (logs: CareHistoryRow[]) => buildCareMatrix(logs, "2026-07-27", 7, colors);
+
+  it("позначає правильні дні й рахує кількість", () => {
+    const rows = week([h("2026-07-27", "Крем"), h("2026-07-29", "Крем")]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].count).toBe(2);
+    expect(rows[0].days).toEqual([true, false, true, false, false, false, false]);
+  });
+
+  it("кілька доглядів в один день дають окремі рядки", () => {
+    const rows = week([h("2026-07-27", "Крем, Скраб")]);
+    expect(rows.map((r) => r.key).sort()).toEqual(["крем", "скраб"]);
+    expect(rows.every((r) => r.days[0])).toBe(true);
+  });
+
+  it("сортує за кількістю спадання", () => {
+    const rows = week([
+      h("2026-07-27", "Скраб, Крем"),
+      h("2026-07-28", "Крем"),
+      h("2026-07-29", "Крем"),
+    ]);
+    expect(rows.map((r) => r.key)).toEqual(["крем", "скраб"]);
+    expect(rows.map((r) => r.count)).toEqual([3, 1]);
+  });
+
+  it("при рівній кількості порядок беруть з мапи кольорів", () => {
+    const rows = week([h("2026-07-27", "Маска, Скраб")]);
+    expect(rows.map((r) => r.key)).toEqual(["скраб", "маска"]);
+  });
+
+  it("теги, яких не було в періоді, у рядки не потрапляють", () => {
+    const rows = week([h("2026-07-27", "Крем")]);
+    expect(rows.map((r) => r.key)).toEqual(["крем"]);
+  });
+
+  it("дні поза періодом ігноруються", () => {
+    const rows = week([h("2026-07-20", "Крем"), h("2026-08-10", "Крем")]);
+    expect(rows).toHaveLength(0);
+  });
+
+  it("дубль тега в один день рахується один раз", () => {
+    const rows = week([h("2026-07-27", "Крем, крем")]);
+    expect(rows[0].count).toBe(1);
+  });
+
+  it("null і порожній care не ламають підрахунок", () => {
+    const rows = week([h("2026-07-27", null), h("2026-07-28", " , "), h("2026-07-29", "Крем")]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].count).toBe(1);
+  });
+
+  it("тег, якого немає в мапі кольорів, отримує запасний сірий", () => {
+    const rows = week([h("2026-07-27", "Невідомий")]);
+    expect(rows[0].color).toBe(CARE_FALLBACK_COLOR);
+    expect(rows[0].label).toBe("Невідомий");
+  });
+
+  it("бере колір і написання з мапи", () => {
+    const rows = week([h("2026-07-27", "крем")]);
+    expect(rows[0].color).toBe(CARE_COLORS[1]);
+    expect(rows[0].label).toBe("Крем");
   });
 });

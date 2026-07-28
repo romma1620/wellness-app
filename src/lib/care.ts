@@ -1,4 +1,4 @@
-import { splitTags } from "@/lib/utils";
+import { addDays, splitTags } from "@/lib/utils";
 
 /** Пресети догляду на головній. Порядок задає перші чотири кольори. */
 export const CARE_PRESETS = ["Скраб", "Крем", "Гуаша", "Маска"];
@@ -65,4 +65,60 @@ export function buildCareColorMap(history: CareHistoryRow[]): Map<string, CareTa
   }
 
   return map;
+}
+
+export interface CareRow extends CareTag {
+  /** Скільки днів у періоді цей догляд був. */
+  count: number;
+  /** Довжина = кількість днів періоду; true = того дня догляд був. */
+  days: boolean[];
+}
+
+/**
+ * Рядки графіка за період [startISO, startISO + days).
+ * Сортування: за кількістю спадання, при рівності — за порядком у мапі кольорів.
+ */
+export function buildCareMatrix(
+  logs: CareHistoryRow[],
+  startISO: string,
+  days: number,
+  colors: Map<string, CareTag>,
+): CareRow[] {
+  const column = new Map<string, number>();
+  for (let i = 0; i < days; i++) column.set(addDays(startISO, i), i);
+
+  const rows = new Map<string, CareRow>();
+
+  for (const log of logs) {
+    const col = column.get(log.date);
+    if (col === undefined) continue;
+    for (const tag of splitTags(log.care)) {
+      const key = careKey(tag);
+      if (!key) continue;
+      let row = rows.get(key);
+      if (!row) {
+        const known = colors.get(key);
+        row = {
+          key,
+          label: known?.label ?? tag.trim(),
+          color: known?.color ?? CARE_FALLBACK_COLOR,
+          count: 0,
+          days: Array<boolean>(days).fill(false),
+        };
+        rows.set(key, row);
+      }
+      if (!row.days[col]) {
+        row.days[col] = true;
+        row.count++;
+      }
+    }
+  }
+
+  const order = [...colors.keys()];
+  const rank = (key: string) => {
+    const i = order.indexOf(key);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+
+  return [...rows.values()].sort((a, b) => b.count - a.count || rank(a.key) - rank(b.key));
 }
