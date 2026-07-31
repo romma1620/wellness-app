@@ -10,6 +10,7 @@ import {
   type SaveState,
 } from "@/components/inputs";
 import { Card, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
+import { DaySkeleton } from "@/components/DaySkeleton";
 import { CARE_PRESETS } from "@/lib/care";
 import {
   applySaved,
@@ -42,6 +43,7 @@ export default function TodayPage() {
   const supabase = useMemo(() => createClient(), []);
   const [date, setDate] = useState(todayISO());
   const [day, setDay] = useState<DayState | null>(null);
+  const [loading, setLoading] = useState(true);
   const [baselineWeight, setBaselineWeight] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [save, setSave] = useState<SaveState>("idle");
@@ -86,6 +88,10 @@ export default function TodayPage() {
     async (d: string) => {
       const my = ++reqId.current;
       setLoadError(null);
+      setLoading(true);
+      // Стан попереднього дня не має лишатись під новою датою: ефект
+      // автозбереження рахує дифф саме з нього.
+      setDay(null);
       try {
         const { data: userData } = await supabase.auth.getUser();
         const uid = userData.user?.id;
@@ -97,6 +103,7 @@ export default function TodayPage() {
         const form = formFromRow(current);
         setBaselineWeight(baseline);
         setDay({ date: d, loaded: form, form });
+        setLoading(false);
       } catch (err) {
         if (my !== reqId.current) return;
         setLoadError(
@@ -106,6 +113,7 @@ export default function TodayPage() {
         );
         // без знімка з сервера редагувати нічого — інакше писали б наосліп
         setDay(null);
+        setLoading(false);
       }
     },
     [supabase],
@@ -213,117 +221,123 @@ export default function TodayPage() {
 
       {loadError && <ErrorBanner>{loadError}</ErrorBanner>}
 
-      {/* Вага */}
-      <Card className="flex items-end justify-between">
-        <div className="w-full">
-          <div className="text-[12.5px] font-bold text-muted">Вага</div>
-          <div className="mt-1">
-            <input
-              {...weightInput.inputProps}
-              placeholder="—"
-              className="w-full bg-transparent text-[40px] font-extrabold leading-none text-ink outline-none placeholder:text-primary-light"
-            />
-          </div>
-          <div
-            className={cn(
-              "mt-1 text-[12px] font-bold",
-              weightInput.outOfRange ? "text-neg" : "text-muted",
-            )}
-          >
-            кг · допустимо 30–200
-          </div>
-        </div>
-        {weekDelta != null && Math.abs(weekDelta) >= 0.05 && (
-          <div className="shrink-0 text-right">
-            <div
-              className={cn(
-                "text-[13px] font-extrabold",
-                weekDelta < 0 ? "text-pos" : "text-warn",
-              )}
-            >
-              {weekDelta < 0 ? "↓" : "↑"} {fmt(Math.abs(weekDelta), 1)} кг
+      {loading ? (
+        <DaySkeleton />
+      ) : (
+        <>
+          {/* Вага */}
+          <Card className="flex items-end justify-between">
+            <div className="w-full">
+              <div className="text-[12.5px] font-bold text-muted">Вага</div>
+              <div className="mt-1">
+                <input
+                  {...weightInput.inputProps}
+                  placeholder="—"
+                  className="w-full bg-transparent text-[40px] font-extrabold leading-none text-ink outline-none placeholder:text-primary-light"
+                />
+              </div>
+              <div
+                className={cn(
+                  "mt-1 text-[12px] font-bold",
+                  weightInput.outOfRange ? "text-neg" : "text-muted",
+                )}
+              >
+                кг · допустимо 30–200
+              </div>
             </div>
-            <div className="text-[11px] font-semibold text-muted">за тиждень</div>
+            {weekDelta != null && Math.abs(weekDelta) >= 0.05 && (
+              <div className="shrink-0 text-right">
+                <div
+                  className={cn(
+                    "text-[13px] font-extrabold",
+                    weekDelta < 0 ? "text-pos" : "text-warn",
+                  )}
+                >
+                  {weekDelta < 0 ? "↓" : "↑"} {fmt(Math.abs(weekDelta), 1)} кг
+                </div>
+                <div className="text-[11px] font-semibold text-muted">за тиждень</div>
+              </div>
+            )}
+          </Card>
+
+          {/* Харчування */}
+          <Card>
+            <SectionLabel>Харчування</SectionLabel>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Калорії"
+                suffix="ккал"
+                value={form.kcal}
+                onChange={(v) => set("kcal", v)}
+              />
+              <NumberField
+                label="Білки"
+                suffix="г"
+                value={form.protein}
+                onChange={(v) => set("protein", v)}
+              />
+              <NumberField label="Жири" suffix="г" value={form.fat} onChange={(v) => set("fat", v)} />
+              <NumberField
+                label="Вуглеводи"
+                suffix="г"
+                value={form.carbs}
+                onChange={(v) => set("carbs", v)}
+              />
+            </div>
+          </Card>
+
+          {/* Вода */}
+          <Card>
+            <div className="mb-3 flex items-center justify-between">
+              <SectionLabel className="mb-0">Вода</SectionLabel>
+              <div className="text-[13px] font-extrabold text-primary">
+                {form.water ?? 0} / 8 склянок
+              </div>
+            </div>
+            <WaterDrops value={form.water} onChange={(v) => set("water", v)} />
+          </Card>
+
+          {/* Кроки + спорт */}
+          <div className="flex flex-col gap-3">
+            <Card>
+              <NumberField
+                label="Кроки"
+                suffix="кроків"
+                placeholder="0"
+                min={0}
+                max={100000}
+                value={form.steps}
+                onChange={(v) => set("steps", v == null ? null : Math.round(v))}
+              />
+            </Card>
+            <Card>
+              <SectionLabel>Спорт</SectionLabel>
+              <TagInput
+                value={form.sport}
+                onChange={(v) => set("sport", v)}
+                placeholder="зал, пілатес…"
+              />
+            </Card>
           </div>
-        )}
-      </Card>
 
-      {/* Харчування */}
-      <Card>
-        <SectionLabel>Харчування</SectionLabel>
-        <div className="grid grid-cols-2 gap-3">
-          <NumberField
-            label="Калорії"
-            suffix="ккал"
-            value={form.kcal}
-            onChange={(v) => set("kcal", v)}
-          />
-          <NumberField
-            label="Білки"
-            suffix="г"
-            value={form.protein}
-            onChange={(v) => set("protein", v)}
-          />
-          <NumberField label="Жири" suffix="г" value={form.fat} onChange={(v) => set("fat", v)} />
-          <NumberField
-            label="Вуглеводи"
-            suffix="г"
-            value={form.carbs}
-            onChange={(v) => set("carbs", v)}
-          />
-        </div>
-      </Card>
+          {/* Догляд */}
+          <Card>
+            <SectionLabel>Догляд за шкірою</SectionLabel>
+            <PresetChips presets={CARE_PRESETS} value={form.care} onChange={(v) => set("care", v)} />
+          </Card>
 
-      {/* Вода */}
-      <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <SectionLabel className="mb-0">Вода</SectionLabel>
-          <div className="text-[13px] font-extrabold text-primary">
-            {form.water ?? 0} / 8 склянок
-          </div>
-        </div>
-        <WaterDrops value={form.water} onChange={(v) => set("water", v)} />
-      </Card>
-
-      {/* Кроки + спорт */}
-      <div className="flex flex-col gap-3">
-        <Card>
-          <NumberField
-            label="Кроки"
-            suffix="кроків"
-            placeholder="0"
-            min={0}
-            max={100000}
-            value={form.steps}
-            onChange={(v) => set("steps", v == null ? null : Math.round(v))}
-          />
-        </Card>
-        <Card>
-          <SectionLabel>Спорт</SectionLabel>
-          <TagInput
-            value={form.sport}
-            onChange={(v) => set("sport", v)}
-            placeholder="зал, пілатес…"
-          />
-        </Card>
-      </div>
-
-      {/* Догляд */}
-      <Card>
-        <SectionLabel>Догляд за шкірою</SectionLabel>
-        <PresetChips presets={CARE_PRESETS} value={form.care} onChange={(v) => set("care", v)} />
-      </Card>
-
-      {/* Коментар */}
-      <Card>
-        <SectionLabel>Коментар дня</SectionLabel>
-        <Textarea
-          rows={3}
-          placeholder="Як минув день, самопочуття, настрій…"
-          value={form.comment}
-          onChange={(e) => set("comment", e.target.value)}
-        />
-      </Card>
+          {/* Коментар */}
+          <Card>
+            <SectionLabel>Коментар дня</SectionLabel>
+            <Textarea
+              rows={3}
+              placeholder="Як минув день, самопочуття, настрій…"
+              value={form.comment}
+              onChange={(e) => set("comment", e.target.value)}
+            />
+          </Card>
+        </>
+      )}
 
       <p className="px-2 pt-1 text-center text-[12px] font-semibold text-muted">
         Зміни зберігаються автоматично
