@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { csvField, toCsv } from "./csv";
+import {
+  buildExportCsv,
+  csvField,
+  exportFileName,
+  flattenWorkouts,
+  isExportEmpty,
+  toCsv,
+  type ExportData,
+  type RawWorkout,
+} from "./csv";
 
 describe("csvField", () => {
   it("null і undefined дають порожнє поле", () => {
@@ -49,5 +58,127 @@ describe("toCsv", () => {
 
   it("рядок з одного поля не отримує роздільника", () => {
     expect(toCsv([["# Щоденник"]])).toBe("# Щоденник");
+  });
+});
+
+const EMPTY: ExportData = { daily: [], measurements: [], workouts: [] };
+
+describe("flattenWorkouts", () => {
+  const raw: RawWorkout[] = [
+    {
+      date: "2026-07-30",
+      name: "Ноги",
+      workout_sets: [
+        { set_number: 2, weight: 42.5, reps: 8, exercises: { name: "Присідання" } },
+        { set_number: 1, weight: 40, reps: 10, exercises: { name: "Присідання" } },
+      ],
+    },
+  ];
+
+  it("сортує підходи за номером незалежно від порядку на вході", () => {
+    expect(flattenWorkouts(raw).map((r) => r.setNumber)).toEqual([1, 2]);
+  });
+
+  it("дата й назва тренування повторюються в кожному рядку-підході", () => {
+    const rows = flattenWorkouts(raw);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.date === "2026-07-30" && r.workout === "Ноги")).toBe(true);
+  });
+
+  it("не мутує вхідний масив підходів", () => {
+    flattenWorkouts(raw);
+    expect(raw[0].workout_sets?.map((s) => s.set_number)).toEqual([2, 1]);
+  });
+
+  it("тренування без підходів не дає жодного рядка", () => {
+    expect(flattenWorkouts([{ date: "2026-07-30", name: null, workout_sets: [] }])).toEqual([]);
+    expect(flattenWorkouts([{ date: "2026-07-30", name: null, workout_sets: null }])).toEqual([]);
+  });
+
+  it("відсутня вправа дає null, а не падіння", () => {
+    const rows = flattenWorkouts([
+      {
+        date: "2026-07-30",
+        name: null,
+        workout_sets: [{ set_number: 1, weight: null, reps: 12, exercises: null }],
+      },
+    ]);
+    expect(rows[0].exercise).toBeNull();
+  });
+});
+
+describe("buildExportCsv", () => {
+  it("починається з BOM", () => {
+    expect(buildExportCsv(EMPTY).startsWith("\uFEFF")).toBe(true);
+  });
+
+  it("три секції в правильному порядку, розділені порожнім рядком", () => {
+    const lines = buildExportCsv(EMPTY).replace("\uFEFF", "").split("\r\n");
+    expect(lines[0]).toBe("# Щоденник");
+    expect(lines[1]).toBe(
+      "Дата;Вага;Ккал;Білки;Жири;Вуглеводи;Вода;Кроки;Спорт;Догляд;Коментар",
+    );
+    expect(lines[2]).toBe("");
+    expect(lines[3]).toBe("# Заміри");
+    expect(lines[4]).toBe("Дата;Талія;Стегна;Груди;Нога;Рука");
+    expect(lines[5]).toBe("");
+    expect(lines[6]).toBe("# Тренування");
+    expect(lines[7]).toBe("Дата;Тренування;Вправа;Підхід;Вага;Повтори");
+  });
+
+  it("рядок щоденника йде в порядку колонок заголовка", () => {
+    const csv = buildExportCsv({
+      ...EMPTY,
+      daily: [
+        {
+          date: "2026-07-29",
+          weight: 62.4,
+          kcal: 1840,
+          protein: 110,
+          fat: 60,
+          carbs: 180,
+          water: 6,
+          steps: 8432,
+          sport: "зал",
+          care: "Скраб, Крем",
+          comment: "гарний день",
+        },
+      ],
+    });
+    expect(csv).toContain(
+      "2026-07-29;62,4;1840;110;60;180;6;8432;зал;Скраб, Крем;гарний день",
+    );
+  });
+
+  it("порожні поля лишаються порожніми, не «—»", () => {
+    const csv = buildExportCsv({
+      ...EMPTY,
+      measurements: [
+        { date: "2026-07-01", waist: 68, hips: null, chest: null, leg: null, arm: 28 },
+      ],
+    });
+    expect(csv).toContain("2026-07-01;68;;;;28");
+  });
+});
+
+describe("exportFileName", () => {
+  it("суфікс відповідає діапазону", () => {
+    expect(exportFileName("week", "2026-07-31")).toBe("aura-week-2026-07-31.csv");
+    expect(exportFileName("month", "2026-07-31")).toBe("aura-month-2026-07-31.csv");
+    expect(exportFileName("all", "2026-07-31")).toBe("aura-all-2026-07-31.csv");
+  });
+});
+
+describe("isExportEmpty", () => {
+  it("true лише коли порожні всі три секції", () => {
+    expect(isExportEmpty(EMPTY)).toBe(true);
+    expect(
+      isExportEmpty({
+        ...EMPTY,
+        measurements: [
+          { date: "2026-07-01", waist: 68, hips: null, chest: null, leg: null, arm: null },
+        ],
+      }),
+    ).toBe(false);
   });
 });
