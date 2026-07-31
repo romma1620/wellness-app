@@ -296,15 +296,15 @@ export function Sheet({
   const restoreTo = useRef<HTMLElement | null>(null);
 
   // onClose живе в ref, а не в залежностях: інлайнова стрілка від викликача
-  // інакше перезапускала б ефект щорендера — з переїздом фокуса й
-  // сіпанням overflow на body.
+  // інакше перезапускала б головний ефект щорендера — з переїздом фокуса й
+  // сіпанням overflow на body. Оновлюємо ref окремим ефектом без залежностей
+  // (а не прямо в тілі рендера — це порушує чистоту рендера під Strict Mode
+  // і конкурентним рендерингом): ефекти виконуються в порядку оголошення, тож
+  // ref гарантовано актуальний ще до головного ефекту нижче.
   const closeRef = useRef(onClose);
-  // Навмисне синхронне оновлення ref щорендера (а не в useEffect), щоб
-  // closeRef.current був актуальним ще до першого ефекту. Стандартний
-  // патерн "latest ref"; нове правило react-compiler хибно вважає його
-  // помилкою — відключаємо точково.
-  // eslint-disable-next-line react-hooks/refs
-  closeRef.current = onClose;
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
