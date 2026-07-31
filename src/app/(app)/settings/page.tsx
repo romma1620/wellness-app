@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "@/components/ThemeProvider";
+import { ExportSheet } from "@/components/ExportSheet";
 import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, ThemeName } from "@/lib/types";
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const [savedMsg, setSavedMsg] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -253,6 +255,29 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      {/* Експорт */}
+      <Card>
+        <SectionLabel>Експорт даних</SectionLabel>
+        <Button type="button" variant="outline" onClick={() => setExportOpen(true)}>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 22 22"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 3v11M6.5 9.5L11 14l4.5-4.5M4 18h14" />
+          </svg>
+          Завантажити CSV
+        </Button>
+        <p className="mt-2 text-center text-[12px] font-semibold text-muted">
+          Щоденник, заміри й тренування одним файлом
+        </p>
+      </Card>
+
       {/* Заміри тіла */}
       <Link
         href="/measurements"
@@ -282,6 +307,8 @@ export default function SettingsPage() {
       </button>
 
       <p className="pb-2 text-center text-[11px] font-medium text-muted">aura · v1.0</p>
+
+      <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
