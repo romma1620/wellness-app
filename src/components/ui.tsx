@@ -188,6 +188,20 @@ export function FullLoader({ label = "Завантаження…" }: { label?: 
   );
 }
 
+// ----------------------- Skeleton -----------------------
+/**
+ * Плейсхолдер контенту. Розмір і форму задає викликач через `className` —
+ * примітив нічого не знає про конкретні картки.
+ */
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("aura-pulse block rounded-[8px] bg-primary-light", className)}
+    />
+  );
+}
+
 // ----------------------- Empty state -----------------------
 export function EmptyState({
   emoji = "🌱",

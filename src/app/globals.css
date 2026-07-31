@@ -126,3 +126,26 @@ input[type="number"] {
 .aura-fade {
   animation: aura-fade-up 0.3s ease both;
 }
+
+/* Скелетони */
+@keyframes aura-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.aura-pulse {
+  animation: aura-pulse 1.4s ease-in-out infinite;
+}
+
+/* Пульсація тут — не окраса: без неї скелетон не відрізнити від порожньої
+   картки. Але для тих, хто просив менше руху, форма й місце контенту
+   комунікуються й статикою. */
+@media (prefers-reduced-motion: reduce) {
+  .aura-pulse {
+    animation: none;
+  }
+}
