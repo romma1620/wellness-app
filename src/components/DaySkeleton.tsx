@@ -48,25 +48,26 @@ export function DaySkeleton() {
         </div>
       </Card>
 
-      {/* Кроки: одне числове поле */}
-      <Card>
-        <Skeleton className="mb-[7px] h-[17px] w-[54px]" />
-        <Skeleton className="h-[49px] w-full rounded-[15px]" />
-      </Card>
+      {/* Кроки + спорт */}
+      <div className="flex flex-col gap-3">
+        <Card>
+          <Skeleton className="mb-[7px] h-[17px] w-[54px]" />
+          <Skeleton className="h-[49px] w-full rounded-[15px]" />
+        </Card>
 
-      {/* Спорт: заголовок 17 + 12, далі рядок вводу тегів 37 */}
-      <Card>
-        <Skeleton className="mb-3 h-[17px] w-[46px]" />
-        <Skeleton className="h-[37px] w-full rounded-full" />
-      </Card>
+        <Card>
+          <Skeleton className="mb-3 h-[17px] w-[46px]" />
+          <Skeleton className="h-[37px] w-full rounded-full" />
+        </Card>
+      </div>
 
       {/* Догляд: заголовок 17 + 12, далі чипи 37 + gap 12 + рядок вводу 37 */}
       <Card>
         <Skeleton className="mb-3 h-[17px] w-[118px]" />
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
-            {CHIP_WIDTHS.map((w) => (
-              <Skeleton key={w} className={`h-[37px] rounded-full ${w}`} />
+            {CHIP_WIDTHS.map((w, i) => (
+              <Skeleton key={i} className={`h-[37px] rounded-full ${w}`} />
             ))}
           </div>
           <Skeleton className="h-[37px] w-full rounded-full" />
