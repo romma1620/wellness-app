@@ -308,7 +308,11 @@ export default function SettingsPage() {
 
       <p className="pb-2 text-center text-[11px] font-medium text-muted">aura · v1.0</p>
 
-      <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />
+      {/* Монтуємо умовно: якщо тримати ExportSheet завжди в дереві, закриття
+          не розмонтовує його (Sheet сам лише повертає null), і busy/error/empty
+          переживають закриття-відкриття — стара експорт-операція може
+          завершитись і закрити щіт, який користувач щойно відкрив заново. */}
+      {exportOpen && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
     </div>
   );
 }

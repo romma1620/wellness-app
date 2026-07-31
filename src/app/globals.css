@@ -141,16 +141,6 @@ input[type="number"] {
   animation: aura-pulse 1.4s ease-in-out infinite;
 }
 
-/* Пульсація тут — не окраса: без неї скелетон не відрізнити від порожньої
-   картки. Але для тих, хто просив менше руху, форма й місце контенту
-   комунікуються й статикою. */
-@media (prefers-reduced-motion: reduce) {
-  .aura-pulse,
-  .aura-sheet {
-    animation: none;
-  }
-}
-
 /* Ботом-шіт */
 @keyframes aura-sheet-up {
   from {
@@ -162,4 +152,20 @@ input[type="number"] {
 }
 .aura-sheet {
   animation: aura-sheet-up 0.22s ease-out both;
+}
+
+/* Пульсація тут — не окраса: без неї скелетон не відрізнити від порожньої
+   картки. Але для тих, хто просив менше руху, форма й місце контенту
+   комунікуються й статикою.
+
+   Цей блок має лишатися ОСТАННІМ у файлі: @media не додає специфічності,
+   а всі селектори тут — однакової ваги з тими, що їх вмикають, тож
+   перемагає порядок оголошення. Якщо додати нову анімацію нижче цього
+   блоку, reduced-motion знову перестане її вимикати. */
+@media (prefers-reduced-motion: reduce) {
+  .aura-pulse,
+  .aura-sheet,
+  .aura-fade {
+    animation: none;
+  }
 }
