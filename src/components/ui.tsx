@@ -3,6 +3,8 @@
 import { cn } from "@/lib/utils";
 import {
   forwardRef,
+  useEffect,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
@@ -270,6 +272,92 @@ export function Collapsible({
         </svg>
       </button>
       {open && <div className="border-t border-primary-light px-4 pb-4 pt-4">{children}</div>}
+    </div>
+  );
+}
+
+// ----------------------- Bottom sheet -----------------------
+/**
+ * Модальна панель знизу. Про свій вміст нічого не знає.
+ * Закриття: Esc, тап по затемненню, хрестик. Свайп вниз не підтримується.
+ */
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  const restoreTo = useRef<HTMLElement | null>(null);
+
+  // onClose живе в ref, а не в залежностях: інлайнова стрілка від викликача
+  // інакше перезапускала б ефект щорендера — з переїздом фокуса й
+  // сіпанням overflow на body.
+  const closeRef = useRef(onClose);
+  // Навмисне синхронне оновлення ref щорендера (а не в useEffect), щоб
+  // closeRef.current був актуальним ще до першого ефекту. Стандартний
+  // патерн "latest ref"; нове правило react-compiler хибно вважає його
+  // помилкою — відключаємо точково.
+  // eslint-disable-next-line react-hooks/refs
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+
+    restoreTo.current = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      restoreTo.current?.focus();
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="aura-fade fixed inset-0 z-50 flex items-end bg-black/40"
+      onClick={() => closeRef.current()}
+    >
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "aura-sheet mx-auto w-full max-w-app rounded-t-[24px] bg-surface p-5 outline-none",
+          "pb-[max(20px,env(safe-area-inset-bottom))]",
+        )}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-[17px] font-extrabold text-ink">{title}</div>
+          <button
+            type="button"
+            onClick={() => closeRef.current()}
+            aria-label="Закрити"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-light text-[15px] font-bold text-primary active:scale-95"
+          >
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

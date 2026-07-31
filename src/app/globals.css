@@ -145,7 +145,21 @@ input[type="number"] {
    картки. Але для тих, хто просив менше руху, форма й місце контенту
    комунікуються й статикою. */
 @media (prefers-reduced-motion: reduce) {
-  .aura-pulse {
+  .aura-pulse,
+  .aura-sheet {
     animation: none;
   }
+}
+
+/* Ботом-шіт */
+@keyframes aura-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.aura-sheet {
+  animation: aura-sheet-up 0.22s ease-out both;
 }
