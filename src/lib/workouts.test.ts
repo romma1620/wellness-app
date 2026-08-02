@@ -5,10 +5,15 @@ import {
   epley1rm,
   exerciseSeries,
   exerciseTonnage,
+  groupByMonth,
+  pickMonthPage,
+  remainingSessions,
   routineSeries,
   setTonnage,
   workoutTonnage,
   type LoadedWorkout,
+  type MonthTotal,
+  type WorkoutListItem,
 } from "./workouts";
 
 describe("setTonnage", () => {
@@ -135,5 +140,65 @@ describe("compareLastTwo", () => {
   });
   it("null when exercise never used", () => {
     expect(compareLastTwo(W, "nope")).toBeNull();
+  });
+});
+
+const ITEMS: WorkoutListItem[] = [
+  { id: "w1", date: "2026-08-02", name: "Сідниці", exerciseCount: 6 },
+  { id: "w2", date: "2026-07-31", name: "Верх", exerciseCount: 5 },
+  { id: "w3", date: "2026-07-28", name: "Ноги", exerciseCount: 5 },
+];
+
+const TOTALS: MonthTotal[] = [
+  { month: "2026-08-01", sessions: 8, tonnage: 62000 },
+  { month: "2026-07-01", sessions: 12, tonnage: 91000 },
+  { month: "2026-06-01", sessions: 10, tonnage: 78000 },
+];
+
+describe("groupByMonth", () => {
+  it("розбиває на календарні місяці, зберігаючи порядок", () => {
+    const g = groupByMonth(ITEMS);
+    expect(g.map((x) => x.month)).toEqual(["2026-08-01", "2026-07-01"]);
+    expect(g[0].items.map((i) => i.id)).toEqual(["w1"]);
+    expect(g[1].items.map((i) => i.id)).toEqual(["w2", "w3"]);
+  });
+  it("порожній вхід → порожній вихід", () => {
+    expect(groupByMonth([])).toEqual([]);
+  });
+});
+
+describe("pickMonthPage", () => {
+  it("бере місяці, доки не набереться мінімум сесій", () => {
+    // 8 замало, тож додається липень: 8 + 12 = 20
+    expect(pickMonthPage(TOTALS, 0)).toEqual({
+      months: 2,
+      from: "2026-07-01",
+      to: "2026-08-31",
+    });
+  });
+  it("остання сторінка коротша за мінімум", () => {
+    expect(pickMonthPage(TOTALS, 2)).toEqual({
+      months: 1,
+      from: "2026-06-01",
+      to: "2026-06-30",
+    });
+  });
+  it("null, коли місяці вичерпано", () => {
+    expect(pickMonthPage(TOTALS, 3)).toBeNull();
+  });
+  it("порожній архів → null", () => {
+    expect(pickMonthPage([], 0)).toBeNull();
+  });
+  it("один місяць покриває мінімум сам по собі", () => {
+    expect(pickMonthPage(TOTALS, 1)?.months).toBe(1);
+  });
+});
+
+describe("remainingSessions", () => {
+  it("сума сесій у ще не завантажених місяцях", () => {
+    expect(remainingSessions(TOTALS, 2)).toBe(10);
+  });
+  it("нуль, коли все завантажено", () => {
+    expect(remainingSessions(TOTALS, 3)).toBe(0);
   });
 });

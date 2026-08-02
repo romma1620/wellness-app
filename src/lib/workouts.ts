@@ -1,4 +1,4 @@
-import { shortDate } from "@/lib/utils";
+import { monthEnd, shortDate } from "@/lib/utils";
 import type { MuscleGroup } from "@/lib/types";
 
 // ----------------------- Draft (editor) -----------------------
@@ -50,6 +50,36 @@ export interface LoadedWorkout {
   name: string | null;
   routine_id: string | null;
   sets: LoadedSet[];
+}
+
+/** Один підхід однієї вправи, з датою сесії. Джерело даних для графіка прогресу. */
+export interface ExerciseSet {
+  date: string; // YYYY-MM-DD
+  weight: number | null;
+  reps: number;
+}
+
+/** Рядок списку сесій. Ваги й повторів не містить — рядок їх не показує. */
+export interface WorkoutListItem {
+  id: string;
+  date: string;
+  name: string | null;
+  exerciseCount: number;
+}
+
+/** Місячний підсумок з RPC `workout_month_totals`. */
+export interface MonthTotal {
+  month: string; // YYYY-MM-01
+  sessions: number;
+  tonnage: number;
+}
+
+/** Вправа з RPC `used_exercises` — та, що реально трапляється в сесіях. */
+export interface UsedExercise {
+  id: string;
+  name: string;
+  muscleGroup: MuscleGroup | null;
+  lastUsed: string; // YYYY-MM-DD
 }
 
 // ----------------------- Calculations -----------------------
@@ -165,4 +195,69 @@ export function compareLastTwo(
   const current = stat(sessions[sessions.length - 1]);
   const previous = sessions.length >= 2 ? stat(sessions[sessions.length - 2]) : null;
   return { current, previous };
+}
+
+// ----------------------- Місячні групи і пагінація -----------------------
+
+export interface MonthGroup {
+  month: string; // YYYY-MM-01
+  items: WorkoutListItem[];
+}
+
+/**
+ * Розбиває сесії на календарні місяці.
+ * Очікує вхід, відсортований за спаданням дати — саме так їх віддає база;
+ * порядок груп і порядок усередині груп зберігається як є.
+ */
+export function groupByMonth(items: WorkoutListItem[]): MonthGroup[] {
+  const groups: MonthGroup[] = [];
+  for (const item of items) {
+    const month = `${item.date.slice(0, 7)}-01`;
+    const last = groups[groups.length - 1];
+    if (last && last.month === month) last.items.push(item);
+    else groups.push({ month, items: [item] });
+  }
+  return groups;
+}
+
+export interface MonthPage {
+  months: number; // скільки місяців додає ця сторінка
+  from: string; // ISO, включно
+  to: string; // ISO, включно
+}
+
+/**
+ * Діапазон дат наступної сторінки списку.
+ *
+ * Пагінація йде цілими місяцями, а не фіксованою кількістю сесій: так
+ * кожен показаний місяць завжди повний, і його заголовок («8 сесій») не
+ * суперечить кількості рядків під ним. Місяці добираються, доки не
+ * набереться `minSessions`, тож рідкі місяці не перетворюють список на
+ * низку тапів по «Показати ще».
+ *
+ * `totals` очікується відсортованим за спаданням місяця, `loaded` — скільки
+ * місяців уже показано.
+ */
+export function pickMonthPage(
+  totals: MonthTotal[],
+  loaded: number,
+  minSessions = 12,
+): MonthPage | null {
+  if (loaded >= totals.length) return null;
+  let sessions = 0;
+  let end = loaded;
+  while (end < totals.length && sessions < minSessions) {
+    sessions += totals[end].sessions;
+    end += 1;
+  }
+  return {
+    months: end - loaded,
+    from: totals[end - 1].month,
+    to: monthEnd(totals[loaded].month),
+  };
+}
+
+/** Скільки сесій лишилось у ще не завантажених місяцях. */
+export function remainingSessions(totals: MonthTotal[], loaded: number): number {
+  return totals.slice(loaded).reduce((sum, m) => sum + m.sessions, 0);
 }
