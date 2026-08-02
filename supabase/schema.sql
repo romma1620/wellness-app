@@ -271,3 +271,59 @@ create policy "workout_sets_own" on public.workout_sets
 
 create index if not exists workout_sets_workout_idx
   on public.workout_sets (workout_id);
+
+-- ---------- Агрегати для екрана «Тренування» ----------
+
+-- Тоннаж одного підходу. Дзеркалить setTonnage() з src/lib/workouts.ts:
+-- порожня вага = власна вага, тож внесок дорівнює кількості повторів.
+create or replace function public.set_tonnage(p_weight numeric, p_reps integer)
+returns numeric
+language sql
+immutable
+as $$
+  select case
+           when p_reps is null then 0
+           when p_weight is null then p_reps::numeric
+           else p_weight * p_reps
+         end;
+$$;
+
+-- Місячні підсумки користувача, найновіші спершу.
+-- Потрібні, щоб малювати заголовки груп і рахувати пагінацію,
+-- не тягнучи весь архів на клієнт.
+create or replace function public.workout_month_totals()
+returns table (month_start date, sessions integer, tonnage numeric)
+language sql
+stable
+security invoker
+as $$
+  select date_trunc('month', w.date)::date,
+         count(distinct w.id)::integer,
+         coalesce(sum(public.set_tonnage(s.weight, s.reps)), 0)
+  from public.workouts w
+  left join public.workout_sets s on s.workout_id = w.id
+  where w.user_id = auth.uid()
+  group by 1
+  order by 1 desc;
+$$;
+
+-- Вправи, що реально трапляються в сесіях, з датою останнього використання.
+-- PostgREST не вміє distinct по вкладеному ресурсі, тому це RPC.
+create or replace function public.used_exercises()
+returns table (id uuid, name text, muscle_group text, last_used date)
+language sql
+stable
+security invoker
+as $$
+  select e.id, e.name, e.muscle_group, max(w.date)
+  from public.exercises e
+  join public.workout_sets s on s.exercise_id = e.id
+  join public.workouts w on w.id = s.workout_id
+  where e.user_id = auth.uid()
+  group by e.id, e.name, e.muscle_group
+  order by e.name;
+$$;
+
+-- Під used_exercises() і вибірку сетів однієї вправи для графіка.
+create index if not exists workout_sets_exercise_idx
+  on public.workout_sets (exercise_id);
