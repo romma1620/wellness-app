@@ -89,8 +89,9 @@
 
 ### Чисті функції (`src/lib/workouts.ts`)
 
-- `setTonnage`, `epley1rm`, `bestSet` — без змін.
-- `exerciseCount` — без змін; використовується всередині маппера `loadWorkoutList`.
+- `setTonnage`, `epley1rm` — без змін.
+- `bestSet` узагальнюється до `<T extends { weight: number | null; reps: number }>`: тепер його треба звати і на `ExerciseSet`, і на `LoadedSet`. Наявні виклики лишаються валідними.
+- `exerciseCount` переходить з `LoadedWorkout` на список підходів (`{ exercise_id: string }[]`) і використовується всередині маппера `loadWorkoutList` — інакше після зняття старого списку лишився б мертвим експортом.
 - `workoutTonnage` лишається: екран його більше не викликає (тоннаж рахує сервер), але від нього залежить `routineSeries`.
 - `exerciseSeries` і `compareLastTwo` переводяться з `LoadedWorkout[]` на плаский `ExerciseSet[]`. Вони й так першим ділом фільтрували по `exercise_id` — тепер це робить база, а функції групують сети за датою.
 - Нові: `groupByMonth` (сесії → місячні групи), `monthLabel` (ISO-місяць → «Серпень 2026»), `pickMonthPage` (список місячних підсумків + курсор → діапазон дат наступної сторінки).
