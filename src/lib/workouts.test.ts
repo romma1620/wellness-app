@@ -3,6 +3,7 @@ import {
   bestSet,
   compareLastTwo,
   epley1rm,
+  exerciseCount,
   exerciseSeries,
   exerciseTonnage,
   groupByMonth,
@@ -98,6 +99,21 @@ const W: LoadedWorkout[] = [
 describe("workoutTonnage", () => {
   it("sums all sets incl. bodyweight", () => {
     expect(workoutTonnage(W[0])).toBe(500 + 480 + 15);
+  });
+});
+
+describe("exerciseCount", () => {
+  it("рахує різні вправи, а не підходи", () => {
+    expect(
+      exerciseCount([
+        { exercise_id: "sq" },
+        { exercise_id: "sq" },
+        { exercise_id: "abs" },
+      ]),
+    ).toBe(2);
+  });
+  it("нуль для порожнього списку", () => {
+    expect(exerciseCount([])).toBe(0);
   });
 });
 

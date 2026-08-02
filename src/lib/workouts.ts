@@ -97,8 +97,9 @@ export function workoutTonnage(w: LoadedWorkout): number {
   return w.sets.reduce((sum, s) => sum + setTonnage(s), 0);
 }
 
-export function exerciseCount(w: LoadedWorkout): number {
-  return new Set(w.sets.map((s) => s.exercise_id)).size;
+/** Скільки різних вправ у наборі підходів. */
+export function exerciseCount(sets: { exercise_id: string }[]): number {
+  return new Set(sets.map((s) => s.exercise_id)).size;
 }
 
 /** Оцінка 1ПМ за Еплі. null для власної ваги або невалідних повторів. */

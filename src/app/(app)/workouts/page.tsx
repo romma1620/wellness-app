@@ -76,7 +76,7 @@ export default function WorkoutsPage() {
                 <span className="text-[12px] font-semibold text-muted">{humanDate(w.date)}</span>
               </div>
               <div className="mt-1.5 flex gap-4 text-[12.5px] font-semibold text-muted">
-                <span>{exerciseCount(w)} вправ</span>
+                <span>{exerciseCount(w.sets)} вправ</span>
                 <span>тоннаж {fmtInt(workoutTonnage(w))} кг</span>
               </div>
             </Link>

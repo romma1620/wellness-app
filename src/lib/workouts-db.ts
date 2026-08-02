@@ -1,10 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Exercise, Routine, RoutineExercise } from "@/lib/types";
+import type { Exercise, MuscleGroup, Routine, RoutineExercise } from "@/lib/types";
 import {
+  exerciseCount,
   exerciseTonnage,
   type DraftExercise,
   type DraftWorkout,
+  type ExerciseSet,
   type LoadedWorkout,
+  type MonthTotal,
+  type UsedExercise,
+  type WorkoutListItem,
 } from "@/lib/workouts";
 
 type SB = SupabaseClient;
@@ -56,6 +61,75 @@ export async function loadWorkoutsWithSets(sb: SB, uid: string): Promise<LoadedW
       reps: s.reps,
       exercise_id: s.exercise_id,
     })),
+  }));
+}
+
+/** Місячні підсумки — усі одразу. Навіть за 5 років це десятки рядків. */
+export async function loadMonthTotals(sb: SB): Promise<MonthTotal[]> {
+  const { data, error } = await sb.rpc("workout_month_totals");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    month: r.month_start as string,
+    sessions: Number(r.sessions),
+    tonnage: Number(r.tonnage),
+  }));
+}
+
+/** Вправи, що трапляються в сесіях, з датою останнього використання. */
+export async function loadUsedExercises(sb: SB): Promise<UsedExercise[]> {
+  const { data, error } = await sb.rpc("used_exercises");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id as string,
+    name: r.name as string,
+    muscleGroup: (r.muscle_group ?? null) as MuscleGroup | null,
+    lastUsed: r.last_used as string,
+  }));
+}
+
+/**
+ * Сторінка списку сесій за діапазоном дат (обидві межі включно).
+ * Тягне лише `exercise_id` підходів: рядок списку показує кількість вправ,
+ * а тоннаж приходить готовим із `loadMonthTotals`.
+ */
+export async function loadWorkoutList(
+  sb: SB,
+  uid: string,
+  from: string,
+  to: string,
+): Promise<WorkoutListItem[]> {
+  const { data, error } = await sb
+    .from("workouts")
+    .select("id, date, name, workout_sets(exercise_id)")
+    .eq("user_id", uid)
+    .gte("date", from)
+    .lte("date", to)
+    .order("date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((w: any) => ({
+    id: w.id,
+    date: w.date,
+    name: w.name,
+    exerciseCount: exerciseCount(w.workout_sets ?? []),
+  }));
+}
+
+/** Усі підходи однієї вправи з датами сесій — джерело графіка прогресу. */
+export async function loadExerciseSets(
+  sb: SB,
+  uid: string,
+  exerciseId: string,
+): Promise<ExerciseSet[]> {
+  const { data, error } = await sb
+    .from("workout_sets")
+    .select("weight, reps, workouts!inner(date, user_id)")
+    .eq("exercise_id", exerciseId)
+    .eq("workouts.user_id", uid);
+  if (error) throw error;
+  return (data ?? []).map((s: any) => ({
+    date: s.workouts.date as string,
+    weight: s.weight,
+    reps: s.reps,
   }));
 }
 
