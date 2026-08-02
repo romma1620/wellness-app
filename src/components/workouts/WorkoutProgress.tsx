@@ -1,94 +1,120 @@
 "use client";
 
 import { MetricLine } from "@/components/charts";
-import { Card, SectionLabel, Segmented } from "@/components/ui";
-import type { Exercise } from "@/lib/types";
+import { Card, SectionLabel, Segmented, Spinner } from "@/components/ui";
+import { ExercisePicker } from "@/components/workouts/ExercisePicker";
+import { cn, fmt, shortDate } from "@/lib/utils";
 import {
   compareLastTwo,
   exerciseSeries,
-  type LoadedWorkout,
+  type ExerciseSet,
   type ProgressMetric,
+  type UsedExercise,
 } from "@/lib/workouts";
-import { cn, fmt, shortDate } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const METRIC_OPTS: { value: ProgressMetric; label: string }[] = [
   { value: "weight", label: "Вага" },
   { value: "orm", label: "1ПМ" },
 ];
 
+/**
+ * Прогрес по одній вправі.
+ *
+ * Сети підвантажуються лише для обраної вправи, а не для всього архіву —
+ * тому компонент отримує завантажувач, а не готові дані. Монтувати його
+ * можна лише коли `exercises` уже завантажені: початковий вибір береться
+ * з першого рендера.
+ */
 export function WorkoutProgress({
-  workouts,
   exercises,
+  loadSets,
 }: {
-  workouts: LoadedWorkout[];
-  exercises: Exercise[];
+  exercises: UsedExercise[];
+  loadSets: (exerciseId: string) => Promise<ExerciseSet[]>;
 }) {
-  // лише вправи, що реально трапляються в сесіях
-  const usedExercises = useMemo(() => {
-    const ids = new Set(workouts.flatMap((w) => w.sets.map((s) => s.exercise_id)));
-    return exercises.filter((e) => ids.has(e.id));
-  }, [workouts, exercises]);
+  // за замовчуванням — вправа з найсвіжішою сесією, а не перша за алфавітом
+  const initialId = useMemo(
+    () => [...exercises].sort((a, b) => b.lastUsed.localeCompare(a.lastUsed))[0]?.id ?? null,
+    [exercises],
+  );
 
-  const [exId, setExId] = useState<string | null>(usedExercises[0]?.id ?? null);
+  const [exId, setExId] = useState<string | null>(initialId);
   const [metric, setMetric] = useState<ProgressMetric>("weight");
+  const [sets, setSets] = useState<ExerciseSet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  if (workouts.length === 0) return null;
+  useEffect(() => {
+    if (!exId) return;
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    loadSets(exId)
+      .then((next) => {
+        if (!cancelled) setSets(next);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSets([]);
+          setFailed(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [exId, loadSets]);
 
-  const series = exId ? exerciseSeries(workouts, exId, metric) : [];
-  const compare = exId ? compareLastTwo(workouts, exId) : null;
+  if (exercises.length === 0 || !exId) return null;
+
+  const series = exerciseSeries(sets, metric);
+  const compare = compareLastTwo(sets);
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <h2 className="px-1 pt-2 text-[17px] font-extrabold">Прогрес</h2>
+    <Card>
+      <SectionLabel>Прогрес по вправі</SectionLabel>
 
-      {/* Прогрес по вправі */}
-      {usedExercises.length > 0 && exId && (
-        <Card>
-          <SectionLabel>Прогрес по вправі</SectionLabel>
-          <div className="mb-3 flex flex-wrap gap-2">
-            {usedExercises.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                onClick={() => setExId(e.id)}
-                className={cn(
-                  "rounded-full px-[13px] py-[7px] text-[12.5px] transition",
-                  exId === e.id
-                    ? "bg-primary font-bold text-white"
-                    : "border-[1.5px] border-primary-light bg-bg font-semibold text-muted",
-                )}
-              >
-                {e.name}
-              </button>
-            ))}
+      <ExercisePicker exercises={exercises} value={exId} onChange={setExId} />
+
+      <div className="mt-3">
+        <Segmented options={METRIC_OPTS} value={metric} onChange={setMetric} />
+      </div>
+
+      <div className="mt-3">
+        {loading ? (
+          <div className="flex h-[150px] items-center justify-center">
+            <Spinner className="h-6 w-6 text-primary" />
           </div>
-          <div className="mb-3">
-            <Segmented options={METRIC_OPTS} value={metric} onChange={setMetric} />
+        ) : failed ? (
+          <div className="py-6 text-center text-[12px] font-semibold text-muted">
+            Не вдалося завантажити прогрес
           </div>
+        ) : (
           <MetricLine data={series.map((p) => ({ label: p.label, value: p.value }))} unit="кг" />
+        )}
+      </div>
 
-          {/* Порівняння з минулим */}
-          {compare && (
-            <div className="mt-3">
-              <CompareCard
-                title="Макс. вага"
-                current={compare.current.maxWeight}
-                previous={compare.previous?.maxWeight ?? null}
-                unit="кг"
-                better="up"
-              />
-            </div>
-          )}
-          {compare && (
-            <div className="mt-2 text-center text-[11px] font-semibold text-muted">
-              {shortDate(compare.current.date)}
-              {compare.previous ? ` vs ${shortDate(compare.previous.date)}` : " · перша сесія"}
-            </div>
-          )}
-        </Card>
+      {!loading && !failed && compare && (
+        <>
+          <div className="mt-3">
+            <CompareCard
+              title="Макс. вага"
+              current={compare.current.maxWeight}
+              previous={compare.previous?.maxWeight ?? null}
+              unit="кг"
+              better="up"
+            />
+          </div>
+          <div className="mt-2 text-center text-[11px] font-semibold text-muted">
+            {shortDate(compare.current.date)}
+            {compare.previous ? ` vs ${shortDate(compare.previous.date)}` : " · перша сесія"}
+          </div>
+        </>
       )}
-    </div>
+    </Card>
   );
 }
 

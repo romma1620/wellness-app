@@ -3,19 +3,19 @@
 import { Button, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
 import { createClient } from "@/lib/supabase/client";
-import type { Exercise } from "@/lib/types";
-import { exerciseCount, workoutTonnage, type LoadedWorkout } from "@/lib/workouts";
-import { loadExercises, loadWorkoutsWithSets } from "@/lib/workouts-db";
+import { exerciseCount, workoutTonnage, type LoadedWorkout, type UsedExercise } from "@/lib/workouts";
+import { loadExerciseSets, loadUsedExercises, loadWorkoutsWithSets } from "@/lib/workouts-db";
 import { fmtInt, humanDate } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function WorkoutsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const [uid, setUid] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<LoadedWorkout[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<UsedExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,8 +28,9 @@ export default function WorkoutsPage() {
         if (!uid) throw new Error("no-user");
         const [ws, ex] = await Promise.all([
           loadWorkoutsWithSets(supabase, uid),
-          loadExercises(supabase, uid),
+          loadUsedExercises(supabase),
         ]);
+        setUid(uid);
         setWorkouts(ws);
         setExercises(ex);
       } catch {
@@ -39,6 +40,11 @@ export default function WorkoutsPage() {
       }
     })();
   }, [supabase]);
+
+  const loadSets = useCallback(
+    async (exerciseId: string) => (uid ? loadExerciseSets(supabase, uid, exerciseId) : []),
+    [supabase, uid],
+  );
 
   return (
     <div className="flex flex-col gap-[15px]">
@@ -54,6 +60,14 @@ export default function WorkoutsPage() {
       </Button>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
+
+      {!loading && exercises.length > 0 && (
+        <WorkoutProgress exercises={exercises} loadSets={loadSets} />
+      )}
+
+      {!loading && workouts.length > 0 && (
+        <h2 className="px-1 pt-2 text-[17px] font-extrabold">Історія</h2>
+      )}
 
       {loading ? (
         <FullLoader />
@@ -82,10 +96,6 @@ export default function WorkoutsPage() {
             </Link>
           ))}
         </div>
-      )}
-
-      {!loading && workouts.length > 0 && (
-        <WorkoutProgress workouts={workouts} exercises={exercises} />
       )}
     </div>
   );

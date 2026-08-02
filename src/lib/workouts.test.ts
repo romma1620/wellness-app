@@ -12,6 +12,7 @@ import {
   routineSeries,
   setTonnage,
   workoutTonnage,
+  type ExerciseSet,
   type LoadedWorkout,
   type MonthTotal,
   type WorkoutListItem,
@@ -117,25 +118,40 @@ describe("exerciseCount", () => {
   });
 });
 
+const SQ: ExerciseSet[] = [
+  { date: "2026-07-01", weight: 50, reps: 10 },
+  { date: "2026-07-01", weight: 60, reps: 8 },
+  { date: "2026-07-08", weight: 55, reps: 10 },
+  { date: "2026-07-08", weight: 65, reps: 8 },
+];
+
+const ABS: ExerciseSet[] = [{ date: "2026-07-01", weight: null, reps: 15 }];
+
 describe("exerciseSeries", () => {
   it("weight metric = best working weight per session", () => {
-    const s = exerciseSeries(W, "sq", "weight");
-    expect(s.map((p) => p.value)).toEqual([60, 65]);
+    expect(exerciseSeries(SQ, "weight").map((p) => p.value)).toEqual([60, 65]);
   });
   it("tonnage metric = exercise tonnage per session", () => {
-    const s = exerciseSeries(W, "sq", "tonnage");
-    expect(s.map((p) => p.value)).toEqual([500 + 480, 550 + 520]);
+    expect(exerciseSeries(SQ, "tonnage").map((p) => p.value)).toEqual([500 + 480, 550 + 520]);
   });
   it("orm metric = Epley of best set", () => {
-    const s = exerciseSeries(W, "sq", "orm");
-    expect(s[0].value).toBeCloseTo(60 * (1 + 8 / 30), 5);
+    expect(exerciseSeries(SQ, "orm")[0].value).toBeCloseTo(60 * (1 + 8 / 30), 5);
   });
   it("bodyweight exercise → weight metric is null point", () => {
-    const s = exerciseSeries(W, "abs", "weight");
-    expect(s[0].value).toBeNull();
+    expect(exerciseSeries(ABS, "weight")[0].value).toBeNull();
   });
-  it("skips sessions without that exercise", () => {
-    expect(exerciseSeries(W, "abs", "tonnage")).toHaveLength(1);
+  it("one point per session date", () => {
+    expect(exerciseSeries(SQ, "weight")).toHaveLength(2);
+  });
+  it("сортує сесії за датою незалежно від порядку сетів", () => {
+    const shuffled = [SQ[2], SQ[0], SQ[3], SQ[1]];
+    expect(exerciseSeries(shuffled, "weight").map((p) => p.date)).toEqual([
+      "2026-07-01",
+      "2026-07-08",
+    ]);
+  });
+  it("порожній вхід → порожня серія", () => {
+    expect(exerciseSeries([], "weight")).toEqual([]);
   });
 });
 
@@ -148,14 +164,17 @@ describe("routineSeries", () => {
 
 describe("compareLastTwo", () => {
   it("returns last vs previous max weight + tonnage", () => {
-    const c = compareLastTwo(W, "sq");
+    const c = compareLastTwo(SQ);
     expect(c?.current.maxWeight).toBe(65);
     expect(c?.previous?.maxWeight).toBe(60);
     expect(c?.current.tonnage).toBe(1070);
     expect(c?.previous?.tonnage).toBe(980);
   });
-  it("null when exercise never used", () => {
-    expect(compareLastTwo(W, "nope")).toBeNull();
+  it("перша сесія → previous є null", () => {
+    expect(compareLastTwo(ABS)?.previous).toBeNull();
+  });
+  it("null when there are no sets", () => {
+    expect(compareLastTwo([])).toBeNull();
   });
 });
 

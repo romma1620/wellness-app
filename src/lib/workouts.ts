@@ -109,7 +109,7 @@ export function epley1rm(weight: number | null, reps: number): number | null {
 }
 
 /** Найкращий підхід: макс. робоча вага, тай-брейк — більше повторів. */
-export function bestSet(sets: LoadedSet[]): LoadedSet | null {
+export function bestSet<T extends { weight: number | null; reps: number }>(sets: T[]): T | null {
   if (sets.length === 0) return null;
   return sets.reduce((best, s) => {
     const bw = best.weight ?? -Infinity;
@@ -128,25 +128,26 @@ export interface ExercisePoint {
   value: number | null;
 }
 
-/** Сесії, відсортовані за датою, у яких є ця вправа. */
-function sessionsWith(workouts: LoadedWorkout[], exerciseId: string): LoadedWorkout[] {
-  return [...workouts]
-    .filter((w) => w.sets.some((s) => s.exercise_id === exerciseId))
+/** Сети однієї вправи, згруповані за датою сесії, найстаріші спершу. */
+function sessionsOf(sets: ExerciseSet[]): { date: string; sets: ExerciseSet[] }[] {
+  const byDate = new Map<string, ExerciseSet[]>();
+  for (const s of sets) {
+    const bucket = byDate.get(s.date);
+    if (bucket) bucket.push(s);
+    else byDate.set(s.date, [s]);
+  }
+  return [...byDate.entries()]
+    .map(([date, group]) => ({ date, sets: group }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function exerciseSeries(
-  workouts: LoadedWorkout[],
-  exerciseId: string,
-  metric: ProgressMetric,
-): ExercisePoint[] {
-  return sessionsWith(workouts, exerciseId).map((w) => {
-    const sets = w.sets.filter((s) => s.exercise_id === exerciseId);
+export function exerciseSeries(sets: ExerciseSet[], metric: ProgressMetric): ExercisePoint[] {
+  return sessionsOf(sets).map(({ date, sets: group }) => {
     let value: number | null;
     if (metric === "tonnage") {
-      value = sets.reduce((sum, s) => sum + setTonnage(s), 0);
+      value = group.reduce((sum, s) => sum + setTonnage(s), 0);
     } else {
-      const best = bestSet(sets);
+      const best = bestSet(group);
       value =
         metric === "weight"
           ? (best?.weight ?? null)
@@ -154,7 +155,7 @@ export function exerciseSeries(
             ? epley1rm(best.weight, best.reps)
             : null;
     }
-    return { label: shortDate(w.date), date: w.date, value };
+    return { label: shortDate(date), date, value };
   });
 }
 
@@ -179,20 +180,14 @@ export interface SessionCompare {
   previous: SessionStat | null;
 }
 
-export function compareLastTwo(
-  workouts: LoadedWorkout[],
-  exerciseId: string,
-): SessionCompare | null {
-  const sessions = sessionsWith(workouts, exerciseId);
+export function compareLastTwo(sets: ExerciseSet[]): SessionCompare | null {
+  const sessions = sessionsOf(sets);
   if (sessions.length === 0) return null;
-  const stat = (w: LoadedWorkout): SessionStat => {
-    const sets = w.sets.filter((s) => s.exercise_id === exerciseId);
-    return {
-      date: w.date,
-      maxWeight: bestSet(sets)?.weight ?? null,
-      tonnage: sets.reduce((sum, s) => sum + setTonnage(s), 0),
-    };
-  };
+  const stat = (session: { date: string; sets: ExerciseSet[] }): SessionStat => ({
+    date: session.date,
+    maxWeight: bestSet(session.sets)?.weight ?? null,
+    tonnage: session.sets.reduce((sum, s) => sum + setTonnage(s), 0),
+  });
   const current = stat(sessions[sessions.length - 1]);
   const previous = sessions.length >= 2 ? stat(sessions[sessions.length - 2]) : null;
   return { current, previous };
