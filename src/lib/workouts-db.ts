@@ -6,7 +6,6 @@ import {
   type DraftExercise,
   type DraftWorkout,
   type ExerciseSet,
-  type LoadedWorkout,
   type MonthTotal,
   type UsedExercise,
   type WorkoutListItem,
@@ -42,26 +41,6 @@ export async function loadRoutineExercises(sb: SB, routineId: string): Promise<R
     .order("position", { ascending: true });
   if (error) throw error;
   return (data ?? []) as RoutineExercise[];
-}
-
-export async function loadWorkoutsWithSets(sb: SB, uid: string): Promise<LoadedWorkout[]> {
-  const { data, error } = await sb
-    .from("workouts")
-    .select("id, date, name, routine_id, workout_sets(weight, reps, exercise_id)")
-    .eq("user_id", uid)
-    .order("date", { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((w: any) => ({
-    id: w.id,
-    date: w.date,
-    name: w.name,
-    routine_id: w.routine_id,
-    sets: (w.workout_sets ?? []).map((s: any) => ({
-      weight: s.weight,
-      reps: s.reps,
-      exercise_id: s.exercise_id,
-    })),
-  }));
 }
 
 /** Місячні підсумки — усі одразу. Навіть за 5 років це десятки рядків. */

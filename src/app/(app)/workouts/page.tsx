@@ -1,11 +1,23 @@
 "use client";
 
-import { Button, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner } from "@/components/ui";
+import { WorkoutList } from "@/components/workouts/WorkoutList";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
+import { WorkoutsSkeleton } from "@/components/workouts/WorkoutsSkeleton";
 import { createClient } from "@/lib/supabase/client";
-import { exerciseCount, workoutTonnage, type LoadedWorkout, type UsedExercise } from "@/lib/workouts";
-import { loadExerciseSets, loadUsedExercises, loadWorkoutsWithSets } from "@/lib/workouts-db";
-import { fmtInt, humanDate } from "@/lib/utils";
+import {
+  pickMonthPage,
+  remainingSessions,
+  type MonthTotal,
+  type UsedExercise,
+  type WorkoutListItem,
+} from "@/lib/workouts";
+import {
+  loadExerciseSets,
+  loadMonthTotals,
+  loadUsedExercises,
+  loadWorkoutList,
+} from "@/lib/workouts-db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -13,26 +25,36 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 export default function WorkoutsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+
   const [uid, setUid] = useState<string | null>(null);
-  const [workouts, setWorkouts] = useState<LoadedWorkout[]>([]);
+  const [totals, setTotals] = useState<MonthTotal[]>([]);
   const [exercises, setExercises] = useState<UsedExercise[]>([]);
+  const [items, setItems] = useState<WorkoutListItem[]>([]);
+  const [loadedMonths, setLoadedMonths] = useState(0);
+
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moreError, setMoreError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const [ws, ex] = await Promise.all([
-          loadWorkoutsWithSets(supabase, uid),
+        const id = u.user?.id;
+        if (!id) throw new Error("no-user");
+        const [ts, ex] = await Promise.all([
+          loadMonthTotals(supabase),
           loadUsedExercises(supabase),
         ]);
-        setUid(uid);
-        setWorkouts(ws);
+        const page = pickMonthPage(ts, 0);
+        const first = page ? await loadWorkoutList(supabase, id, page.from, page.to) : [];
+        setUid(id);
+        setTotals(ts);
         setExercises(ex);
+        setItems(first);
+        setLoadedMonths(page?.months ?? 0);
       } catch {
         setError("Не вдалося завантажити тренування.");
       } finally {
@@ -45,6 +67,23 @@ export default function WorkoutsPage() {
     async (exerciseId: string) => (uid ? loadExerciseSets(supabase, uid, exerciseId) : []),
     [supabase, uid],
   );
+
+  const loadMore = async () => {
+    const page = pickMonthPage(totals, loadedMonths);
+    if (!uid || !page) return;
+    setLoadingMore(true);
+    setMoreError(null);
+    try {
+      const next = await loadWorkoutList(supabase, uid, page.from, page.to);
+      setItems((prev) => [...prev, ...next]);
+      setLoadedMonths((n) => n + page.months);
+    } catch {
+      // вже показане лишається на місці — банер тільки про невдале довантаження
+      setMoreError("Не вдалося довантажити. Спробуй ще раз.");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-[15px]">
@@ -61,41 +100,30 @@ export default function WorkoutsPage() {
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      {!loading && exercises.length > 0 && (
-        <WorkoutProgress exercises={exercises} loadSets={loadSets} />
-      )}
-
-      {!loading && workouts.length > 0 && (
-        <h2 className="px-1 pt-2 text-[17px] font-extrabold">Історія</h2>
-      )}
-
       {loading ? (
-        <FullLoader />
-      ) : workouts.length === 0 ? (
+        <WorkoutsSkeleton />
+      ) : items.length === 0 ? (
         <EmptyState
           emoji="🏋️"
           title="Ще немає тренувань"
           hint="Додай першу сесію — вправи, вагу і підходи. Далі бачитимеш прогрес на графіках."
         />
       ) : (
-        <div className="flex flex-col gap-3">
-          {workouts.map((w) => (
-            <Link
-              key={w.id}
-              href={`/workouts/${w.id}`}
-              className="rounded-2xl bg-surface p-4 shadow-card transition active:scale-[.99]"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[15px] font-extrabold text-ink">{w.name ?? "Тренування"}</span>
-                <span className="text-[12px] font-semibold text-muted">{humanDate(w.date)}</span>
-              </div>
-              <div className="mt-1.5 flex gap-4 text-[12.5px] font-semibold text-muted">
-                <span>{exerciseCount(w.sets)} вправ</span>
-                <span>тоннаж {fmtInt(workoutTonnage(w))} кг</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <>
+          <WorkoutProgress exercises={exercises} loadSets={loadSets} />
+
+          <h2 className="px-1 pt-2 text-[17px] font-extrabold">Історія</h2>
+
+          <WorkoutList
+            items={items}
+            totals={totals}
+            remaining={remainingSessions(totals, loadedMonths)}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+          />
+
+          {moreError && <ErrorBanner>{moreError}</ErrorBanner>}
+        </>
       )}
     </div>
   );
