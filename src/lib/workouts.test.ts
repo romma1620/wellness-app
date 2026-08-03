@@ -3,12 +3,19 @@ import {
   bestSet,
   compareLastTwo,
   epley1rm,
+  exerciseCount,
   exerciseSeries,
   exerciseTonnage,
+  groupByMonth,
+  pickMonthPage,
+  remainingSessions,
   routineSeries,
   setTonnage,
   workoutTonnage,
+  type ExerciseSet,
   type LoadedWorkout,
+  type MonthTotal,
+  type WorkoutListItem,
 } from "./workouts";
 
 describe("setTonnage", () => {
@@ -96,25 +103,86 @@ describe("workoutTonnage", () => {
   });
 });
 
+describe("exerciseCount", () => {
+  it("рахує різні вправи, а не підходи", () => {
+    expect(
+      exerciseCount([
+        { exercise_id: "sq" },
+        { exercise_id: "sq" },
+        { exercise_id: "abs" },
+      ]),
+    ).toBe(2);
+  });
+  it("нуль для порожнього списку", () => {
+    expect(exerciseCount([])).toBe(0);
+  });
+});
+
+const SQ: ExerciseSet[] = [
+  { date: "2026-07-01", weight: 50, reps: 10 },
+  { date: "2026-07-01", weight: 60, reps: 8 },
+  { date: "2026-07-08", weight: 55, reps: 10 },
+  { date: "2026-07-08", weight: 65, reps: 8 },
+];
+
+const ABS: ExerciseSet[] = [{ date: "2026-07-01", weight: null, reps: 15 }];
+
 describe("exerciseSeries", () => {
   it("weight metric = best working weight per session", () => {
-    const s = exerciseSeries(W, "sq", "weight");
-    expect(s.map((p) => p.value)).toEqual([60, 65]);
+    expect(exerciseSeries(SQ, "weight").map((p) => p.value)).toEqual([60, 65]);
   });
   it("tonnage metric = exercise tonnage per session", () => {
-    const s = exerciseSeries(W, "sq", "tonnage");
-    expect(s.map((p) => p.value)).toEqual([500 + 480, 550 + 520]);
+    expect(exerciseSeries(SQ, "tonnage").map((p) => p.value)).toEqual([500 + 480, 550 + 520]);
   });
   it("orm metric = Epley of best set", () => {
-    const s = exerciseSeries(W, "sq", "orm");
-    expect(s[0].value).toBeCloseTo(60 * (1 + 8 / 30), 5);
+    expect(exerciseSeries(SQ, "orm")[0].value).toBeCloseTo(60 * (1 + 8 / 30), 5);
   });
   it("bodyweight exercise → weight metric is null point", () => {
-    const s = exerciseSeries(W, "abs", "weight");
-    expect(s[0].value).toBeNull();
+    expect(exerciseSeries(ABS, "weight")[0].value).toBeNull();
   });
-  it("skips sessions without that exercise", () => {
-    expect(exerciseSeries(W, "abs", "tonnage")).toHaveLength(1);
+  it("one point per session date", () => {
+    expect(exerciseSeries(SQ, "weight")).toHaveLength(2);
+  });
+  it("сортує сесії за датою незалежно від порядку сетів", () => {
+    const shuffled = [SQ[2], SQ[0], SQ[3], SQ[1]];
+    expect(exerciseSeries(shuffled, "weight").map((p) => p.date)).toEqual([
+      "2026-07-01",
+      "2026-07-08",
+    ]);
+  });
+  it("порожній вхід → порожня серія", () => {
+    expect(exerciseSeries([], "weight")).toEqual([]);
+  });
+});
+
+describe("сети групуються за датою, а не за окремим тренуванням", () => {
+  // sessionsOf (через exerciseSeries/compareLastTwo) групує підходи за датою:
+  // два тренування в один день зливаються в одну крапку графіка з сумарним
+  // тоннажем і максимумом по обох. Дані з бази не несуть workout_id, тож без
+  // цього теста випадкове "виправлення" на групування за окремим тренуванням
+  // пройшло б непоміченим.
+  const TWO_WORKOUTS_SAME_DAY: ExerciseSet[] = [
+    { date: "2026-07-01", weight: 50, reps: 10 }, // ранкове тренування
+    { date: "2026-07-01", weight: 70, reps: 5 }, // вечірнє тренування, той самий день
+  ];
+
+  it("exerciseSeries: одна крапка з максимумом і сумарним тоннажем по обох тренуваннях", () => {
+    const series = exerciseSeries(TWO_WORKOUTS_SAME_DAY, "weight");
+    expect(series).toHaveLength(1);
+    expect(series[0].value).toBe(70);
+    expect(exerciseSeries(TWO_WORKOUTS_SAME_DAY, "tonnage")[0].value).toBe(500 + 350);
+  });
+
+  it("compareLastTwo: «попередня сесія» — це попередній день, а не попередній запис", () => {
+    const withPriorDay: ExerciseSet[] = [
+      { date: "2026-06-24", weight: 40, reps: 10 },
+      ...TWO_WORKOUTS_SAME_DAY,
+    ];
+    const c = compareLastTwo(withPriorDay);
+    expect(c?.current.date).toBe("2026-07-01");
+    expect(c?.current.maxWeight).toBe(70);
+    expect(c?.current.tonnage).toBe(500 + 350);
+    expect(c?.previous?.date).toBe("2026-06-24");
   });
 });
 
@@ -127,13 +195,88 @@ describe("routineSeries", () => {
 
 describe("compareLastTwo", () => {
   it("returns last vs previous max weight + tonnage", () => {
-    const c = compareLastTwo(W, "sq");
+    const c = compareLastTwo(SQ);
     expect(c?.current.maxWeight).toBe(65);
     expect(c?.previous?.maxWeight).toBe(60);
     expect(c?.current.tonnage).toBe(1070);
     expect(c?.previous?.tonnage).toBe(980);
   });
-  it("null when exercise never used", () => {
-    expect(compareLastTwo(W, "nope")).toBeNull();
+  it("перша сесія → previous є null", () => {
+    expect(compareLastTwo(ABS)?.previous).toBeNull();
+  });
+  it("null when there are no sets", () => {
+    expect(compareLastTwo([])).toBeNull();
+  });
+});
+
+const ITEMS: WorkoutListItem[] = [
+  { id: "w1", date: "2026-08-02", name: "Сідниці", exerciseCount: 6 },
+  { id: "w2", date: "2026-07-31", name: "Верх", exerciseCount: 5 },
+  { id: "w3", date: "2026-07-28", name: "Ноги", exerciseCount: 5 },
+];
+
+const TOTALS: MonthTotal[] = [
+  { month: "2026-08-01", sessions: 8, tonnage: 62000 },
+  { month: "2026-07-01", sessions: 12, tonnage: 91000 },
+  { month: "2026-06-01", sessions: 10, tonnage: 78000 },
+];
+
+describe("groupByMonth", () => {
+  it("розбиває на календарні місяці, зберігаючи порядок", () => {
+    const g = groupByMonth(ITEMS);
+    expect(g.map((x) => x.month)).toEqual(["2026-08-01", "2026-07-01"]);
+    expect(g[0].items.map((i) => i.id)).toEqual(["w1"]);
+    expect(g[1].items.map((i) => i.id)).toEqual(["w2", "w3"]);
+  });
+  it("порожній вхід → порожній вихід", () => {
+    expect(groupByMonth([])).toEqual([]);
+  });
+});
+
+describe("pickMonthPage", () => {
+  it("бере місяці, доки не набереться мінімум сесій", () => {
+    // 8 замало, тож додається липень: 8 + 12 = 20
+    expect(pickMonthPage(TOTALS, 0)).toEqual({
+      months: 2,
+      from: "2026-07-01",
+      to: "2026-08-31",
+    });
+  });
+  it("остання сторінка коротша за мінімум", () => {
+    expect(pickMonthPage(TOTALS, 2)).toEqual({
+      months: 1,
+      from: "2026-06-01",
+      to: "2026-06-30",
+    });
+  });
+  it("null, коли місяці вичерпано", () => {
+    expect(pickMonthPage(TOTALS, 3)).toBeNull();
+  });
+  it("порожній архів → null", () => {
+    expect(pickMonthPage([], 0)).toBeNull();
+  });
+  it("один місяць покриває мінімум сам по собі", () => {
+    expect(pickMonthPage(TOTALS, 1)?.months).toBe(1);
+  });
+  it("minSessions <= 0 все одно забирає хоча б один місяць, а не падає", () => {
+    expect(pickMonthPage(TOTALS, 0, 0)).toEqual({
+      months: 1,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    });
+    expect(pickMonthPage(TOTALS, 0, -5)).toEqual({
+      months: 1,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    });
+  });
+});
+
+describe("remainingSessions", () => {
+  it("сума сесій у ще не завантажених місяцях", () => {
+    expect(remainingSessions(TOTALS, 2)).toBe(10);
+  });
+  it("нуль, коли все завантажено", () => {
+    expect(remainingSessions(TOTALS, 3)).toBe(0);
   });
 });

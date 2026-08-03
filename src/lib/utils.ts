@@ -90,6 +90,13 @@ export function shortDate(iso: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+const WEEKDAYS_SHORT = ["нд", "пн", "вт", "ср", "чт", "пт", "сб"];
+
+/** "2026-08-02" → "нд" */
+export function weekdayShort(iso: string): string {
+  return WEEKDAYS_SHORT[parseISODate(iso).getDay()];
+}
+
 export function isToday(iso: string): boolean {
   return iso === todayISO();
 }
@@ -138,8 +145,7 @@ export function periodRange(type: PeriodType, offset: number): PeriodRange {
 export function periodLabel(type: PeriodType, offset: number): string {
   const { start, end } = periodRange(type, offset);
   if (type === "month") {
-    const d = parseISODate(start);
-    return `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`;
+    return monthLabel(start);
   }
   const s = parseISODate(start);
   const e = parseISODate(end);
@@ -147,6 +153,19 @@ export function periodLabel(type: PeriodType, offset: number): string {
     return `${s.getDate()}–${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
   }
   return `${s.getDate()} ${MONTHS_SHORT[s.getMonth()]} – ${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
+}
+
+/** "2026-08-01" → "Серпень 2026". Приймає будь-який день місяця. */
+export function monthLabel(isoMonth: string): string {
+  const d = parseISODate(isoMonth);
+  return `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Останній день місяця: "2026-08-01" → "2026-08-31". */
+export function monthEnd(isoMonth: string): string {
+  const d = parseISODate(isoMonth);
+  // день 0 наступного місяця = останній день поточного
+  return toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
 }
 
 // ----------------------- Дельти -----------------------
@@ -185,4 +204,19 @@ export function splitTags(v: string | null | undefined): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+// ----------------------- Числівники -----------------------
+
+/**
+ * Українське відмінювання за числом: 1 сесія, 2 сесії, 5 сесій.
+ * Числа 11–14 — виняток: попри останню цифру беруть форму «багато».
+ */
+export function plural(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n) % 100;
+  if (abs >= 11 && abs <= 14) return many;
+  const last = abs % 10;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
 }

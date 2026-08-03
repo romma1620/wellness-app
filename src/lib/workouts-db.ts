@@ -1,10 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Exercise, Routine, RoutineExercise } from "@/lib/types";
+import type { Exercise, MuscleGroup, Routine, RoutineExercise } from "@/lib/types";
 import {
+  exerciseCount,
   exerciseTonnage,
   type DraftExercise,
   type DraftWorkout,
-  type LoadedWorkout,
+  type ExerciseSet,
+  type MonthTotal,
+  type UsedExercise,
+  type WorkoutListItem,
 } from "@/lib/workouts";
 
 type SB = SupabaseClient;
@@ -39,24 +43,84 @@ export async function loadRoutineExercises(sb: SB, routineId: string): Promise<R
   return (data ?? []) as RoutineExercise[];
 }
 
-export async function loadWorkoutsWithSets(sb: SB, uid: string): Promise<LoadedWorkout[]> {
+/** Місячні підсумки — усі одразу. Навіть за 5 років це десятки рядків. */
+export async function loadMonthTotals(sb: SB): Promise<MonthTotal[]> {
+  const { data, error } = await sb.rpc("workout_month_totals");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    month: r.month_start as string,
+    sessions: Number(r.sessions),
+    tonnage: Number(r.tonnage),
+  }));
+}
+
+/** Вправи, що трапляються в сесіях, з датою останнього використання. */
+export async function loadUsedExercises(sb: SB): Promise<UsedExercise[]> {
+  const { data, error } = await sb.rpc("used_exercises");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id as string,
+    name: r.name as string,
+    muscleGroup: (r.muscle_group ?? null) as MuscleGroup | null,
+    lastUsed: r.last_used as string,
+  }));
+}
+
+/**
+ * Сторінка списку сесій за діапазоном дат (обидві межі включно).
+ * Тягне лише `exercise_id` підходів: рядок списку показує кількість вправ,
+ * а тоннаж приходить готовим із `loadMonthTotals`.
+ */
+export async function loadWorkoutList(
+  sb: SB,
+  uid: string,
+  from: string,
+  to: string,
+): Promise<WorkoutListItem[]> {
   const { data, error } = await sb
     .from("workouts")
-    .select("id, date, name, routine_id, workout_sets(weight, reps, exercise_id)")
+    .select("id, date, name, workout_sets(exercise_id)")
     .eq("user_id", uid)
+    .gte("date", from)
+    .lte("date", to)
     .order("date", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((w: any) => ({
     id: w.id,
     date: w.date,
     name: w.name,
-    routine_id: w.routine_id,
-    sets: (w.workout_sets ?? []).map((s: any) => ({
-      weight: s.weight,
-      reps: s.reps,
-      exercise_id: s.exercise_id,
-    })),
+    exerciseCount: exerciseCount(w.workout_sets ?? []),
   }));
+}
+
+/** Усі підходи однієї вправи з датами сесій — джерело графіка прогресу. */
+export async function loadExerciseSets(
+  sb: SB,
+  uid: string,
+  exerciseId: string,
+): Promise<ExerciseSet[]> {
+  const { data, error } = await sb
+    .from("workout_sets")
+    .select("weight, reps, workouts!inner(date, user_id)")
+    .eq("exercise_id", exerciseId)
+    .eq("workouts.user_id", uid)
+    // 1000 — стандартний ліміт PostgREST (db-max-rows) на рядки одного запиту.
+    // Робимо його явним: стабільна вправа за сотні сесій (4 підходи × 300 =
+    // 1200 рядків) інакше мовчки втратила б хвіст даних на графіку прогресу.
+    .limit(1000);
+  if (error) throw error;
+  const rows: ExerciseSet[] = [];
+  for (const s of (data ?? []) as any[]) {
+    // workout_sets.workout_id → workouts.id — many-to-one, тож PostgREST мав
+    // би віддавати embed `workouts` обʼєктом; без живої бази це не перевірено,
+    // тож приймаємо й масив та відкидаємо рядок без дати, а не пропускаємо
+    // undefined у рендер графіка.
+    const w = Array.isArray(s.workouts) ? s.workouts[0] : s.workouts;
+    const date = w?.date as string | undefined;
+    if (!date) continue;
+    rows.push({ date, weight: s.weight, reps: s.reps });
+  }
+  return rows;
 }
 
 export async function loadWorkoutDraft(
