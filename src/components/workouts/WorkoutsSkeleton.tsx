@@ -13,18 +13,24 @@ export function WorkoutsSkeleton() {
     <div className="flex flex-col gap-[15px]" aria-busy="true">
       <span className="sr-only">Завантаження тренувань</span>
 
-      {/* Прогрес: підпис 18.75 + 12 + тригер 51.5 + 12 + segmented 53 + 12 + графік 150 */}
+      {/* Прогрес: підпис 18.75 + 12 + тригер 51.5 + 12 + segmented 49 + 12 + графік 150 +
+          12 + картка порівняння 78 + 8 + рядок дат 16.5. Картка порівняння й рядок дат
+          зʼявляються для будь-якої вправи з хоча б одним сетом — це типовий стан,
+          а не рідкісний край, тож висота під них зарезервована тут теж. */}
       <div className="rounded-xl2 bg-surface p-4 shadow-card">
         <Skeleton className="mb-3 h-[18.75px] w-[128px]" />
         <Skeleton className="h-[51.5px] w-full rounded-[15px]" />
-        <Skeleton className="mt-3 h-[53px] w-full rounded-[14px]" />
+        <Skeleton className="mt-3 h-[49px] w-full rounded-[14px]" />
         <Skeleton className="mt-3 h-[150px] w-full rounded-[14px]" />
+        <Skeleton className="mt-3 h-[78px] w-full rounded-[14px]" />
+        <Skeleton className="mx-auto mt-2 h-[16.5px] w-[150px]" />
       </div>
 
-      {/* Заголовок «Історія»: 17px × 1.2 = 20.4 */}
-      <Skeleton className="ml-1 h-[20.4px] w-[84px]" />
+      {/* Заголовок «Історія»: px-1 pt-2 (8) + text-[17px] без leading-класу
+          (за замовчуванням Tailwind preflight 1.5 → 25.5) = 33.5 */}
+      <Skeleton className="ml-1 h-[33.5px] w-[84px]" />
 
-      {/* Місячний блок: хедер (20.4 + 2 + 18) + три рядки по 56.5 */}
+      {/* Місячний блок: хедер (20.4 + 2 + 18) + три рядки по 62.7 */}
       <div className="overflow-hidden rounded-xl2 bg-surface shadow-card">
         <div className="px-4 pb-2 pt-4">
           <Skeleton className="h-[20.4px] w-[124px]" />

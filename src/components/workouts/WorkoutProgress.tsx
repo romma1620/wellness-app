@@ -1,7 +1,7 @@
 "use client";
 
 import { MetricLine } from "@/components/charts";
-import { Card, SectionLabel, Segmented, Spinner } from "@/components/ui";
+import { Button, Card, SectionLabel, Segmented, Spinner } from "@/components/ui";
 import { ExercisePicker } from "@/components/workouts/ExercisePicker";
 import { cn, fmt, shortDate } from "@/lib/utils";
 import {
@@ -11,12 +11,17 @@ import {
   type ProgressMetric,
   type UsedExercise,
 } from "@/lib/workouts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const METRIC_OPTS: { value: ProgressMetric; label: string }[] = [
   { value: "weight", label: "Вага" },
   { value: "orm", label: "1ПМ" },
 ];
+
+/** Результат завантаження підходів, привʼязаний до вправи, якій він належить. */
+type LoadState =
+  | { id: string; status: "ok"; sets: ExerciseSet[] }
+  | { id: string; status: "error" };
 
 /**
  * Прогрес по одній вправі.
@@ -33,45 +38,54 @@ export function WorkoutProgress({
   exercises: UsedExercise[];
   loadSets: (exerciseId: string) => Promise<ExerciseSet[]>;
 }) {
-  // за замовчуванням — вправа з найсвіжішою сесією, а не перша за алфавітом
-  const initialId = useMemo(
+  // за замовчуванням — вправа з найсвіжішою сесією, а не перша за алфавітом;
+  // lazy-ініціалізатор useState, а не useMemo — після монтування initialId
+  // ніхто вдруге не читає, тож пам'ятати його між рендерами нема потреби.
+  const [exId, setExId] = useState<string | null>(
     () => [...exercises].sort((a, b) => b.lastUsed.localeCompare(a.lastUsed))[0]?.id ?? null,
-    [exercises],
   );
-
-  const [exId, setExId] = useState<string | null>(initialId);
   const [metric, setMetric] = useState<ProgressMetric>("weight");
-  const [sets, setSets] = useState<ExerciseSet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  // Результат привʼязаний до id вправи, якій він належить: готовність (`ready`)
+  // виводиться з рендера порівнянням exId і loaded.id, а не патчиться окремим
+  // ефектом. Без цього рендер одразу після setExId бачив уже новий exId, але
+  // ще старі sets і loading=false — один промальований кадр зі стрибком графіка
+  // під новим вибором, бо passive-ефект зі setLoading(true) відпрацьовує лише
+  // після пейнта.
+  const [loaded, setLoaded] = useState<LoadState | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const current = loaded?.id === exId ? loaded : null;
+  const loading = !current;
+  const failed = current?.status === "error";
+  const sets = current?.status === "ok" ? current.sets : [];
 
   useEffect(() => {
     if (!exId) return;
     let cancelled = false;
-    setLoading(true);
-    setFailed(false);
     loadSets(exId)
       .then((next) => {
-        if (!cancelled) setSets(next);
+        if (!cancelled) setLoaded({ id: exId, status: "ok", sets: next });
       })
       .catch(() => {
-        if (!cancelled) {
-          setSets([]);
-          setFailed(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoaded({ id: exId, status: "error" });
       });
     return () => {
       cancelled = true;
     };
-  }, [exId, loadSets]);
+  }, [exId, loadSets, reloadKey]);
 
   if (exercises.length === 0 || !exId) return null;
 
   const series = exerciseSeries(sets, metric);
   const compare = compareLastTwo(sets);
+
+  // reloadKey змушує ефект перезапуститись навіть якщо exId не змінився;
+  // сам loaded скидаємо тут-таки (в обробнику кліку, не в ефекті) — це одразу
+  // повертає спінер, не чекаючи відповіді нового запиту.
+  const retry = () => {
+    setLoaded(null);
+    setReloadKey((k) => k + 1);
+  };
 
   return (
     <Card>
@@ -89,8 +103,13 @@ export function WorkoutProgress({
             <Spinner className="h-6 w-6 text-primary" />
           </div>
         ) : failed ? (
-          <div className="py-6 text-center text-[12px] font-semibold text-muted">
-            Не вдалося завантажити прогрес
+          <div className="flex flex-col items-center gap-3 py-6">
+            <div className="text-center text-[12px] font-semibold text-muted">
+              Не вдалося завантажити прогрес
+            </div>
+            <Button type="button" variant="outline" onClick={retry}>
+              Спробувати ще раз
+            </Button>
           </div>
         ) : (
           <MetricLine data={series.map((p) => ({ label: p.label, value: p.value }))} unit="кг" />

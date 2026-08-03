@@ -103,13 +103,24 @@ export async function loadExerciseSets(
     .from("workout_sets")
     .select("weight, reps, workouts!inner(date, user_id)")
     .eq("exercise_id", exerciseId)
-    .eq("workouts.user_id", uid);
+    .eq("workouts.user_id", uid)
+    // 1000 — стандартний ліміт PostgREST (db-max-rows) на рядки одного запиту.
+    // Робимо його явним: стабільна вправа за сотні сесій (4 підходи × 300 =
+    // 1200 рядків) інакше мовчки втратила б хвіст даних на графіку прогресу.
+    .limit(1000);
   if (error) throw error;
-  return (data ?? []).map((s: any) => ({
-    date: s.workouts.date as string,
-    weight: s.weight,
-    reps: s.reps,
-  }));
+  const rows: ExerciseSet[] = [];
+  for (const s of (data ?? []) as any[]) {
+    // workout_sets.workout_id → workouts.id — many-to-one, тож PostgREST мав
+    // би віддавати embed `workouts` обʼєктом; без живої бази це не перевірено,
+    // тож приймаємо й масив та відкидаємо рядок без дати, а не пропускаємо
+    // undefined у рендер графіка.
+    const w = Array.isArray(s.workouts) ? s.workouts[0] : s.workouts;
+    const date = w?.date as string | undefined;
+    if (!date) continue;
+    rows.push({ date, weight: s.weight, reps: s.reps });
+  }
+  return rows;
 }
 
 export async function loadWorkoutDraft(

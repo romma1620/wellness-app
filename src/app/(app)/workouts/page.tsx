@@ -102,7 +102,7 @@ export default function WorkoutsPage() {
 
       {loading ? (
         <WorkoutsSkeleton />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !error ? (
         <EmptyState
           emoji="🏋️"
           title="Ще немає тренувань"

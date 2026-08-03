@@ -242,10 +242,13 @@ export function pickMonthPage(
   if (loaded >= totals.length) return null;
   let sessions = 0;
   let end = loaded;
-  while (end < totals.length && sessions < minSessions) {
+  // do/while, а не while: хоча б один місяць забирається завжди, навіть коли
+  // minSessions <= 0 — інакше end лишався б рівним loaded і totals[end - 1]
+  // читав би totals[-1].
+  do {
     sessions += totals[end].sessions;
     end += 1;
-  }
+  } while (end < totals.length && sessions < minSessions);
   return {
     months: end - loaded,
     from: totals[end - 1].month,

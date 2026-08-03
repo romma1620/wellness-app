@@ -155,6 +155,37 @@ describe("exerciseSeries", () => {
   });
 });
 
+describe("сети групуються за датою, а не за окремим тренуванням", () => {
+  // sessionsOf (через exerciseSeries/compareLastTwo) групує підходи за датою:
+  // два тренування в один день зливаються в одну крапку графіка з сумарним
+  // тоннажем і максимумом по обох. Дані з бази не несуть workout_id, тож без
+  // цього теста випадкове "виправлення" на групування за окремим тренуванням
+  // пройшло б непоміченим.
+  const TWO_WORKOUTS_SAME_DAY: ExerciseSet[] = [
+    { date: "2026-07-01", weight: 50, reps: 10 }, // ранкове тренування
+    { date: "2026-07-01", weight: 70, reps: 5 }, // вечірнє тренування, той самий день
+  ];
+
+  it("exerciseSeries: одна крапка з максимумом і сумарним тоннажем по обох тренуваннях", () => {
+    const series = exerciseSeries(TWO_WORKOUTS_SAME_DAY, "weight");
+    expect(series).toHaveLength(1);
+    expect(series[0].value).toBe(70);
+    expect(exerciseSeries(TWO_WORKOUTS_SAME_DAY, "tonnage")[0].value).toBe(500 + 350);
+  });
+
+  it("compareLastTwo: «попередня сесія» — це попередній день, а не попередній запис", () => {
+    const withPriorDay: ExerciseSet[] = [
+      { date: "2026-06-24", weight: 40, reps: 10 },
+      ...TWO_WORKOUTS_SAME_DAY,
+    ];
+    const c = compareLastTwo(withPriorDay);
+    expect(c?.current.date).toBe("2026-07-01");
+    expect(c?.current.maxWeight).toBe(70);
+    expect(c?.current.tonnage).toBe(500 + 350);
+    expect(c?.previous?.date).toBe("2026-06-24");
+  });
+});
+
 describe("routineSeries", () => {
   it("total session tonnage per date for a routine", () => {
     const s = routineSeries(W, "r1");
@@ -226,6 +257,18 @@ describe("pickMonthPage", () => {
   });
   it("один місяць покриває мінімум сам по собі", () => {
     expect(pickMonthPage(TOTALS, 1)?.months).toBe(1);
+  });
+  it("minSessions <= 0 все одно забирає хоча б один місяць, а не падає", () => {
+    expect(pickMonthPage(TOTALS, 0, 0)).toEqual({
+      months: 1,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    });
+    expect(pickMonthPage(TOTALS, 0, -5)).toEqual({
+      months: 1,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    });
   });
 });
 
