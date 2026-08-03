@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { keyboardInset } from "@/lib/viewport";
 import {
   forwardRef,
   useEffect,
@@ -278,7 +279,42 @@ export function Collapsible({
 
 // ----------------------- Bottom sheet -----------------------
 /**
- * Модальна панель знизу. Про свій вміст нічого не знає.
+ * Висота, на яку клавіатура перекриває низ екрана, у пікселях.
+ *
+ * Читаємо `visualViewport`, бо на iOS layout-вьюпорт при появі клавіатури не
+ * змінюється: `fixed inset-0` лишається на всю висоту екрана, і панель,
+ * притиснута до низу, ховається під клавіатурою. Підписка жива лише поки
+ * панель відкрита. Перший замір іде через rAF, а не синхронно в тілі ефекту,
+ * щоб міряти вже після відмальовки.
+ */
+function useKeyboardInset(open: boolean): number {
+  const [inset, setInset] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => setInset(keyboardInset(window.innerHeight, vv.height, vv.offsetTop));
+    const first = requestAnimationFrame(update);
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+
+    return () => {
+      cancelAnimationFrame(first);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [open]);
+
+  // поки панель закрита, значення з минулого відкриття не має впливати
+  return open ? inset : 0;
+}
+
+/**
+ * Модальна панель знизу. Про свій вміст нічого не знає, але гарантує, що
+ * ніколи не вилізе за видиму частину екрана: піднімається над клавіатурою і
+ * обмежує свою висоту. Вміст, що не вміщується, скролиться — заголовок ні.
  * Закриття: Esc, тап по затемненню, хрестик. Свайп вниз не підтримується.
  */
 export function Sheet({
@@ -294,6 +330,7 @@ export function Sheet({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
+  const bottomInset = useKeyboardInset(open);
 
   // onClose живе в ref, а не в залежностях: інлайнова стрілка від викликача
   // інакше перезапускала б головний ефект щорендера — з переїздом фокуса й
@@ -331,6 +368,9 @@ export function Sheet({
   return (
     <div
       className="aura-fade fixed inset-0 z-50 flex items-end bg-black/40"
+      // паддінг, а не зсув: висота контенту контейнера зменшується разом із
+      // видимою областю, тож `max-h` панелі нижче рахується вже від неї
+      style={{ paddingBottom: bottomInset }}
       onClick={() => closeRef.current()}
     >
       <div
@@ -340,12 +380,15 @@ export function Sheet({
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
+        // 24px лишаємо на затемнення зверху, щоб панель читалась як панель,
+        // а не як окремий екран
+        style={{ maxHeight: "calc(100% - 24px)" }}
         className={cn(
-          "aura-sheet mx-auto w-full max-w-app rounded-t-[24px] bg-surface p-5 outline-none",
+          "aura-sheet mx-auto flex w-full max-w-app flex-col rounded-t-[24px] bg-surface p-5 outline-none",
           "pb-[max(20px,env(safe-area-inset-bottom))]",
         )}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           <div className="text-[17px] font-extrabold text-ink">{title}</div>
           <button
             type="button"
@@ -356,7 +399,7 @@ export function Sheet({
             ✕
           </button>
         </div>
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>
     </div>
   );

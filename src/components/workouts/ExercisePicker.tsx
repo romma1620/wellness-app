@@ -88,12 +88,16 @@ export function ExercisePicker({
 
       <Sheet open={open} onClose={close} title="Вправа">
         {/* без autoFocus: на мобільному клавіатура зʼїдала б половину панелі */}
-        <Input
-          value={query}
-          placeholder="Пошук вправи"
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <div className="mt-3 max-h-[55vh] overflow-y-auto">
+        <div className="shrink-0">
+          <Input
+            value={query}
+            placeholder="Пошук вправи"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        {/* висоту обмежує Sheet — він єдиний знає, де закінчується видима
+            область; тут лишається тільки віддати список під скрол */}
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
           {q ? (
             matches.length > 0 ? (
               matches.map((e) => (

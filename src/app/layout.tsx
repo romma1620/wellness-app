@@ -35,6 +35,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  // Chrome/Android стискає layout-вьюпорт під клавіатуру, тож `fixed`-панелі
+  // піднімаються самі. iOS цього не вміє — там ту саму роботу робить замір
+  // visualViewport у Sheet.
+  interactiveWidget: "resizes-content",
 };
 
 // Застосовуємо тему до першого рендера, щоб уникнути мигання.
