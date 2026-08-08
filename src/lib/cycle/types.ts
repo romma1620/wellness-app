@@ -125,8 +125,19 @@ export const DEFAULT_SETTINGS: Omit<CycleSettings, "user_id"> = {
   phase_bands_in_charts: false,
 };
 
+/**
+ * Межі типової довжини циклу з онбордингу й налаштувань.
+ *
+ * Верхня межа навмисно з запасом: 60 днів — це вже олігоменорея, але
+ * застосунок не має підстав казати юзерці, що її цикл «неправильний»,
+ * і тим паче не має ламати їй прогноз округленням до 40.
+ *
+ * Мусить збігатися з CHECK-обмеженням cycle_settings.typical_cycle_length
+ * у supabase/schema.sql — інакше слайдер дозволить значення, яке БД
+ * відкине вже на збереженні.
+ */
 export const CYCLE_LENGTH_MIN = 21;
-export const CYCLE_LENGTH_MAX = 40;
+export const CYCLE_LENGTH_MAX = 60;
 
 // ----------------------- Фази -----------------------
 

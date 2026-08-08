@@ -368,8 +368,9 @@ create index if not exists cycle_entries_user_date_idx
 create table if not exists public.cycle_settings (
   user_id               uuid primary key references auth.users(id) on delete cascade,
   enabled               boolean not null default false,
+  -- межі мусять збігатися з CYCLE_LENGTH_MIN/MAX у src/lib/cycle/types.ts
   typical_cycle_length  smallint not null default 28
-                          check (typical_cycle_length between 21 and 40),
+                          check (typical_cycle_length between 21 and 60),
   typical_period_length smallint not null default 5
                           check (typical_period_length between 1 and 12),
   show_fertile_window   boolean not null default true,
@@ -378,6 +379,15 @@ create table if not exists public.cycle_settings (
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now()
 );
+
+-- Межі могли змінитися вже після створення таблиці, а `create table if not
+-- exists` наявну не чіпає. Перевстановлюємо CHECK явно, щоб повторний прогін
+-- цього файлу оновлював обмеження, а не мовчки лишав старе.
+alter table public.cycle_settings
+  drop constraint if exists cycle_settings_typical_cycle_length_check;
+alter table public.cycle_settings
+  add constraint cycle_settings_typical_cycle_length_check
+  check (typical_cycle_length between 21 and 60);
 
 alter table public.cycle_settings enable row level security;
 
