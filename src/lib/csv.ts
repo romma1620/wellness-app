@@ -143,6 +143,44 @@ export function exportFileName(range: ExportRange, todayIso: string): string {
   return `aura-${range}-${todayIso}.csv`;
 }
 
+/**
+ * Дані циклу експортуються окремим файлом, а не секцією загального:
+ * вивантажити щоденник, не вивантаживши разом із ним цикл, мусить бути
+ * можливо — це різні за чутливістю дані.
+ */
+export interface CycleCsvRow {
+  date: string;
+  cycleDay: number | null;
+  /** Підписи, а не ключі БД: файл читає людина, а не застосунок. */
+  flow: string | null;
+  symptoms: string;
+  mood: string | null;
+  energy: number | null;
+  notes: string | null;
+}
+
+const CYCLE_HEADER = [
+  "Дата", "День циклу", "Виділення", "Симптоми", "Настрій", "Енергія", "Нотатка",
+];
+
+export function buildCycleCsv(rows: CycleCsvRow[]): string {
+  return (
+    BOM +
+    toCsv([
+      ["# Цикл"],
+      CYCLE_HEADER,
+      ...rows.map((r) => [
+        r.date, r.cycleDay, r.flow, r.symptoms, r.mood, r.energy, r.notes,
+      ]),
+    ]) +
+    EOL
+  );
+}
+
+export function cycleExportFileName(todayIso: string): string {
+  return `aura-cycle-${todayIso}.csv`;
+}
+
 export function isExportEmpty(data: ExportData): boolean {
   return (
     data.daily.length === 0 && data.measurements.length === 0 && data.workouts.length === 0

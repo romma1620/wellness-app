@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, monthLabel, parseISODate, todayISO, toISODate, weekdayHead } from "@/lib/utils";
 import { keyboardInset } from "@/lib/viewport";
 import {
   forwardRef,
@@ -12,6 +12,8 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
+import { DayPicker, type ClassNames, type DayButtonProps } from "react-day-picker";
+import { uk } from "react-day-picker/locale";
 
 // ----------------------- Card -----------------------
 export function Card({
@@ -111,6 +113,170 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   },
 );
 
+// ----------------------- DateField -----------------------
+
+/**
+ * Дні календаря малюємо самі, а не класами на `<td>`: react-day-picker
+ * навішує `selected`/`today`/`outside` на клітинку, а кружечок нам потрібен
+ * на кнопці всередині неї. `DayButton` — штатна точка розширення, і вона
+ * єдина дає доступ до модифікаторів там, де вони потрібні.
+ */
+function PickerDay({ day, modifiers, className, children, ...rest }: DayButtonProps) {
+  const { selected, today, outside, disabled } = modifiers;
+  const ref = useRef<HTMLButtonElement>(null);
+
+  // Дефолтний DayButton робить рівно це, і без нього ламається навігація
+  // стрілками: react-day-picker лише позначає день модифікатором focused,
+  // а перевести на нього фокус мусить сама кнопка.
+  useEffect(() => {
+    if (modifiers.focused) ref.current?.focus();
+  }, [modifiers.focused]);
+
+  return (
+    <button
+      ref={ref}
+      {...rest}
+      className={cn(
+        "mx-auto flex h-[38px] w-[38px] items-center justify-center rounded-full text-[14px] transition",
+        selected
+          ? "bg-primary font-extrabold text-white shadow-soft"
+          : today
+            ? "font-extrabold text-primary ring-[1.5px] ring-inset ring-primary"
+            : "font-bold text-ink",
+        outside && !selected && "text-muted opacity-35",
+        disabled && "cursor-not-allowed opacity-25",
+        !disabled && !selected && "hover:bg-primary-light active:scale-90",
+        className,
+      )}
+    >
+      {/* Число дня форматує лібка — воно вже прийшло в children */}
+      {children ?? day.date.getDate()}
+    </button>
+  );
+}
+
+const NAV_BUTTON =
+  "flex h-[30px] w-[30px] items-center justify-center rounded-[11px] bg-bg text-muted transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
+
+/**
+ * Класи розкладені по елементах react-day-picker, базовий CSS лібки не
+ * підключаємо: сітка там — звичайна `<table>`, і Tailwind-у достатньо.
+ *
+ * Кнопки місяців позиціоновані абсолютно, бо при `navLayout="around"` вони
+ * лежать усередині `month` сусідами заголовка — рядок «‹ Серпень 2026 ›»
+ * інакше не збереш, не ламаючи сітку під ним.
+ */
+const PICKER_CLASSES: Partial<ClassNames> = {
+  root: "w-full",
+  months: "flex w-full flex-col",
+  month: "relative w-full",
+  button_previous: cn(NAV_BUTTON, "absolute left-0 top-0 z-10"),
+  button_next: cn(NAV_BUTTON, "absolute right-0 top-0 z-10"),
+  chevron: "h-[18px] w-[18px] fill-current",
+  month_caption: "mb-3 flex h-[30px] items-center justify-center",
+  caption_label: "text-[15px] font-extrabold",
+  month_grid: "w-full border-collapse",
+  weekday: "pb-1.5 text-center text-[10.5px] font-extrabold text-muted",
+  day: "p-0 py-[2px] text-center align-middle",
+};
+
+/**
+ * Вибір дати: власний тригер (`children` — те, що видно) і календар
+ * react-day-picker у нижній панелі.
+ *
+ * Нативний `input[type=date]` тут не використовується навмисно. Крім того,
+ * що він виглядає по-різному в кожному браузері, у Chrome клік по його полю
+ * взагалі не відкриває календар — це робить лише службова іконка, тож
+ * прозорий input на всю ширину поля просто не працював.
+ */
+export function DateField({
+  value,
+  onChange,
+  label,
+  min,
+  max,
+  className,
+  children,
+}: {
+  value: string; // YYYY-MM-DD
+  onChange: (v: string) => void;
+  /** Заголовок панелі; він же йде в назву тригера для скрінрідера. */
+  label: string;
+  min?: string;
+  max?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = parseISODate(value);
+
+  // Обмеження прив'язані до дат, а не до місяців: інакше можна долистати
+  // до місяця, у якому всі дні заблоковані, і не зрозуміти, чому.
+  const limits = [
+    ...(min ? [{ before: parseISODate(min) }] : []),
+    ...(max ? [{ after: parseISODate(max) }] : []),
+  ];
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        // w-full обовʼязкове: у form-controls `width: auto` рахується як
+        // fit-content, тому кнопка стискається по вмісту навіть з display:flex
+        // — і `justify-between` у класах викликача не має що розподіляти.
+        className={cn("w-full cursor-pointer text-left", className)}
+      >
+        <span className="sr-only">{label}. </span>
+        {children}
+      </button>
+
+      {open && (
+        <Sheet open onClose={() => setOpen(false)} title={label}>
+          <DayPicker
+            mode="single"
+            required
+            selected={selected}
+            onSelect={(d) => {
+              if (!d) return;
+              onChange(toISODate(d));
+              setOpen(false);
+            }}
+            defaultMonth={selected}
+            startMonth={min ? parseISODate(min) : undefined}
+            endMonth={max ? parseISODate(max) : undefined}
+            disabled={limits}
+            showOutsideDays
+            weekStartsOn={1}
+            navLayout="around"
+            locale={uk}
+            // Назви місяців і днів беремо з утиліт проєкту, а не з локалі
+            // date-fns: у застосунку вже є свої формати, і календар не має
+            // писати «серпень» там, де решта екранів пише «Серпень».
+            formatters={{
+              formatCaption: (d) => monthLabel(toISODate(d)),
+              formatWeekdayName: (d) => weekdayHead(d.getDay()),
+            }}
+            classNames={PICKER_CLASSES}
+            components={{ DayButton: PickerDay }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              onChange(todayISO());
+              setOpen(false);
+            }}
+            className="mt-2 shrink-0 rounded-[14px] bg-primary-light py-3 text-center text-[13.5px] font-extrabold text-primary active:scale-[.99]"
+          >
+            Сьогодні
+          </button>
+        </Sheet>
+      )}
+    </>
+  );
+}
+
 // ----------------------- Chip -----------------------
 export function Chip({
   active,
@@ -166,6 +332,47 @@ export function Segmented<T extends string>({
         );
       })}
     </div>
+  );
+}
+
+// ----------------------- Toggle -----------------------
+/**
+ * Перемикач «увімкнено / вимкнено». Це справжній `role="switch"`, а не
+ * стилізований чекбокс: перемикачі в застосунку керують станом одразу,
+ * без «Зберегти», і скрінрідер має читати їх саме так.
+ */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-[27px] w-[46px] shrink-0 rounded-[14px] transition-colors",
+        checked ? "bg-primary" : "bg-primary-light",
+        disabled && "opacity-50",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-[3px] h-[21px] w-[21px] rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,.2)] transition-[left]",
+          checked ? "left-[22px]" : "left-[3px]",
+        )}
+      />
+    </button>
   );
 }
 
@@ -321,11 +528,18 @@ export function Sheet({
   open,
   onClose,
   title,
+  subtitle,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /**
+   * Другий рядок шапки. Живе саме тут, а не першим елементом `children`:
+   * вміст панелі скролиться, і будь-який відʼємний відступ, яким його
+   * підтягували б до заголовка, обрізався б об верхню межу скрол-контейнера.
+   */
+  subtitle?: ReactNode;
   children: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -388,13 +602,18 @@ export function Sheet({
           "pb-[max(20px,env(safe-area-inset-bottom))]",
         )}
       >
-        <div className="mb-4 flex shrink-0 items-center justify-between">
-          <div className="text-[17px] font-extrabold text-ink">{title}</div>
+        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[17px] font-extrabold text-ink">{title}</div>
+            {subtitle && (
+              <div className="mt-0.5 text-[12px] font-bold text-muted">{subtitle}</div>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => closeRef.current()}
             aria-label="Закрити"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-light text-[15px] font-bold text-primary active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[15px] font-bold text-primary active:scale-95"
           >
             ✕
           </button>

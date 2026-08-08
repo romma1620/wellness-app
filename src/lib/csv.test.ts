@@ -6,6 +6,9 @@ import {
   flattenWorkouts,
   isExportEmpty,
   toCsv,
+  buildCycleCsv,
+  cycleExportFileName,
+  type CycleCsvRow,
   type ExportData,
   type RawWorkout,
 } from "./csv";
@@ -180,5 +183,56 @@ describe("isExportEmpty", () => {
         ],
       }),
     ).toBe(false);
+  });
+});
+
+describe("buildCycleCsv", () => {
+  const ROWS: CycleCsvRow[] = [
+    {
+      date: "2026-08-01",
+      cycleDay: 1,
+      flow: "середньо",
+      symptoms: "Судоми, Здуття",
+      mood: "знижений",
+      energy: 2,
+      notes: null,
+    },
+    {
+      date: "2026-08-08",
+      cycleDay: 8,
+      flow: null,
+      symptoms: "",
+      mood: null,
+      energy: null,
+      notes: "довга прогулянка",
+    },
+  ];
+
+  it("окрема секція з власним заголовком і BOM", () => {
+    const csv = buildCycleCsv(ROWS);
+    expect(csv.startsWith("﻿# Цикл")).toBe(true);
+    expect(csv).toContain("Дата;День циклу;Виділення;Симптоми;Настрій;Енергія;Нотатка");
+  });
+
+  it("порожні поля лишаються порожніми, а не «—»", () => {
+    const csv = buildCycleCsv(ROWS);
+    expect(csv).toContain("2026-08-08;8;;;;;довга прогулянка");
+  });
+
+  it("кома в симптомах не потребує лапок — роздільник крапка з комою", () => {
+    expect(buildCycleCsv(ROWS)).toContain("2026-08-01;1;середньо;Судоми, Здуття;знижений;2;");
+  });
+
+  it("без записів лишається лише структура файлу", () => {
+    const csv = buildCycleCsv([]);
+    expect(csv).toContain("# Цикл");
+    expect(csv).toContain("Дата;День циклу");
+  });
+});
+
+describe("cycleExportFileName", () => {
+  it("окреме імʼя, щоб файл циклу не змішувався з загальним експортом", () => {
+    expect(cycleExportFileName("2026-08-08")).toBe("aura-cycle-2026-08-08.csv");
+    expect(cycleExportFileName("2026-08-08")).not.toBe(exportFileName("all", "2026-08-08"));
   });
 });

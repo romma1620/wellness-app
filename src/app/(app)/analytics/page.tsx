@@ -2,8 +2,18 @@
 
 import { StepsBars, WeightChart, type WeightPoint } from "@/components/charts";
 import { CareDotChart } from "@/components/CareDotChart";
+import {
+  PhaseBandsToggle,
+  PhaseLegend,
+  PhaseWeightCard,
+  usePhaseOverlay,
+  WaterRetentionCard,
+} from "@/components/cycle/analytics";
 import { Card, EmptyState, ErrorBanner, FullLoader, Segmented } from "@/components/ui";
 import { buildCareColorMap, buildCareMatrix, type CareHistoryRow } from "@/lib/care";
+import { cycleDayFor } from "@/lib/cycle/derive";
+import type { DatedValue } from "@/lib/cycle/insights";
+import { bandsForSeries, phaseAt } from "@/lib/cycle/phases";
 import { createClient } from "@/lib/supabase/client";
 import type { DailyLog } from "@/lib/types";
 import {
@@ -20,7 +30,7 @@ import {
   type PeriodType,
 } from "@/lib/utils";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 const WD = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
@@ -52,6 +62,12 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   // null = історія ще не завантажилась; [] = завантажилась, але порожня (справжній запасний шлях).
   const [careHistory, setCareHistory] = useState<CareHistoryRow[] | null>(null);
+  /** Вага за останні цикли — окремо від періоду, бо цикли в нього не вміщаються. */
+  const [phaseWeights, setPhaseWeights] = useState<DatedValue[]>([]);
+
+  const overlay = usePhaseOverlay();
+  const bandsOn = overlay.available && overlay.showBands;
+  const { ranges: cycleRanges, cycles: cycleList, cycleStarts, phaseWindowStart } = overlay;
 
   const { start: curStart, end: curEnd, days: N } = periodRange(period, curOffset);
   const { start: cmpStart, end: cmpEnd } = periodRange(period, cmpOffset);
@@ -125,6 +141,40 @@ export default function AnalyticsPage() {
     };
   }, [supabase]);
 
+  // Вага по фазах рахується за останні цикли, а не за вибраний період:
+  // порівнювати фази всередині одного тижня нема сенсу.
+  useEffect(() => {
+    // Поки смуги вимкнені, ці ваги ніхто не читає — не тягнемо їх і не
+    // скидаємо: скидання тут було б зайвим рендером на кожен рух тумблера.
+    if (!bandsOn || !phaseWindowStart) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: u } = await supabase.auth.getUser();
+        const uid = u.user?.id;
+        if (!uid) return;
+        const { data, error } = await supabase
+          .from("daily_logs")
+          .select("date, weight")
+          .eq("user_id", uid)
+          .gte("date", phaseWindowStart)
+          .not("weight", "is", null)
+          .order("date", { ascending: true });
+        if (error) throw error;
+        if (!cancelled) {
+          setPhaseWeights(
+            (data ?? []).map((r) => ({ date: r.date as string, value: r.weight as number })),
+          );
+        }
+      } catch {
+        if (!cancelled) setPhaseWeights([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, bandsOn, phaseWindowStart]);
+
   const byDate = useMemo(() => {
     const m = new Map<string, DailyLog>();
     logs.forEach((l) => m.set(l.date, l));
@@ -137,38 +187,68 @@ export default function AnalyticsPage() {
   const metricAvg = (rows: DailyLog[], key: keyof DailyLog) =>
     avg(rows.map((r) => r[key] as number | null));
 
+  const periodDates = useMemo(
+    () => Array.from({ length: N }, (_, i) => addDays(curStart, i)),
+    [curStart, N],
+  );
+
+  const labelFor = useCallback(
+    (iso: string) => {
+      const dt = parseISODate(iso);
+      return period === "week" ? WD[dt.getDay()] : String(dt.getDate());
+    },
+    [period],
+  );
+
   // Дані для графіка ваги + ковзне середнє 7 днів.
-  const weightData: WeightPoint[] = useMemo(() => {
-    const out: WeightPoint[] = [];
-    for (let i = 0; i < N; i++) {
-      const d = addDays(curStart, i);
-      const dt = parseISODate(d);
-      const weight = byDate.get(d)?.weight ?? null;
-      // ковзне середнє за останні 7 календарних днів
-      const win: number[] = [];
-      for (let k = 6; k >= 0; k--) {
-        const w = byDate.get(addDays(d, -k))?.weight;
-        if (w != null) win.push(w);
-      }
-      out.push({
-        label: period === "week" ? WD[dt.getDay()] : String(dt.getDate()),
-        weight,
-        ma: win.length >= 2 ? win.reduce((s, v) => s + v, 0) / win.length : null,
-      });
-    }
-    return out;
-  }, [byDate, curStart, N, period]);
+  const weightData: WeightPoint[] = useMemo(
+    () =>
+      periodDates.map((d) => {
+        // ковзне середнє за останні 7 календарних днів
+        const win: number[] = [];
+        for (let k = 6; k >= 0; k--) {
+          const w = byDate.get(addDays(d, -k))?.weight;
+          if (w != null) win.push(w);
+        }
+        return {
+          label: labelFor(d),
+          weight: byDate.get(d)?.weight ?? null,
+          ma: win.length >= 2 ? win.reduce((s, v) => s + v, 0) / win.length : null,
+          // Фаза їде в точці лише коли смуги ввімкнені: інакше тултип
+          // розповідав би про цикл на графіку, де його не видно.
+          phase: bandsOn ? phaseAt(d, cycleRanges) : null,
+          cycleDay: bandsOn ? cycleDayFor(d, cycleList) : null,
+        };
+      }),
+    [periodDates, byDate, labelFor, bandsOn, cycleRanges, cycleList],
+  );
+
+  const phaseBands = useMemo(
+    () =>
+      bandsOn
+        ? bandsForSeries(
+            periodDates.map((d) => ({ date: d, label: labelFor(d) })),
+            cycleRanges,
+          )
+        : undefined,
+    [bandsOn, periodDates, labelFor, cycleRanges],
+  );
+
+  const cycleStartLabels = useMemo(
+    () =>
+      bandsOn
+        ? cycleStarts.filter((s) => s >= curStart && s <= curEnd).map(labelFor)
+        : undefined,
+    [bandsOn, cycleStarts, curStart, curEnd, labelFor],
+  );
 
   const stepsData = useMemo(
     () =>
-      Array.from({ length: N }).map((_, i) => {
-        const d = addDays(curStart, i);
-        return {
-          label: period === "week" ? WD[parseISODate(d).getDay()] : String(parseISODate(d).getDate()),
-          steps: byDate.get(d)?.steps ?? null,
-        };
-      }),
-    [byDate, curStart, N, period],
+      periodDates.map((d) => ({
+        label: labelFor(d),
+        steps: byDate.get(d)?.steps ?? null,
+      })),
+    [periodDates, byDate, labelFor],
   );
 
   const careRows = useMemo(() => {
@@ -181,11 +261,6 @@ export default function AnalyticsPage() {
     );
     return buildCareMatrix(inPeriod, curStart, N, colors);
   }, [logs, careHistory, curStart, curEnd, N]);
-
-  const careDates = useMemo(
-    () => Array.from({ length: N }, (_, i) => addDays(curStart, i)),
-    [curStart, N],
-  );
 
   const hasAnyWeight = weightData.some((d) => d.weight != null);
   const hasAnyData = curLogs.length > 0;
@@ -258,6 +333,10 @@ export default function AnalyticsPage() {
         />
       ) : (
         <>
+          {overlay.available && (
+            <PhaseBandsToggle checked={overlay.showBands} onChange={overlay.setShowBands} />
+          )}
+
           {/* Графік ваги */}
           <Card>
             <div className="mb-1.5 flex items-baseline justify-between">
@@ -268,13 +347,31 @@ export default function AnalyticsPage() {
               </div>
             </div>
             {hasAnyWeight ? (
-              <WeightChart data={weightData} />
+              <>
+                <WeightChart
+                  data={weightData}
+                  bands={phaseBands}
+                  cycleStarts={cycleStartLabels}
+                />
+                {bandsOn && <PhaseLegend />}
+              </>
             ) : (
               <div className="py-8 text-center text-[12px] font-semibold text-muted">
                 Додай вагу у щоденнику, щоб побачити графік
               </div>
             )}
           </Card>
+
+          {bandsOn && (
+            <>
+              <WaterRetentionCard
+                weights={phaseWeights}
+                ranges={cycleRanges}
+                todayPhase={overlay.todayPhase}
+              />
+              <PhaseWeightCard weights={phaseWeights} ranges={cycleRanges} />
+            </>
+          )}
 
           {/* Порівняння */}
           <div className="mx-1 -mb-1 text-[12.5px] font-bold text-muted">
@@ -325,7 +422,7 @@ export default function AnalyticsPage() {
               <div className="mb-2.5 text-[12px] font-bold text-muted">
                 Догляд за шкірою, {period === "week" ? "тиж." : "міс."}
               </div>
-              <CareDotChart key={curStart} rows={careRows} dates={careDates} />
+              <CareDotChart key={curStart} rows={careRows} dates={periodDates} />
             </Card>
           )}
         </>

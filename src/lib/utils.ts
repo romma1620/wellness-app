@@ -97,6 +97,13 @@ export function weekdayShort(iso: string): string {
   return WEEKDAYS_SHORT[parseISODate(iso).getDay()];
 }
 
+const WEEKDAY_HEADS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
+/** Заголовок колонки календаря за днем тижня JS (0 = неділя): "Пн". */
+export function weekdayHead(jsDay: number): string {
+  return WEEKDAY_HEADS[jsDay];
+}
+
 export function isToday(iso: string): boolean {
   return iso === todayISO();
 }
@@ -166,6 +173,24 @@ export function monthEnd(isoMonth: string): string {
   const d = parseISODate(isoMonth);
   // день 0 наступного місяця = останній день поточного
   return toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+}
+
+/** Перше число місяця, у якому лежить дата: "2026-08-19" → "2026-08-01". */
+export function monthStartOf(iso: string): string {
+  const d = parseISODate(iso);
+  return toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+
+/**
+ * Та сама дата через `delta` місяців. День затискається по довжині
+ * цільового місяця, тому 31 січня + 1 міс = 28/29 лютого, а не 2 березня.
+ */
+export function addMonths(iso: string, delta: number): string {
+  const d = parseISODate(iso);
+  const target = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(d.getDate(), lastDay));
+  return toISODate(target);
 }
 
 // ----------------------- Дельти -----------------------

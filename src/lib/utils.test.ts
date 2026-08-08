@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { monthEnd, monthLabel, plural, splitTags, weekdayShort } from "./utils";
+import {
+  addMonths,
+  monthEnd,
+  monthLabel,
+  monthStartOf,
+  plural,
+  splitTags,
+  weekdayShort,
+} from "./utils";
 
 describe("splitTags", () => {
   it("розбиває рядок по комах і обрізає пробіли", () => {
@@ -66,4 +74,26 @@ describe("plural", () => {
     expect(f(25)).toBe("сесій");
   });
   it("нуль", () => expect(f(0)).toBe("сесій"));
+});
+
+describe("monthStartOf / addMonths", () => {
+  it("monthStartOf зводить будь-який день до першого числа", () => {
+    expect(monthStartOf("2026-08-19")).toBe("2026-08-01");
+    expect(monthStartOf("2026-08-01")).toBe("2026-08-01");
+  });
+
+  it("addMonths зсуває місяць, лишаючи день", () => {
+    expect(addMonths("2026-08-01", 1)).toBe("2026-09-01");
+    expect(addMonths("2026-08-15", -2)).toBe("2026-06-15");
+  });
+
+  it("день затискається по довжині цільового місяця", () => {
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+    expect(addMonths("2026-03-31", -1)).toBe("2026-02-28");
+  });
+
+  it("перехід через рік", () => {
+    expect(addMonths("2026-12-01", 1)).toBe("2027-01-01");
+    expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+  });
 });

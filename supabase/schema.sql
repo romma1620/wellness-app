@@ -327,3 +327,60 @@ $$;
 -- Під used_exercises() і вибірку сетів однієї вправи для графіка.
 create index if not exists workout_sets_exercise_idx
   on public.workout_sets (exercise_id);
+
+-- ============================================================
+--  Трекінг циклу: cycle_entries / cycle_settings
+--
+--  Юзерка логує лише денні записи. Цикли — derived-сутність:
+--  вони не зберігаються, а перераховуються з записів у
+--  src/lib/cycle/derive.ts. Тому редагування заднім числом
+--  безпечне за побудовою — немає другої копії правди, яка
+--  могла б розійтися з денними записами.
+-- ============================================================
+
+create table if not exists public.cycle_entries (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  date       date not null,
+  -- null = кровотечі не було; порядок сили: spotting < light < medium < heavy
+  flow       text check (flow in ('spotting', 'light', 'medium', 'heavy')),
+  -- ключі з SYMPTOMS у src/lib/cycle/types.ts
+  symptoms   text[] not null default '{}',
+  mood       text check (mood in ('great', 'good', 'neutral', 'low', 'bad')),
+  energy     smallint check (energy is null or (energy >= 1 and energy <= 5)),
+  notes      text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, date)
+);
+
+alter table public.cycle_entries enable row level security;
+
+drop policy if exists "cycle_entries_all_own" on public.cycle_entries;
+create policy "cycle_entries_all_own" on public.cycle_entries
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists cycle_entries_user_date_idx
+  on public.cycle_entries (user_id, date desc);
+
+-- Опт-ін і налаштування фічі. Рядок зʼявляється лише після онбордингу,
+-- тому «немає рядка» = фіча ніколи не була ввімкнена.
+create table if not exists public.cycle_settings (
+  user_id               uuid primary key references auth.users(id) on delete cascade,
+  enabled               boolean not null default false,
+  typical_cycle_length  smallint not null default 28
+                          check (typical_cycle_length between 21 and 40),
+  typical_period_length smallint not null default 5
+                          check (typical_period_length between 1 and 12),
+  show_fertile_window   boolean not null default true,
+  -- фази як фонові смуги на графіку ваги в аналітиці
+  phase_bands_in_charts boolean not null default false,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
+);
+
+alter table public.cycle_settings enable row level security;
+
+drop policy if exists "cycle_settings_all_own" on public.cycle_settings;
+create policy "cycle_settings_all_own" on public.cycle_settings
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

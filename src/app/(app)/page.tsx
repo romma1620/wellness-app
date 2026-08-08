@@ -9,7 +9,7 @@ import {
   WaterDrops,
   type SaveState,
 } from "@/components/inputs";
-import { Card, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
+import { Card, DateField, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
 import { DaySkeleton } from "@/components/DaySkeleton";
 import { CARE_PRESETS } from "@/lib/care";
 import {
@@ -183,21 +183,20 @@ export default function TodayPage() {
         >
           ‹
         </button>
-        <div className="relative text-center">
+        <div className="text-center">
           <div className="text-[18px] font-extrabold">
             {isToday(date) ? "Сьогодні" : "День"}
           </div>
-          <label className="flex cursor-pointer items-center justify-center gap-1 text-[12.5px] font-semibold text-muted">
+          <DateField
+            value={date}
+            onChange={setDate}
+            max={todayISO()}
+            label="Дата дня у щоденнику"
+            className="flex items-center justify-center gap-1 text-[12.5px] font-semibold text-muted"
+          >
             {humanDate(date)}
             <span aria-hidden>📅</span>
-            <input
-              type="date"
-              value={date}
-              max={todayISO()}
-              onChange={(e) => e.target.value && setDate(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-          </label>
+          </DateField>
         </div>
         <button
           type="button"

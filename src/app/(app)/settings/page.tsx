@@ -278,24 +278,35 @@ export default function SettingsPage() {
         </p>
       </Card>
 
-      {/* Заміри тіла */}
-      <Link
+      {/* Розділи, що не мають своєї вкладки */}
+      <SettingsLink
         href="/measurements"
-        className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-4 active:scale-[.99]"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary-light text-primary">
-          <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 7.5h16M3 11h16M3 14.5h16M7 4v4M15 10v4" />
-          </svg>
-        </span>
-        <span className="flex flex-col">
-          <span className="text-[15px] font-extrabold">Заміри тіла</span>
-          <span className="text-[12.5px] font-semibold text-muted">Талія, стегна, груди, нога, рука</span>
-        </span>
-        <svg className="ml-auto text-muted" width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 5l6 6-6 6" />
-        </svg>
-      </Link>
+        title="Заміри тіла"
+        subtitle="Талія, стегна, груди, нога, рука"
+        icon={<path d="M3 7.5h16M3 11h16M3 14.5h16M7 4v4M15 10v4" />}
+      />
+      <SettingsLink
+        href="/goals"
+        title="Цілі та винагороди"
+        subtitle="Сходинки ваги й подарунки за них"
+        icon={
+          <>
+            <circle cx="11" cy="11" r="7.5" />
+            <circle cx="11" cy="11" r="3.2" />
+          </>
+        }
+      />
+      <SettingsLink
+        href="/settings/cycle"
+        title="Цикл"
+        subtitle="Трекінг, прогнози, фази в аналітиці"
+        icon={
+          <>
+            <path d="M18 11a7 7 0 1 1-2.6-5.4" />
+            <path d="M18.4 3.4v3.4H15" />
+          </>
+        }
+      />
 
       {/* Логаут */}
       <button
@@ -314,5 +325,57 @@ export default function SettingsPage() {
           завершитись і закрити щіт, який користувач щойно відкрив заново. */}
       {exportOpen && <ExportSheet open={exportOpen} onClose={() => setExportOpen(false)} />}
     </div>
+  );
+}
+
+/** Рядок-перехід у розділ, що не має власної вкладки в таб-барі. */
+function SettingsLink({
+  href,
+  title,
+  subtitle,
+  icon,
+}: {
+  href: string;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-4 active:scale-[.99]"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary-light text-primary">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 22 22"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {icon}
+        </svg>
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[15px] font-extrabold">{title}</span>
+        <span className="text-[12.5px] font-semibold text-muted">{subtitle}</span>
+      </span>
+      <svg
+        className="ml-auto text-muted"
+        width="20"
+        height="20"
+        viewBox="0 0 22 22"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M9 5l6 6-6 6" />
+      </svg>
+    </Link>
   );
 }

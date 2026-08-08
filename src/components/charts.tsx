@@ -1,6 +1,7 @@
 "use client";
 
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
+import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
 import {
   Bar,
@@ -9,6 +10,8 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,9 +22,41 @@ export interface WeightPoint {
   label: string;
   weight: number | null;
   ma: number | null;
+  /** Фаза циклу цього дня — читається лише тултипом. */
+  phase?: Phase | null;
+  cycleDay?: number | null;
 }
 
-export function WeightChart({ data }: { data: WeightPoint[] }) {
+/** Смуга фази у категоріях осі X (мітки точок), включно з обома краями. */
+export interface PhaseBand {
+  phase: Phase;
+  x1: string;
+  x2: string;
+}
+
+/**
+ * Прозорість смуг підібрана так, щоб короткі фази (овуляція, ПМС) читались
+ * не слабше за довгі: однакова альфа робила б вузьку смугу майже невидимою.
+ */
+const BAND_OPACITY: Record<Phase, number> = {
+  menstrual: 0.09,
+  follicular: 0.09,
+  ovulation: 0.14,
+  luteal: 0.09,
+  late_luteal: 0.13,
+};
+
+export function WeightChart({
+  data,
+  bands,
+  cycleStarts,
+}: {
+  data: WeightPoint[];
+  /** Фонові смуги фаз. Порожньо або undefined = графік без циклу. */
+  bands?: PhaseBand[];
+  /** Мітки осі X, на яких починався цикл. */
+  cycleStarts?: string[];
+}) {
   // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
   // може виходити далеко за межі ваг цього тижня.
   const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
@@ -29,6 +64,28 @@ export function WeightChart({ data }: { data: WeightPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={160}>
       <LineChart data={data} margin={{ top: 8, right: 6, left: -8, bottom: 0 }}>
+        {/* Смуги й лінії стартів оголошені до серій, щоб лягти під них. */}
+        {bands?.map((b) => (
+          <ReferenceArea
+            key={`${b.phase}-${b.x1}`}
+            x1={b.x1}
+            x2={b.x2}
+            fill={PHASE_COLORS[b.phase]}
+            fillOpacity={BAND_OPACITY[b.phase]}
+            stroke="none"
+            ifOverflow="hidden"
+          />
+        ))}
+        {cycleStarts?.map((x) => (
+          <ReferenceLine
+            key={x}
+            x={x}
+            stroke={PHASE_COLORS.menstrual}
+            strokeWidth={1.6}
+            strokeDasharray="3 3"
+            ifOverflow="hidden"
+          />
+        ))}
         <CartesianGrid stroke="var(--primary-light)" vertical={false} />
         <XAxis
           dataKey="label"
@@ -78,11 +135,21 @@ function WeightTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const w = payload.find((p: any) => p.dataKey === "weight")?.value;
   const ma = payload.find((p: any) => p.dataKey === "ma")?.value;
+  // Фаза лежить у самій точці, а не в серії, тому дістаємо її з payload.
+  const point = payload[0]?.payload as WeightPoint | undefined;
+  const phase = point?.phase ?? null;
+
   return (
     <div className="rounded-xl bg-surface px-3 py-2 text-[11px] font-bold shadow-card">
       <div className="text-muted">{label}</div>
       {w != null && <div className="text-primary">Вага {fmt(w, 1)} кг</div>}
       {ma != null && <div className="text-accent">Тренд {fmt(ma, 1)} кг</div>}
+      {phase && (
+        <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
+          {point?.cycleDay != null && `День циклу ${point.cycleDay} · `}
+          {PHASE_LABELS[phase]}
+        </div>
+      )}
     </div>
   );
 }
