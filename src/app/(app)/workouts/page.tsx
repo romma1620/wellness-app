@@ -1,10 +1,12 @@
 "use client";
 
 import { Button, EmptyState, ErrorBanner } from "@/components/ui";
+import { UnfinishedWorkoutCard } from "@/components/workouts/UnfinishedWorkoutCard";
 import { WorkoutList } from "@/components/workouts/WorkoutList";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
 import { WorkoutsSkeleton } from "@/components/workouts/WorkoutsSkeleton";
 import { createClient } from "@/lib/supabase/client";
+import { clearDraft, readDraft, type StoredDraft } from "@/lib/workout-draft";
 import {
   pickMonthPage,
   remainingSessions,
@@ -37,6 +39,8 @@ export default function WorkoutsPage() {
   const [error, setError] = useState<string | null>(null);
   const [moreError, setMoreError] = useState<string | null>(null);
 
+  const [draft, setDraft] = useState<StoredDraft | null>(null);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -51,6 +55,9 @@ export default function WorkoutsPage() {
         const page = pickMonthPage(ts, 0);
         const first = page ? await loadWorkoutList(supabase, id, page.from, page.to) : [];
         setUid(id);
+        // читаємо тут, а не в тілі рендера: localStorage недоступний на
+        // сервері, і читання під час рендера дало б розбіжність гідрації
+        setDraft(readDraft(id));
         setTotals(ts);
         setExercises(ex);
         setItems(first);
@@ -97,6 +104,18 @@ export default function WorkoutsPage() {
       <Button type="button" onClick={() => router.push("/workouts/new")}>
         + Нове тренування
       </Button>
+
+      {/* поза гілкою `items.length === 0`: незакінчене показуємо й тоді,
+          коли архів іще порожній */}
+      {draft && (
+        <UnfinishedWorkoutCard
+          stored={draft}
+          onDiscard={() => {
+            clearDraft();
+            setDraft(null);
+          }}
+        />
+      )}
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
