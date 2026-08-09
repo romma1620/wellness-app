@@ -1,5 +1,6 @@
 "use client";
 
+import { DraftResumeSheet } from "@/components/workouts/DraftResumeSheet";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
 import { SetRow } from "@/components/workouts/SetRow";
 import { SaveIndicator, type SaveState } from "@/components/inputs";
@@ -29,6 +30,13 @@ import {
   saveWorkout,
 } from "@/lib/workouts-db";
 import { humanDate, todayISO } from "@/lib/utils";
+import {
+  clearDraft,
+  isDraftMeaningful,
+  readDraft,
+  writeDraft,
+  type StoredDraft,
+} from "@/lib/workout-draft";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -51,20 +59,33 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [uid, setUid] = useState<string | null>(null);
+  // чернетка, знайдена в сховищі: поки вона тут, над редактором висить шіт
+  const [stored, setStored] = useState<StoredDraft | null>(null);
+  // "pending" — рішення про чернетку ще не ухвалене, автозбереження мовчить,
+  // щоб порожня форма під шітом не затерла знайдену чернетку
+  const [decision, setDecision] = useState<"pending" | "resume" | "fresh">(
+    workoutId ? "fresh" : "pending",
+  );
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const [ex, rt] = await Promise.all([loadExercises(supabase, uid), loadRoutines(supabase, uid)]);
+        const id = u.user?.id;
+        if (!id) throw new Error("no-user");
+        const [ex, rt] = await Promise.all([loadExercises(supabase, id), loadRoutines(supabase, id)]);
+        setUid(id);
         setExercises(ex);
         setRoutines(rt);
         if (workoutId) {
-          const d = await loadWorkoutDraft(supabase, uid, workoutId);
+          const d = await loadWorkoutDraft(supabase, id, workoutId);
           if (d) setDraft(d);
+        } else {
+          const found = readDraft(id);
+          if (found) setStored(found);
+          else setDecision("fresh");
         }
       } catch {
         setError("Не вдалося завантажити дані.");
@@ -73,6 +94,19 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       }
     })();
   }, [supabase, workoutId]);
+
+  // Автозбереження чернетки. Дебаунс 400 мс: набір ваги в SetRow міняє draft
+  // на кожне натискання клавіші, а серіалізація всієї сесії на кожен символ
+  // тут не потрібна.
+  useEffect(() => {
+    if (workoutId || loading || decision === "pending" || !uid) return;
+    const timer = setTimeout(() => {
+      if (isDraftMeaningful(draft)) writeDraft(draft, uid);
+      // юзер стер усе назад до порожнього — незакінченого більше нема
+      else clearDraft();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [draft, workoutId, loading, decision, uid]);
 
   function patch(p: Partial<DraftWorkout>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -92,6 +126,27 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       [arr[i], arr[j]] = [arr[j], arr[i]];
       return { ...d, exercises: arr };
     });
+  }
+
+  function resumeDraft() {
+    if (!stored) return;
+    const known = new Set(routines.map((r) => r.id));
+    const d = stored.draft;
+    setDraft({
+      ...d,
+      // шаблон могли видалити, поки чернетка лежала: мертвий routine_id
+      // впав би на FK при збереженні. Назви вправ у чернетці вже
+      // матеріалізовані, тож саме тренування від цього не страждає.
+      routineId: d.routineId && known.has(d.routineId) ? d.routineId : null,
+    });
+    setStored(null);
+    setDecision("resume");
+  }
+
+  function startFresh() {
+    clearDraft();
+    setStored(null);
+    setDecision("fresh");
   }
 
   async function applyRoutine(routineId: string) {
@@ -135,6 +190,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       const uid = u.user?.id;
       if (!uid) throw new Error("no-user");
       await saveWorkout(supabase, uid, draft, workoutId);
+      clearDraft();
       setSaveState("saved");
       router.push("/workouts");
       router.refresh();
@@ -318,6 +374,16 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         >
           Видалити тренування
         </button>
+      )}
+
+      {stored && (
+        <DraftResumeSheet
+          stored={stored}
+          routineName={routines.find((r) => r.id === stored.draft.routineId)?.name ?? null}
+          onResume={resumeDraft}
+          onFresh={startFresh}
+          onCancel={() => router.back()}
+        />
       )}
     </div>
   );
