@@ -190,7 +190,9 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       const uid = u.user?.id;
       if (!uid) throw new Error("no-user");
       await saveWorkout(supabase, uid, draft, workoutId);
-      clearDraft();
+      // слот чернетки один на юзера, тож збереження правок чужої сесії
+      // (редагування вже існуючого тренування) не має його чіпати
+      if (!workoutId) clearDraft();
       setSaveState("saved");
       router.push("/workouts");
       router.refresh();
