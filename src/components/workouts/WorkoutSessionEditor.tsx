@@ -100,13 +100,19 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   // тут не потрібна.
   useEffect(() => {
     if (workoutId || loading || decision === "pending" || !uid) return;
+    // під час і одразу після збереження новий таймер не зводимо: інакше
+    // таймер, зведений останнім натисканням клавіші, пережив би onSave —
+    // щоб зведений таймер не переписав чернетку вже після clearDraft().
+    // Ефект перезапускається на зміну saveState, а cleanup нижче скасовує
+    // таймер, зведений до переходу в "saving".
+    if (saveState === "saving" || saveState === "saved") return;
     const timer = setTimeout(() => {
       if (isDraftMeaningful(draft)) writeDraft(draft, uid);
       // юзер стер усе назад до порожнього — незакінченого більше нема
       else clearDraft();
     }, 400);
     return () => clearTimeout(timer);
-  }, [draft, workoutId, loading, decision, uid]);
+  }, [draft, workoutId, loading, decision, uid, saveState]);
 
   function patch(p: Partial<DraftWorkout>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -384,7 +390,10 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
           routineName={routines.find((r) => r.id === stored.draft.routineId)?.name ?? null}
           onResume={resumeDraft}
           onFresh={startFresh}
-          onCancel={() => router.back()}
+          // push, а не back: на холодному старті PWA (deep link на
+          // /workouts/new) в історії може не бути попередньої сторінки,
+          // і back() тоді нічого не робить — шіт лишався б без виходу
+          onCancel={() => router.push("/workouts")}
         />
       )}
     </div>

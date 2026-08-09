@@ -75,17 +75,47 @@ describe("parseDraft", () => {
     expect(parseDraft("{нє json", UID)).toBeNull();
   });
   it("інша версія формату — null", () => {
-    expect(parseDraft(JSON.stringify({ v: 0, userId: UID, savedAt: "x", draft: emptyDraft() }), UID)).toBeNull();
+    expect(
+      parseDraft(
+        JSON.stringify({ v: 0, userId: UID, savedAt: "2026-08-12T12:00:00.000Z", draft: emptyDraft() }),
+        UID,
+      ),
+    ).toBeNull();
   });
   it("чужий userId — null", () => {
     expect(parseDraft(raw(), "user-2")).toBeNull();
   });
   it("exercises не масив — null", () => {
-    const bad = JSON.stringify({ v: 1, userId: UID, savedAt: "x", draft: { ...emptyDraft(), exercises: "нє" } });
+    const bad = JSON.stringify({
+      v: 1,
+      userId: UID,
+      savedAt: "2026-08-12T12:00:00.000Z",
+      draft: { ...emptyDraft(), exercises: "нє" },
+    });
     expect(parseDraft(bad, UID)).toBeNull();
   });
   it("немає дати — null", () => {
-    const bad = JSON.stringify({ v: 1, userId: UID, savedAt: "x", draft: { ...emptyDraft(), date: "" } });
+    const bad = JSON.stringify({
+      v: 1,
+      userId: UID,
+      savedAt: "2026-08-12T12:00:00.000Z",
+      draft: { ...emptyDraft(), date: "" },
+    });
+    expect(parseDraft(bad, UID)).toBeNull();
+  });
+  it("порожній масив вправ — не відкидається", () => {
+    const draft: DraftWorkout = { ...emptyDraft(), routineId: "rt-1", exercises: [] };
+    const stored = parseDraft(serializeDraft(draft, UID, AT), UID);
+    expect(stored?.draft.exercises).toEqual([]);
+    expect(stored?.draft.routineId).toBe("rt-1");
+  });
+  it("savedAt не дата — null", () => {
+    const bad = JSON.stringify({
+      v: 1,
+      userId: UID,
+      savedAt: "не дата",
+      draft: emptyDraft(),
+    });
     expect(parseDraft(bad, UID)).toBeNull();
   });
   it("ключі вправ перегенеровано й унікальні", () => {
@@ -102,7 +132,7 @@ describe("parseDraft", () => {
     const bad = JSON.stringify({
       v: 1,
       userId: UID,
-      savedAt: "x",
+      savedAt: "2026-08-12T12:00:00.000Z",
       draft: {
         ...emptyDraft(),
         exercises: [{ key: "k", exerciseId: null, name: "A", muscleGroup: null, sets: [{ weight: "важко", reps: null }] }],
@@ -114,7 +144,7 @@ describe("parseDraft", () => {
     const bad = JSON.stringify({
       v: 1,
       userId: UID,
-      savedAt: "x",
+      savedAt: "2026-08-12T12:00:00.000Z",
       draft: {
         ...emptyDraft(),
         exercises: [{ key: "k", exerciseId: null, name: "A", muscleGroup: null, sets: [] }],

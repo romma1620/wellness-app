@@ -56,7 +56,7 @@ function normalizeExercise(value: unknown, index: number): DraftExercise | null 
   const sets = e.sets.map(normalizeSet);
   return {
     // Ключі перегенеровуємо: `key` видає лічильник у workouts.ts, який
-    // обнуляється щосесії, тож ключи зі старої сесії покладались би на
+    // обнуляється щосесії, тож ключі зі старої сесії покладались би на
     // випадковість. `restored-N` унікальний у межах масиву — цього досить.
     key: `restored-${index}`,
     exerciseId: typeof e.exerciseId === "string" ? e.exerciseId : null,
@@ -105,8 +105,9 @@ export function parseDraft(raw: string | null, userId: string): StoredDraft | nu
   if (o.v !== VERSION) return null;
   if (typeof o.userId !== "string" || o.userId !== userId) return null;
   if (typeof o.savedAt !== "string") return null;
+  if (!Number.isFinite(Date.parse(o.savedAt))) return null;
   const draft = normalizeDraft(o.draft);
-  if (!draft || draft.exercises.length === 0) return null;
+  if (!draft) return null;
   return { v: VERSION, userId, savedAt: o.savedAt, draft };
 }
 
