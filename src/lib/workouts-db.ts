@@ -5,6 +5,7 @@ import {
   exerciseTonnage,
   type DraftExercise,
   type DraftWorkout,
+  type ExerciseMax,
   type ExerciseSet,
   type MonthTotal,
   type UsedExercise,
@@ -67,7 +68,34 @@ export async function loadUsedExercises(sb: SB): Promise<UsedExercise[]> {
 }
 
 /**
- * Сторінка списку сесій за діапазоном дат (обидві межі включно).
+ * Рекорди по всіх вправах юзера одним запитом: exercise_id → найкращий підхід.
+ * Одним, а не по вправі: вправ у юзера десятки, а ліниве довантаження давало б
+ * затримку після кожного вибору вправи й N запитів на застосування шаблону.
+ *
+ * `excludeWorkoutId` — сесія, яку зараз редагують; її підходи не рахуються.
+ */
+export async function loadExerciseMaxes(
+  sb: SB,
+  excludeWorkoutId: string | null,
+): Promise<Map<string, ExerciseMax>> {
+  const { data, error } = await sb.rpc("exercise_maxes", {
+    p_exclude_workout: excludeWorkoutId,
+  });
+  if (error) throw error;
+  const map = new Map<string, ExerciseMax>();
+  for (const r of (data ?? []) as any[]) {
+    // weight — numeric, а такі PostgREST віддає рядком; те саме робить loadMonthTotals
+    map.set(r.exercise_id as string, {
+      weight: Number(r.weight),
+      reps: Number(r.reps),
+      date: r.achieved_on as string,
+    });
+  }
+  return map;
+}
+
+/**
+ * Сторінка списку сесій за діапазоном дат (обидві межи включно).
  * Тягне лише `exercise_id` підходів: рядок списку показує кількість вправ,
  * а тоннаж приходить готовим із `loadMonthTotals`.
  */

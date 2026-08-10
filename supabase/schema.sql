@@ -324,7 +324,29 @@ as $$
   order by e.name;
 $$;
 
--- Під used_exercises() і вибірку сетів однієї вправи для графіка.
+-- Рекорд кожної вправи: підхід із найбільшою вагою за всю історію юзера.
+-- Порядок дзеркалить bestSet() зі src/lib/workouts.ts (макс. вага, тай-брейк —
+-- більше повторів); третій ключ по даті потрібен лише для детермінованості
+-- achieved_on, коли та сама вага × повтори траплялися в кількох сесіях.
+--
+-- p_exclude_workout виключає сесію, яку зараз редагують: її підходи вже в базі,
+-- і без виключення рекордом вважалося б рівно те, що юзер щойно ввів.
+create or replace function public.exercise_maxes(p_exclude_workout uuid default null)
+returns table (exercise_id uuid, weight numeric, reps integer, achieved_on date)
+language sql
+stable
+security invoker
+as $$
+  select distinct on (s.exercise_id) s.exercise_id, s.weight, s.reps, w.date
+  from public.workout_sets s
+  join public.workouts w on w.id = s.workout_id
+  where w.user_id = auth.uid()
+    and s.weight is not null
+    and (p_exclude_workout is null or w.id <> p_exclude_workout)
+  order by s.exercise_id, s.weight desc, s.reps desc, w.date desc;
+$$;
+
+-- Під used_exercises(), exercise_maxes() і вибірку сетів однієї вправи для графіка.
 create index if not exists workout_sets_exercise_idx
   on public.workout_sets (exercise_id);
 
