@@ -82,7 +82,11 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         const [ex, rt, mx] = await Promise.all([
           loadExercises(supabase, id),
           loadRoutines(supabase, id),
-          loadExerciseMaxes(supabase, workoutId),
+          // RPC ще не розкочена в проді — падає до появи міграції. На відміну
+          // від інших членів Promise.all, її провал не має валити весь маунт:
+          // без цього fallback редактор показав би порожню форму поверх
+          // існуючої сесії, а збереження стерло б її підходи.
+          loadExerciseMaxes(supabase, workoutId).catch(() => new Map<string, ExerciseMax>()),
         ]);
         setUid(id);
         setExercises(ex);

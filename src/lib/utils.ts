@@ -90,6 +90,12 @@ export function shortDate(iso: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+/** "19 лип" */
+export function shortDateAbbr(iso: string): string {
+  const d = parseISODate(iso);
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
 const WEEKDAYS_SHORT = ["нд", "пн", "вт", "ср", "чт", "пт", "сб"];
 
 /** "2026-08-02" → "нд" */

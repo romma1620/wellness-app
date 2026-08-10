@@ -346,7 +346,12 @@ as $$
   order by s.exercise_id, s.weight desc, s.reps desc, w.date desc;
 $$;
 
--- Під used_exercises(), exercise_maxes() і вибірку сетів однієї вправи для графіка.
+-- Під used_exercises() і вибірку сетів однієї вправи для графіка прогресу.
+-- exercise_maxes() цей індекс не прискорює: там усе одно потрібні seq scan
+-- по workout_sets, join з workouts і сортування за (exercise_id, weight desc,
+-- reps desc, date desc) — індекс покриває лише перший ключ сортування.
+-- При поточних обсягах це не проблема, окремий індекс під exercise_maxes()
+-- поки не потрібен.
 create index if not exists workout_sets_exercise_idx
   on public.workout_sets (exercise_id);
 

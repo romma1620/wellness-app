@@ -1,6 +1,6 @@
 "use client";
 
-import { fmt, shortDate } from "@/lib/utils";
+import { fmt, shortDateAbbr } from "@/lib/utils";
 import { prState, type DraftSet, type ExerciseMax } from "@/lib/workouts";
 
 /**
@@ -26,7 +26,7 @@ export function ExerciseMaxLine({ max, sets }: { max: ExerciseMax | null; sets: 
 
   return (
     <div className="mt-1.5 text-[12px] font-semibold text-muted">
-      Макс {fmt(state.max.weight, 1)} кг × {state.max.reps} · {shortDate(state.max.date)}
+      Макс {fmt(state.max.weight, 1)} кг × {state.max.reps} · {shortDateAbbr(state.max.date)}
     </div>
   );
 }
