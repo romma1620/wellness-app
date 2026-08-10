@@ -120,6 +120,39 @@ export function bestSet<T extends { weight: number | null; reps: number }>(sets:
   });
 }
 
+/** Найкращий підхід вправи за всю історію. Існує тільки для вправ із вагою. */
+export interface ExerciseMax {
+  weight: number;
+  reps: number;
+  date: string; // YYYY-MM-DD
+}
+
+/** Що показує рядок рекорду під назвою вправи в редакторі. */
+export type PrState =
+  | { kind: "none" }
+  | { kind: "record"; max: ExerciseMax }
+  | { kind: "beaten"; delta: number };
+
+/**
+ * Стан рядка рекорду для однієї вправи редактора.
+ *
+ * У розрахунок ідуть підходи з введеною вагою незалежно від повторів: вагу
+ * набирають першою, і чекати на повтори означав би показувати «новий рекорд»
+ * аж після заповнення всього рядка, тобто запізно. Плата — підхід із вагою
+ * і без повторів дасть «рекорд», хоча saveWorkout його відкине; це видно
+ * лише всередині незбереженого редактора.
+ *
+ * Рівність рекорду рекордом не вважається.
+ */
+export function prState(max: ExerciseMax | null, sets: DraftSet[]): PrState {
+  if (!max) return { kind: "none" };
+  let top = -Infinity;
+  for (const s of sets) {
+    if (s.weight != null && Number.isFinite(s.weight) && s.weight > top) top = s.weight;
+  }
+  return top > max.weight ? { kind: "beaten", delta: top - max.weight } : { kind: "record", max };
+}
+
 export type ProgressMetric = "weight" | "tonnage" | "orm";
 
 export interface ExercisePoint {

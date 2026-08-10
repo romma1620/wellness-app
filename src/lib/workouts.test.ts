@@ -8,10 +8,13 @@ import {
   exerciseTonnage,
   groupByMonth,
   pickMonthPage,
+  prState,
   remainingSessions,
   routineSeries,
   setTonnage,
   workoutTonnage,
+  type DraftSet,
+  type ExerciseMax,
   type ExerciseSet,
   type LoadedWorkout,
   type MonthTotal,
@@ -278,5 +281,46 @@ describe("remainingSessions", () => {
   });
   it("нуль, коли все завантажено", () => {
     expect(remainingSessions(TOTALS, 3)).toBe(0);
+  });
+});
+
+describe("prState", () => {
+  const MAX: ExerciseMax = { weight: 80, reps: 5, date: "2026-06-12" };
+  const set = (weight: number | null, reps: number | null): DraftSet => ({ weight, reps });
+
+  it("немає історії — стан none", () => {
+    expect(prState(null, [set(100, 5)])).toEqual({ kind: "none" });
+  });
+
+  it("порожні підходи — показує рекорд", () => {
+    expect(prState(MAX, [set(null, null)])).toEqual({ kind: "record", max: MAX });
+  });
+
+  it("вага нижча за рекорд — показує рекорд", () => {
+    expect(prState(MAX, [set(75, 8)])).toEqual({ kind: "record", max: MAX });
+  });
+
+  it("вага, що дорівнює рекорду, рекордом не є", () => {
+    expect(prState(MAX, [set(80, 8)])).toEqual({ kind: "record", max: MAX });
+  });
+
+  it("вага вища за рекорд — новий рекорд із дельтою", () => {
+    expect(prState(MAX, [set(82.5, 3)])).toEqual({ kind: "beaten", delta: 2.5 });
+  });
+
+  it("дельта рахується від найбільшої ваги в картці, а не від останнього підходу", () => {
+    expect(prState(MAX, [set(90, 3), set(70, 8)])).toEqual({ kind: "beaten", delta: 10 });
+  });
+
+  it("підхід із вагою й без повторів усе одно рахується", () => {
+    expect(prState(MAX, [set(85, null)])).toEqual({ kind: "beaten", delta: 5 });
+  });
+
+  it("підхід із повторами й без ваги ігнорується", () => {
+    expect(prState(MAX, [set(null, 12)])).toEqual({ kind: "record", max: MAX });
+  });
+
+  it("порожній масив підходів — показує рекорд", () => {
+    expect(prState(MAX, [])).toEqual({ kind: "record", max: MAX });
   });
 });
