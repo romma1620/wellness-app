@@ -2,6 +2,7 @@
 
 import { DraftResumeSheet } from "@/components/workouts/DraftResumeSheet";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
+import { ExerciseMaxLine } from "@/components/workouts/ExerciseMaxLine";
 import { SetRow } from "@/components/workouts/SetRow";
 import { SaveIndicator, type SaveState } from "@/components/inputs";
 import {
@@ -20,9 +21,11 @@ import {
   newDraftSet,
   type DraftExercise,
   type DraftWorkout,
+  type ExerciseMax,
 } from "@/lib/workouts";
 import {
   deleteWorkout,
+  loadExerciseMaxes,
   loadExercises,
   loadRoutineExercises,
   loadRoutines,
@@ -55,6 +58,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
 
   const [draft, setDraft] = useState<DraftWorkout>(EMPTY_DRAFT);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [maxes, setMaxes] = useState<Map<string, ExerciseMax>>(() => new Map());
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -75,10 +79,15 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         const { data: u } = await supabase.auth.getUser();
         const id = u.user?.id;
         if (!id) throw new Error("no-user");
-        const [ex, rt] = await Promise.all([loadExercises(supabase, id), loadRoutines(supabase, id)]);
+        const [ex, rt, mx] = await Promise.all([
+          loadExercises(supabase, id),
+          loadRoutines(supabase, id),
+          loadExerciseMaxes(supabase, workoutId),
+        ]);
         setUid(id);
         setExercises(ex);
         setRoutines(rt);
+        setMaxes(mx);
         if (workoutId) {
           const d = await loadWorkoutDraft(supabase, id, workoutId);
           if (d) setDraft(d);
@@ -273,39 +282,45 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       {/* Вправи */}
       {draft.exercises.map((ex, exIdx) => (
         <Card key={ex.key}>
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex-1">
-              <ExerciseAutocomplete
-                value={ex.name}
-                exerciseId={ex.exerciseId}
-                exercises={exercises}
-                onPick={(pick) =>
-                  patchExercise(ex.key, {
-                    name: pick.name,
-                    exerciseId: pick.exerciseId,
-                    muscleGroup: pick.muscleGroup,
-                  })
-                }
-              />
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <ExerciseAutocomplete
+                  value={ex.name}
+                  exerciseId={ex.exerciseId}
+                  exercises={exercises}
+                  onPick={(pick) =>
+                    patchExercise(ex.key, {
+                      name: pick.name,
+                      exerciseId: pick.exerciseId,
+                      muscleGroup: pick.muscleGroup,
+                    })
+                  }
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => move(ex.key, -1)}
+                disabled={exIdx === 0}
+                aria-label="Вгору"
+                className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
+              >
+                <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => move(ex.key, 1)}
+                disabled={exIdx === draft.exercises.length - 1}
+                aria-label="Вниз"
+                className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
+              >
+                <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => move(ex.key, -1)}
-              disabled={exIdx === 0}
-              aria-label="Вгору"
-              className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
-            >
-              <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => move(ex.key, 1)}
-              disabled={exIdx === draft.exercises.length - 1}
-              aria-label="Вниз"
-              className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
-            >
-              <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
-            </button>
+            <ExerciseMaxLine
+              max={ex.exerciseId ? (maxes.get(ex.exerciseId) ?? null) : null}
+              sets={ex.sets}
+            />
           </div>
 
           <div className="flex flex-col gap-2">
