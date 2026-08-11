@@ -5,6 +5,7 @@ import {
   monthLabel,
   monthStartOf,
   plural,
+  shortDateAbbr,
   splitTags,
   weekdayShort,
 } from "./utils";
@@ -43,6 +44,15 @@ describe("monthEnd", () => {
   });
   it("грудень: день 0 наступного місяця коректно переносить рік", () => {
     expect(monthEnd("2026-12-01")).toBe("2026-12-31");
+  });
+});
+
+describe("shortDateAbbr", () => {
+  it("скорочення місяця відрізняється від повної форми", () => {
+    expect(shortDateAbbr("2026-11-12")).toBe("12 лис");
+  });
+  it("однозначний день без нуля попереду", () => {
+    expect(shortDateAbbr("2026-07-05")).toBe("5 лип");
   });
 });
 
