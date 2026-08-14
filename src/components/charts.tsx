@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
-import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
+import { bandX, barY, defineChart, dot, lineY, ruleX, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react/tooltip";
@@ -13,7 +13,7 @@ import { scalePoint } from "@tanstack/charts/scales/point";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
-import { tileBands, type PhaseBand } from "@/lib/chart-bands";
+import { bandDays, type PhaseBand } from "@/lib/chart-bands";
 
 /**
  * Повертає попереднє значення, поки key не зміниться: мемо по вмісту, а не по
@@ -88,19 +88,16 @@ export function WeightChart({
     const labels = data.map((d) => d.label);
     const weightPoints = data.filter((d) => d.weight != null);
     const maPoints = data.filter((d) => d.ma != null);
-    const [yLo, yHi] = axis.domain;
     return defineChart({
       marks: [
         // Смуги й лінії стартів оголошені до серій, щоб лягти під них.
-        // rect має константний fill, тому кожна смуга — окрема марка.
-        ...tileBands(bands ?? [], labels).map((b) =>
+        // Смуги фаз по-денно: bandX фарбує повний крок шкали на кожен день,
+        // тож смуги стикуються без щілин, одноденні видимі, день без фази чистий.
+        ...(bands ?? []).map((b) =>
           decorative(
-            rect([b], {
+            bandX(bandDays(b, labels), {
               id: `band-${b.phase}-${b.x1}`,
-              x1: "x1",
-              x2: "x2",
-              y1: () => yLo,
-              y2: () => yHi,
+              x: (label) => label,
               fill: PHASE_COLORS[b.phase],
               fillOpacity: BAND_OPACITY[b.phase],
               inset: 0,

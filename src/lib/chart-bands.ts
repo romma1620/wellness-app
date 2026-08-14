@@ -8,18 +8,13 @@ export interface PhaseBand {
 }
 
 /**
- * Готує смуги до точкової шкали: rect «центр—центр» лишав би щілину в один
- * день між суміжними фазами, тому x2 кожної смуги розтягується до x1
- * наступної. Розтяжки нема, якщо наступна смуга починається НЕ наступного
- * дня — день без фази мусить лишитись видимим розривом.
+ * Дні смуги: всі мітки від x1 до x2 включно.
+ * Точкова шкала не має «ширини категорії», тому смугу малює bandX
+ * по-денно — кожен день фази фарбується на повний крок шкали.
  */
-export function tileBands(bands: PhaseBand[], labels: string[]): PhaseBand[] {
-  const index = new Map(labels.map((label, i) => [label, i]));
-  return bands.map((band, i) => {
-    const next = bands[i + 1];
-    if (!next) return band;
-    const end = index.get(band.x2);
-    const nextStart = index.get(next.x1);
-    return end != null && nextStart === end + 1 ? { ...band, x2: next.x1 } : band;
-  });
+export function bandDays(band: PhaseBand, labels: string[]): string[] {
+  const from = labels.indexOf(band.x1);
+  const to = labels.indexOf(band.x2);
+  if (from === -1 || to === -1 || to < from) return [];
+  return labels.slice(from, to + 1);
 }
