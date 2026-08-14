@@ -4,20 +4,6 @@ import { useMemo } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceArea,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
