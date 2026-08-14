@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
-import { bandX, barY, defineChart, dot, lineY, ruleX, whenFocused } from "@tanstack/charts";
+import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react/tooltip";
@@ -88,16 +88,20 @@ export function WeightChart({
     const labels = data.map((d) => d.label);
     const weightPoints = data.filter((d) => d.weight != null);
     const maPoints = data.filter((d) => d.ma != null);
+    const [yLo, yHi] = axis.domain;
     return defineChart({
       marks: [
         // Смуги й лінії стартів оголошені до серій, щоб лягти під них.
-        // Смуги фаз по-денно: bandX фарбує повний крок шкали на кожен день,
-        // тож смуги стикуються без щілин, одноденні видимі, день без фази чистий.
+        // Смуги фаз — rect-клітинки по днях: на band-шкалі rect з рівними
+        // кінцями розтягується рівно на клітинку дня, тож смуги безшовні,
+        // одноденні видимі, а день без фази лишається чистим.
         ...(bands ?? []).map((b) =>
           decorative(
-            bandX(bandDays(b, labels), {
+            rect(bandDays(b, labels), {
               id: `band-${b.phase}-${b.x1}`,
               x: (label) => label,
+              y1: () => yLo,
+              y2: () => yHi,
               fill: PHASE_COLORS[b.phase],
               fillOpacity: BAND_OPACITY[b.phase],
               inset: 0,
@@ -147,7 +151,11 @@ export function WeightChart({
         ),
       ],
       x: {
-        scale: scalePoint<string>().domain(labels).padding(0.5),
+        // band замість point: rect-смуги фаз потребують реальної bandwidth
+        // (point-шкала її не має). paddingInner типово 0, тож крок і центри
+        // категорій ті самі, що й у point-шкали з padding(0.5) — геометрія
+        // ліній/точок не змінюється.
+        scale: scaleBand<string>().domain(labels),
         axis: {
           line: false,
           ticks: { size: 0 },
