@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
@@ -14,6 +14,25 @@ import { scaleBand } from "@tanstack/charts/scales/band";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
 import { tileBands, type PhaseBand } from "@/lib/chart-bands";
+
+/**
+ * Повертає попереднє значення, поки key не зміниться: мемо по вмісту, а не по
+ * ідентичності. useRef із мутацією під час рендеру тут не годиться —
+ * react-hooks/refs забороняє читати чи писати ref.current у тілі рендеру, а
+ * useMemo(() => value, [key]) ловить попередження exhaustive-deps на
+ * навмисно пропущеному value. Тому — офіційний патерн "adjusting state
+ * during render" (react.dev/reference/react/useState, розділ "Storing
+ * information from previous renders"): setState під час рендеру, поки умова
+ * не стане хибною, безпечний і не породжує зайвого кадру.
+ */
+function useStableByKey<T>(value: T, key: string): T {
+  const [state, setState] = useState(() => ({ key, value }));
+  if (state.key !== key) {
+    setState({ key, value });
+    return value;
+  }
+  return state.value;
+}
 
 /**
  * Підписи тіків TanStack фарбує токеном theme.muted, сітку — theme.grid.
@@ -318,10 +337,16 @@ export function MetricLine({
   height?: number;
   unit?: string;
 }) {
+  // Виклики (MeasurementsSection, WorkoutProgress) будують масив data заново
+  // щоразу — у MeasurementsSection навіть на кожне натискання клавіші. Мемо
+  // нижче по ідентичності data тому ніколи не спрацював би: стабілізуємо
+  // спершу за вмістом, і лише тоді визначення графіка мемоізується насправді.
+  const signature = data.map((d) => `${d.label}:${d.value ?? ""}`).join("|");
+  const stableData = useStableByKey(data, signature);
   const definition = useMemo(() => {
     // Замість recharts connectNulls: марки отримують лише заповнені дні,
     // а повний список міток фіксує вісь X явним доменом.
-    const points = data.filter(
+    const points = stableData.filter(
       (d): d is { label: string; value: number } => d.value != null,
     );
     if (points.length === 0) return null;
@@ -354,7 +379,7 @@ export function MetricLine({
         ),
       ],
       x: {
-        scale: scalePoint<string>().domain(data.map((d) => d.label)).padding(0.5),
+        scale: scalePoint<string>().domain(stableData.map((d) => d.label)).padding(0.5),
         axis: {
           line: false,
           ticks: { size: 0 },
@@ -384,7 +409,7 @@ export function MetricLine({
       theme: CHART_THEME,
       tooltip,
     });
-  }, [data]);
+  }, [stableData]);
 
   if (!definition) {
     return (
