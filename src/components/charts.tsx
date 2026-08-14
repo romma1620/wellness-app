@@ -1,22 +1,51 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceArea,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
+import { d3Curve } from "@tanstack/charts/d3/shape";
+import { decorative } from "@tanstack/charts/mark/decorative";
+import { Chart } from "@tanstack/charts/react/tooltip";
+import { scaleLinear } from "@tanstack/charts/scales/linear";
+import { scalePoint } from "@tanstack/charts/scales/point";
+import { scaleBand } from "@tanstack/charts/scales/band";
+import { tooltip } from "@tanstack/charts/tooltip";
+import { curveMonotoneX } from "d3-shape";
+import { bandDays, type PhaseBand } from "@/lib/chart-bands";
+
+/**
+ * Повертає попереднє значення, поки key не зміниться: мемо по вмісту, а не по
+ * ідентичності. useRef із мутацією під час рендеру тут не годиться —
+ * react-hooks/refs забороняє читати чи писати ref.current у тілі рендеру, а
+ * useMemo(() => value, [key]) ловить попередження exhaustive-deps на
+ * навмисно пропущеному value. Тому — офіційний патерн "adjusting state
+ * during render" (react.dev/reference/react/useState, розділ "Storing
+ * information from previous renders"): setState під час рендеру, поки умова
+ * не стане хибною, безпечний і не породжує зайвого кадру.
+ */
+function useStableByKey<T>(value: T, key: string): T {
+  const [state, setState] = useState(() => ({ key, value }));
+  if (state.key !== key) {
+    setState({ key, value });
+    return value;
+  }
+  return state.value;
+}
+
+/**
+ * Підписи тіків TanStack фарбує токеном theme.muted, сітку — theme.grid.
+ * Передаємо CSS-змінні застосунку, щоб графіки жили в усіх темах.
+ */
+const CHART_THEME = {
+  foreground: "var(--muted)",
+  muted: "var(--muted)",
+  grid: "var(--primary-light)",
+};
+
+/** Той самий вигін, що recharts type="monotone". */
+const monotone = d3Curve(curveMonotoneX);
 
 export interface WeightPoint {
   label: string;
@@ -27,12 +56,7 @@ export interface WeightPoint {
   cycleDay?: number | null;
 }
 
-/** Смуга фази у категоріях осі X (мітки точок), включно з обома краями. */
-export interface PhaseBand {
-  phase: Phase;
-  x1: string;
-  x2: string;
-}
+export type { PhaseBand } from "@/lib/chart-bands";
 
 /**
  * Прозорість смуг підібрана так, щоб короткі фази (овуляція, ПМС) читались
@@ -57,158 +81,231 @@ export function WeightChart({
   /** Мітки осі X, на яких починався цикл. */
   cycleStarts?: string[];
 }) {
-  // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
-  // може виходити далеко за межі ваг цього тижня.
-  const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
+  const definition = useMemo(() => {
+    // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
+    // може виходити далеко за межі ваг цього тижня.
+    const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
+    const labels = data.map((d) => d.label);
+    const weightPoints = data.filter((d) => d.weight != null);
+    const maPoints = data.filter((d) => d.ma != null);
+    const [yLo, yHi] = axis.domain;
+    return defineChart({
+      marks: [
+        // Смуги й лінії стартів оголошені до серій, щоб лягти під них.
+        // Смуги фаз — rect-клітинки по днях: на band-шкалі rect з рівними
+        // кінцями розтягується рівно на клітинку дня, тож смуги безшовні,
+        // одноденні видимі, а день без фази лишається чистим.
+        ...(bands ?? []).map((b) =>
+          decorative(
+            rect(bandDays(b, labels), {
+              id: `band-${b.phase}-${b.x1}`,
+              x: (label) => label,
+              y1: () => yLo,
+              y2: () => yHi,
+              fill: PHASE_COLORS[b.phase],
+              fillOpacity: BAND_OPACITY[b.phase],
+              inset: 0,
+            }),
+          ),
+        ),
+        ...(cycleStarts?.length
+          ? [
+              ruleX(cycleStarts, {
+                stroke: PHASE_COLORS.menstrual,
+                strokeWidth: 1.6,
+                strokeOpacity: 1,
+                strokeDasharray: "3 3",
+              }),
+            ]
+          : []),
+        lineY(maPoints, {
+          id: "ma",
+          x: "label",
+          y: "ma",
+          stroke: "var(--accent)",
+          strokeWidth: 2.2,
+          strokeDasharray: "6 6",
+          curve: monotone,
+        }),
+        lineY(weightPoints, {
+          id: "weight",
+          x: "label",
+          y: "weight",
+          stroke: "var(--primary)",
+          strokeWidth: 3.2,
+          curve: monotone,
+        }),
+        decorative(
+          dot(weightPoints, { x: "label", y: "weight", r: 3.5, fill: "var(--primary)" }),
+        ),
+        whenFocused(
+          dot(weightPoints, {
+            x: "label",
+            y: "weight",
+            r: 5,
+            fill: "var(--surface)",
+            stroke: "var(--primary)",
+            strokeWidth: 3,
+          }),
+          { match: "x" },
+        ),
+      ],
+      x: {
+        // band замість point: rect-смуги фаз потребують реальної bandwidth
+        // (point-шкала її не має). paddingInner типово 0, тож крок і центри
+        // категорій ті самі, що й у point-шкали з padding(0.5) — геометрія
+        // ліній/точок не змінюється.
+        scale: scaleBand<string>().domain(labels),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10.5,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 12, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain(axis.domain),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks,
+            format: (v) => fmtFixed(v, axis.decimals),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [data, bands, cycleStarts]);
 
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <LineChart data={data} margin={{ top: 8, right: 6, left: -8, bottom: 0 }}>
-        {/* Смуги й лінії стартів оголошені до серій, щоб лягти під них. */}
-        {bands?.map((b) => (
-          <ReferenceArea
-            key={`${b.phase}-${b.x1}`}
-            x1={b.x1}
-            x2={b.x2}
-            fill={PHASE_COLORS[b.phase]}
-            fillOpacity={BAND_OPACITY[b.phase]}
-            stroke="none"
-            ifOverflow="hidden"
-          />
-        ))}
-        {cycleStarts?.map((x) => (
-          <ReferenceLine
-            key={x}
-            x={x}
-            stroke={PHASE_COLORS.menstrual}
-            strokeWidth={1.6}
-            strokeDasharray="3 3"
-            ifOverflow="hidden"
-          />
-        ))}
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10.5, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={12}
-        />
-        <YAxis
-          domain={axis.domain}
-          ticks={axis.ticks}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={axis.decimals > 0 ? 40 : 34}
-          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
-        />
-        <Tooltip content={<WeightTooltip />} />
-        <Line
-          type="monotone"
-          dataKey="ma"
-          stroke="var(--accent)"
-          strokeWidth={2.2}
-          strokeDasharray="6 6"
-          dot={false}
-          connectNulls
-          name="Тренд 7д"
-        />
-        <Line
-          type="monotone"
-          dataKey="weight"
-          stroke="var(--primary)"
-          strokeWidth={3.2}
-          dot={{ r: 3.5, fill: "var(--primary)", strokeWidth: 0 }}
-          activeDot={{ r: 5, fill: "var(--surface)", stroke: "var(--primary)", strokeWidth: 3 }}
-          connectNulls
-          name="Вага"
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function WeightTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const w = payload.find((p: any) => p.dataKey === "weight")?.value;
-  const ma = payload.find((p: any) => p.dataKey === "ma")?.value;
-  // Фаза лежить у самій точці, а не в серії, тому дістаємо її з payload.
-  const point = payload[0]?.payload as WeightPoint | undefined;
-  const phase = point?.phase ?? null;
-
-  return (
-    <div className="rounded-xl bg-surface px-3 py-2 text-[11px] font-bold shadow-card">
-      <div className="text-muted">{label}</div>
-      {w != null && <div className="text-primary">Вага {fmt(w, 1)} кг</div>}
-      {ma != null && <div className="text-accent">Тренд {fmt(ma, 1)} кг</div>}
-      {phase && (
-        <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
-          {point?.cycleDay != null && `День циклу ${point.cycleDay} · `}
-          {PHASE_LABELS[phase]}
-        </div>
-      )}
-    </div>
+    <Chart
+      definition={definition}
+      height={160}
+      className="wellness-chart"
+      ariaLabel="Динаміка ваги"
+      renderTooltipBody={({ points }) => {
+        // Фаза лежить у самій точці даних, тому досить першої точки групи.
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as WeightPoint;
+        const phase = d.phase ?? null;
+        return (
+          <div>
+            <div className="text-muted">{d.label}</div>
+            {d.weight != null && <div className="text-primary">Вага {fmt(d.weight, 1)} кг</div>}
+            {d.ma != null && <div className="text-accent">Тренд {fmt(d.ma, 1)} кг</div>}
+            {phase && (
+              <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
+                {d.cycleDay != null && `День циклу ${d.cycleDay} · `}
+                {PHASE_LABELS[phase]}
+              </div>
+            )}
+          </div>
+        );
+      }}
+    />
   );
 }
 
 export function StepsBars({ data }: { data: { label: string; steps: number | null }[] }) {
-  const has = data.some((d) => d.steps != null);
-  if (!has) {
+  const definition = useMemo(() => {
+    const points = data.filter(
+      (d): d is { label: string; steps: number } => d.steps != null,
+    );
+    if (points.length === 0) return null;
+    // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
+    const maxK = Math.max(...points.map((d) => d.steps)) / 1000;
+    const axis = niceAxis(0, maxK);
+    return defineChart({
+      marks: [
+        // Аналог recharts Tooltip cursor: підсвітка колонки під курсором.
+        whenFocused(
+          bandX(points, {
+            x: "label",
+            fill: "var(--primary-light)",
+            fillOpacity: 0.4,
+          }),
+          { match: "x" },
+        ),
+        barY(points, {
+          x: "label",
+          y: "steps",
+          fill: "var(--primary)",
+          radius: 4,
+        }),
+      ],
+      x: {
+        scale: scaleBand<string>().domain(data.map((d) => d.label)).padding(0.22),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10.5,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 12, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain([axis.domain[0] * 1000, axis.domain[1] * 1000]),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks.map((t) => t * 1000),
+            format: (v) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals)),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [data]);
+
+  if (!definition) {
     return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
-  // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
-  const maxK = Math.max(...data.map((d) => d.steps ?? 0)) / 1000;
-  const axis = niceAxis(0, maxK);
   return (
-    <ResponsiveContainer width="100%" height={170}>
-      <BarChart data={data} margin={{ top: 8, right: 6, left: -14, bottom: 0 }} barCategoryGap="22%">
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10.5, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={12}
-        />
-        <YAxis
-          domain={[axis.domain[0] * 1000, axis.domain[1] * 1000]}
-          ticks={axis.ticks.map((t) => t * 1000)}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={40}
-          tickFormatter={(v: number) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals))}
-        />
-        <Tooltip
-          cursor={{ fill: "var(--primary-light)", opacity: 0.4 }}
-          content={({ active, payload, label }: any) =>
-            active && payload?.length ? (
-              <div className="rounded-lg bg-surface px-2 py-1 text-[11px] font-bold text-primary shadow-card">
-                {label}: {fmtInt(payload[0].value)} кроків
-              </div>
-            ) : null
-          }
-        />
-        <Legend
-          verticalAlign="top"
-          height={22}
-          content={() => (
-            <div className="flex justify-end pr-1 text-[11px] font-bold text-primary">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
-                кроки, тис.
-              </span>
-            </div>
-          )}
-        />
-        <Bar dataKey="steps" radius={[4, 4, 4, 4]} fill="var(--primary)" />
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      {/* Легенда й раніше була повністю кастомною — лишаємо її звичайним JSX. */}
+      <div className="flex h-[22px] items-center justify-end pr-1 text-[11px] font-bold text-primary">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
+          кроки, тис.
+        </span>
+      </div>
+      <Chart
+        definition={definition}
+        height={148}
+        className="wellness-chart"
+        ariaLabel="Кроки за днями"
+        renderTooltipBody={({ points }) => {
+          const p = points[0];
+          if (!p) return null;
+          const d = p.datum as { label: string; steps: number };
+          return (
+            <span className="text-primary">
+              {d.label}: {fmtInt(d.steps)} кроків
+            </span>
+          );
+        }}
+      />
+    </div>
   );
 }
 
@@ -245,54 +342,101 @@ export function MetricLine({
   height?: number;
   unit?: string;
 }) {
-  const vals = data.map((d) => d.value).filter((v): v is number => v != null);
-  if (vals.length === 0) {
+  // Виклики (MeasurementsSection, WorkoutProgress) будують масив data заново
+  // щоразу — у MeasurementsSection навіть на кожне натискання клавіші. Мемо
+  // нижче по ідентичності data тому ніколи не спрацював би: стабілізуємо
+  // спершу за вмістом, і лише тоді визначення графіка мемоізується насправді.
+  const signature = data.map((d) => `${d.label}:${d.value ?? ""}`).join("|");
+  const stableData = useStableByKey(data, signature);
+  const definition = useMemo(() => {
+    // Замість recharts connectNulls: марки отримують лише заповнені дні,
+    // а повний список міток фіксує вісь X явним доменом.
+    const points = stableData.filter(
+      (d): d is { label: string; value: number } => d.value != null,
+    );
+    if (points.length === 0) return null;
+    const vals = points.map((p) => p.value);
+    const axis = niceAxis(Math.min(...vals), Math.max(...vals));
+    return defineChart({
+      marks: [
+        lineY(points, {
+          x: "label",
+          y: "value",
+          stroke: "var(--primary)",
+          strokeWidth: 3,
+          curve: monotone,
+        }),
+        // Статичні точки — декоративні, щоб не дублювати точки взаємодії лінії.
+        decorative(
+          dot(points, { x: "label", y: "value", r: 3.5, fill: "var(--primary)" }),
+        ),
+        // Аналог recharts activeDot: кільце над точкою під курсором.
+        whenFocused(
+          dot(points, {
+            x: "label",
+            y: "value",
+            r: 5,
+            fill: "var(--surface)",
+            stroke: "var(--primary)",
+            strokeWidth: 3,
+          }),
+          { match: "x" },
+        ),
+      ],
+      x: {
+        scale: scalePoint<string>().domain(stableData.map((d) => d.label)).padding(0.5),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 16, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain(axis.domain),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks,
+            format: (v) => fmtFixed(v, axis.decimals),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [stableData]);
+
+  if (!definition) {
     return (
       <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>
     );
   }
-  const axis = niceAxis(Math.min(...vals), Math.max(...vals));
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={16}
-        />
-        <YAxis
-          domain={axis.domain}
-          ticks={axis.ticks}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={axis.decimals > 0 ? 40 : 32}
-          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
-        />
-        <Tooltip
-          content={({ active, payload, label }: any) =>
-            active && payload?.length ? (
-              <div className="rounded-lg bg-surface px-2 py-1 text-[11px] font-bold text-primary shadow-card">
-                {label}: {fmt(payload[0].value, 1)} {unit}
-              </div>
-            ) : null
-          }
-        />
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke="var(--primary)"
-          strokeWidth={3}
-          dot={{ r: 3.5, fill: "var(--primary)", strokeWidth: 0 }}
-          activeDot={{ r: 5, fill: "var(--surface)", stroke: "var(--primary)", strokeWidth: 3 }}
-          connectNulls
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <Chart
+      definition={definition}
+      height={height}
+      className="wellness-chart"
+      ariaLabel={`Графік замірів, ${unit}`}
+      renderTooltipBody={({ points }) => {
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as { label: string; value: number };
+        return (
+          <span className="text-primary">
+            {d.label}: {fmt(d.value, 1)} {unit}
+          </span>
+        );
+      }}
+    />
   );
 }
