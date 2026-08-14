@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, EmptyState, ErrorBanner } from "@/components/ui";
+import { MuscleBalanceCard } from "@/components/workouts/MuscleBalanceCard";
 import { UnfinishedWorkoutCard } from "@/components/workouts/UnfinishedWorkoutCard";
 import { WorkoutList } from "@/components/workouts/WorkoutList";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
@@ -17,6 +18,7 @@ import {
 import {
   loadExerciseSets,
   loadMonthTotals,
+  loadMuscleSets,
   loadUsedExercises,
   loadWorkoutList,
 } from "@/lib/workouts-db";
@@ -75,6 +77,11 @@ export default function WorkoutsPage() {
     [supabase, uid],
   );
 
+  const loadBalanceRows = useCallback(
+    async (from: string, to: string) => (uid ? loadMuscleSets(supabase, uid, from, to) : []),
+    [supabase, uid],
+  );
+
   const loadMore = async () => {
     const page = pickMonthPage(totals, loadedMonths);
     if (!uid || !page) return;
@@ -96,9 +103,14 @@ export default function WorkoutsPage() {
     <div className="flex flex-col gap-[15px]">
       <div className="flex items-center justify-between px-1 pt-1">
         <h1 className="text-[22px] font-extrabold">Тренування</h1>
-        <Link href="/workouts/routines" className="text-[13px] font-extrabold text-primary">
-          Шаблони
-        </Link>
+        <div className="flex items-center gap-3.5">
+          <Link href="/workouts/records" className="text-[13px] font-extrabold text-primary">
+            Рекорди
+          </Link>
+          <Link href="/workouts/routines" className="text-[13px] font-extrabold text-primary">
+            Шаблони
+          </Link>
+        </div>
       </div>
 
       <Button type="button" onClick={() => router.push("/workouts/new")}>
@@ -130,6 +142,8 @@ export default function WorkoutsPage() {
       ) : (
         <>
           <WorkoutProgress exercises={exercises} loadSets={loadSets} />
+
+          <MuscleBalanceCard exercises={exercises} loadRows={loadBalanceRows} />
 
           <h2 className="px-1 pt-2 text-[17px] font-extrabold">Історія</h2>
 
