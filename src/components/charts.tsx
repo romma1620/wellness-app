@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { bandX, barY, defineChart, dot, lineY, whenFocused } from "@tanstack/charts";
+import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react/tooltip";
@@ -27,6 +27,7 @@ import { scalePoint } from "@tanstack/charts/scales/point";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
+import { tileBands, type PhaseBand } from "@/lib/chart-bands";
 
 /**
  * Підписи тіків TanStack фарбує токеном theme.muted, сітку — theme.grid.
@@ -50,12 +51,7 @@ export interface WeightPoint {
   cycleDay?: number | null;
 }
 
-/** Смуга фази у категоріях осі X (мітки точок), включно з обома краями. */
-export interface PhaseBand {
-  phase: Phase;
-  x1: string;
-  x2: string;
-}
+export type { PhaseBand } from "@/lib/chart-bands";
 
 /**
  * Прозорість смуг підібрана так, щоб короткі фази (овуляція, ПМС) читались
@@ -80,100 +76,134 @@ export function WeightChart({
   /** Мітки осі X, на яких починався цикл. */
   cycleStarts?: string[];
 }) {
-  // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
-  // може виходити далеко за межі ваг цього тижня.
-  const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
+  const definition = useMemo(() => {
+    // Обидві серії, а не лише вага: тренд тягнеться з попереднього періоду і
+    // може виходити далеко за межі ваг цього тижня.
+    const axis = axisFor(data.flatMap((d) => [d.weight, d.ma]));
+    const labels = data.map((d) => d.label);
+    const weightPoints = data.filter((d) => d.weight != null);
+    const maPoints = data.filter((d) => d.ma != null);
+    const [yLo, yHi] = axis.domain;
+    return defineChart({
+      marks: [
+        // Смуги й лінії стартів оголошені до серій, щоб лягти під них.
+        // rect має константний fill, тому кожна смуга — окрема марка.
+        ...tileBands(bands ?? [], labels).map((b) =>
+          decorative(
+            rect([b], {
+              id: `band-${b.phase}-${b.x1}`,
+              x1: "x1",
+              x2: "x2",
+              y1: () => yLo,
+              y2: () => yHi,
+              fill: PHASE_COLORS[b.phase],
+              fillOpacity: BAND_OPACITY[b.phase],
+              inset: 0,
+            }),
+          ),
+        ),
+        ...(cycleStarts?.length
+          ? [
+              ruleX(cycleStarts, {
+                stroke: PHASE_COLORS.menstrual,
+                strokeWidth: 1.6,
+                strokeOpacity: 1,
+                strokeDasharray: "3 3",
+              }),
+            ]
+          : []),
+        lineY(maPoints, {
+          id: "ma",
+          x: "label",
+          y: "ma",
+          stroke: "var(--accent)",
+          strokeWidth: 2.2,
+          strokeDasharray: "6 6",
+          curve: monotone,
+        }),
+        lineY(weightPoints, {
+          id: "weight",
+          x: "label",
+          y: "weight",
+          stroke: "var(--primary)",
+          strokeWidth: 3.2,
+          curve: monotone,
+        }),
+        decorative(
+          dot(weightPoints, { x: "label", y: "weight", r: 3.5, fill: "var(--primary)" }),
+        ),
+        whenFocused(
+          dot(weightPoints, {
+            x: "label",
+            y: "weight",
+            r: 5,
+            fill: "var(--surface)",
+            stroke: "var(--primary)",
+            strokeWidth: 3,
+          }),
+          { match: "x" },
+        ),
+      ],
+      x: {
+        scale: scalePoint<string>().domain(labels).padding(0.5),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10.5,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 12, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain(axis.domain),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks,
+            format: (v) => fmtFixed(v, axis.decimals),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [data, bands, cycleStarts]);
 
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <LineChart data={data} margin={{ top: 8, right: 6, left: -8, bottom: 0 }}>
-        {/* Смуги й лінії стартів оголошені до серій, щоб лягти під них. */}
-        {bands?.map((b) => (
-          <ReferenceArea
-            key={`${b.phase}-${b.x1}`}
-            x1={b.x1}
-            x2={b.x2}
-            fill={PHASE_COLORS[b.phase]}
-            fillOpacity={BAND_OPACITY[b.phase]}
-            stroke="none"
-            ifOverflow="hidden"
-          />
-        ))}
-        {cycleStarts?.map((x) => (
-          <ReferenceLine
-            key={x}
-            x={x}
-            stroke={PHASE_COLORS.menstrual}
-            strokeWidth={1.6}
-            strokeDasharray="3 3"
-            ifOverflow="hidden"
-          />
-        ))}
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10.5, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={12}
-        />
-        <YAxis
-          domain={axis.domain}
-          ticks={axis.ticks}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={axis.decimals > 0 ? 40 : 34}
-          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
-        />
-        <Tooltip content={<WeightTooltip />} />
-        <Line
-          type="monotone"
-          dataKey="ma"
-          stroke="var(--accent)"
-          strokeWidth={2.2}
-          strokeDasharray="6 6"
-          dot={false}
-          connectNulls
-          name="Тренд 7д"
-        />
-        <Line
-          type="monotone"
-          dataKey="weight"
-          stroke="var(--primary)"
-          strokeWidth={3.2}
-          dot={{ r: 3.5, fill: "var(--primary)", strokeWidth: 0 }}
-          activeDot={{ r: 5, fill: "var(--surface)", stroke: "var(--primary)", strokeWidth: 3 }}
-          connectNulls
-          name="Вага"
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function WeightTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const w = payload.find((p: any) => p.dataKey === "weight")?.value;
-  const ma = payload.find((p: any) => p.dataKey === "ma")?.value;
-  // Фаза лежить у самій точці, а не в серії, тому дістаємо її з payload.
-  const point = payload[0]?.payload as WeightPoint | undefined;
-  const phase = point?.phase ?? null;
-
-  return (
-    <div className="rounded-xl bg-surface px-3 py-2 text-[11px] font-bold shadow-card">
-      <div className="text-muted">{label}</div>
-      {w != null && <div className="text-primary">Вага {fmt(w, 1)} кг</div>}
-      {ma != null && <div className="text-accent">Тренд {fmt(ma, 1)} кг</div>}
-      {phase && (
-        <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
-          {point?.cycleDay != null && `День циклу ${point.cycleDay} · `}
-          {PHASE_LABELS[phase]}
-        </div>
-      )}
-    </div>
+    <Chart
+      definition={definition}
+      height={160}
+      className="wellness-chart"
+      ariaLabel="Динаміка ваги"
+      renderTooltipBody={({ points }) => {
+        // Фаза лежить у самій точці даних, тому досить першої точки групи.
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as WeightPoint;
+        const phase = d.phase ?? null;
+        return (
+          <div>
+            <div className="text-muted">{d.label}</div>
+            {d.weight != null && <div className="text-primary">Вага {fmt(d.weight, 1)} кг</div>}
+            {d.ma != null && <div className="text-accent">Тренд {fmt(d.ma, 1)} кг</div>}
+            {phase && (
+              <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
+                {d.cycleDay != null && `День циклу ${d.cycleDay} · `}
+                {PHASE_LABELS[phase]}
+              </div>
+            )}
+          </div>
+        );
+      }}
+    />
   );
 }
 
