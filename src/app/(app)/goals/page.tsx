@@ -1,5 +1,6 @@
 "use client";
 
+import { ForecastCard } from "@/components/ForecastCard";
 import { NumberField } from "@/components/inputs";
 import {
   Button,
@@ -184,6 +185,8 @@ export default function GoalsPage() {
           </div>
         </div>
       </Card>
+
+      <ForecastCard />
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 

@@ -2,6 +2,7 @@
 
 import { StepsBars, WeightChart, type WeightPoint } from "@/components/charts";
 import { CareDotChart } from "@/components/CareDotChart";
+import { ForecastCard } from "@/components/ForecastCard";
 import {
   PhaseBandsToggle,
   PhaseLegend,
@@ -30,6 +31,7 @@ import {
   type PeriodType,
 } from "@/lib/utils";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 const WD = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
@@ -267,7 +269,12 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-[15px]">
-      <h1 className="px-1 pt-1 text-[22px] font-extrabold">Аналітика</h1>
+      <div className="flex items-center justify-between px-1 pt-1">
+        <h1 className="text-[22px] font-extrabold">Аналітика</h1>
+        <Link href="/report" className="text-[13px] font-extrabold text-primary">
+          Тижневий звіт
+        </Link>
+      </div>
 
       <Segmented<PeriodType>
         value={period}
@@ -361,6 +368,8 @@ export default function AnalyticsPage() {
               </div>
             )}
           </Card>
+
+          <ForecastCard />
 
           {bandsOn && (
             <>

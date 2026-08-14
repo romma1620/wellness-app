@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { MuscleSetRow } from "@/lib/muscle-balance";
 import type { Exercise, MuscleGroup, Routine, RoutineExercise } from "@/lib/types";
 import {
   exerciseCount,
@@ -149,6 +150,36 @@ export async function loadExerciseSets(
     rows.push({ date, weight: s.weight, reps: s.reps });
   }
   return rows;
+}
+
+/**
+ * Усі підходи періоду з групою вправи — джерело балансу м'язових груп.
+ * Ліміт 1000 явний, як у loadExerciseSets: місяць щоденних тренувань по
+ * 30 підходів — це ~900 рядків, і мовчазне обрізання зробило б бари брехливими.
+ */
+export async function loadMuscleSets(
+  sb: SB,
+  uid: string,
+  from: string,
+  to: string,
+): Promise<MuscleSetRow[]> {
+  const { data, error } = await sb
+    .from("workout_sets")
+    .select("weight, reps, workouts!inner(date, user_id), exercises(muscle_group)")
+    .eq("workouts.user_id", uid)
+    .gte("workouts.date", from)
+    .lte("workouts.date", to)
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((s: any) => {
+    // embed many-to-one: приймаємо і обʼєкт, і масив — як у loadExerciseSets
+    const ex = Array.isArray(s.exercises) ? s.exercises[0] : s.exercises;
+    return {
+      muscleGroup: (ex?.muscle_group ?? null) as MuscleGroup | null,
+      weight: s.weight as number | null,
+      reps: s.reps as number,
+    };
+  });
 }
 
 export async function loadWorkoutDraft(

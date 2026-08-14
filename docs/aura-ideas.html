@@ -1,0 +1,477 @@
+<title>aura · ідеї розвитку застосунку</title>
+<style>
+  :root {
+    --bg: #FBF6F3;
+    --surface: #FFFFFF;
+    --surface-2: #F6EDE9;
+    --ink: #3A2F2C;
+    --muted: #8A7A74;
+    --line: #EBDDD7;
+    --accent: #C75D75;
+    --accent-soft: #F9E4E9;
+    --mint: #4E8A6E;
+    --mint-soft: #E6F2EC;
+    --lavender: #7B62A3;
+    --lavender-soft: #EFEAF7;
+    --teal: #3E7E8E;
+    --teal-soft: #E2EFF2;
+    --amber: #A9742F;
+    --amber-soft: #F9EFDE;
+    --shadow: 0 2px 14px -8px rgba(90, 60, 55, .25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #211B1D;
+      --surface: #2B2427;
+      --surface-2: #332B2E;
+      --ink: #EFE5E2;
+      --muted: #A9948F;
+      --line: #3E3438;
+      --accent: #E08BA0;
+      --accent-soft: #46303A;
+      --mint: #8CC5AA;
+      --mint-soft: #2A3B33;
+      --lavender: #B49DD8;
+      --lavender-soft: #362F44;
+      --teal: #83BCC9;
+      --teal-soft: #27393E;
+      --amber: #D9A968;
+      --amber-soft: #40362A;
+      --shadow: 0 2px 14px -8px rgba(0, 0, 0, .5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #211B1D;
+    --surface: #2B2427;
+    --surface-2: #332B2E;
+    --ink: #EFE5E2;
+    --muted: #A9948F;
+    --line: #3E3438;
+    --accent: #E08BA0;
+    --accent-soft: #46303A;
+    --mint: #8CC5AA;
+    --mint-soft: #2A3B33;
+    --lavender: #B49DD8;
+    --lavender-soft: #362F44;
+    --teal: #83BCC9;
+    --teal-soft: #27393E;
+    --amber: #D9A968;
+    --amber-soft: #40362A;
+    --shadow: 0 2px 14px -8px rgba(0, 0, 0, .5);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 20px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(30px, 5.5vw, 40px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    margin: 10px 0 14px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .lede { color: var(--muted); max-width: 60ch; margin: 0; }
+  .section-hint { color: var(--muted); font-size: 14px; margin: 0 0 20px; max-width: 62ch; }
+
+  header.hero { border-bottom: 1px solid var(--line); padding-bottom: 36px; }
+
+  /* --- інвентар даних --- */
+  .inventory {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .inv-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .inv-card b { font-size: 13.5px; display: block; margin-bottom: 4px; }
+  .inv-card span { font-size: 13px; color: var(--muted); }
+
+  /* --- картки ідей --- */
+  .ideas { display: flex; flex-direction: column; gap: 14px; }
+  .idea {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .idea-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .idea h3 { font-size: 16.5px; font-weight: 700; margin: 0; }
+  .idea p { margin: 0 0 10px; font-size: 14.5px; }
+  .idea p:last-of-type { margin-bottom: 12px; }
+  .idea .how { color: var(--muted); font-size: 13.5px; }
+
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    padding: 2.5px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .effort-s { background: var(--mint-soft); color: var(--mint); }
+  .badge.done { background: var(--mint); color: var(--bg); }
+  .effort-m { background: var(--amber-soft); color: var(--amber); }
+  .effort-l { background: var(--accent-soft); color: var(--accent); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .chip.c-daily { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .chip.c-workout { background: var(--teal-soft); color: var(--teal); border-color: transparent; }
+  .chip.c-cycle { background: var(--lavender-soft); color: var(--lavender); border-color: transparent; }
+  .chip.c-meas { background: var(--mint-soft); color: var(--mint); border-color: transparent; }
+  .chip.c-goal { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
+
+  /* --- легенда --- */
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--muted);
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .legend .badges { gap: 8px; }
+
+  /* --- топ-5 --- */
+  .top { counter-reset: top; display: flex; flex-direction: column; gap: 10px; }
+  .top-item {
+    counter-increment: top;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .top-item::before {
+    content: counter(top);
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .top-item b { display: block; font-size: 14.5px; }
+  .top-item span { font-size: 13.5px; color: var(--muted); }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+</style>
+
+<div class="page">
+  <header class="hero">
+    <div class="eyebrow">aura · дослідження кодової бази · серпень 2026</div>
+    <h1>Куди розвивати застосунок: 14&nbsp;ідей на вже наявних даних</h1>
+    <p class="lede">
+      Огляд того, що можна додати без нових звичок вводу: майже все нижче — похідна
+      аналітика з даних, які вже накопичуються щодня. Більшість ідей не потребують
+      міграцій БД — лише нові сторінки, графіки та кілька RPC-функцій.
+    </p>
+  </header>
+
+  <section>
+    <h2>Що застосунок уже знає</h2>
+    <p class="section-hint">
+      П'ять джерел даних, які поки що перетинаються лише в одному місці — фазові смуги
+      на графіку ваги. Саме на перетинах найбільше невикористаної цінності.
+    </p>
+    <div class="inventory">
+      <div class="inv-card"><b>Щоденник (daily_logs)</b><span>вага, ккал, білки/жири/вуглеводи, вода, кроки, спорт, догляд, коментар — за кожен день</span></div>
+      <div class="inv-card"><b>Тренування</b><span>сесії, підходи (вага × повтори), вправи з м'язовими групами, шаблони, рекорди, тоннаж</span></div>
+      <div class="inv-card"><b>Цикл</b><span>виділення, 8 симптомів, настрій, енергія 1–5, нотатки; фази та прогнози</span></div>
+      <div class="inv-card"><b>Заміри тіла</b><span>талія, стегна, груди, нога, рука — з датами</span></div>
+      <div class="inv-card"><b>Профіль і цілі</b><span>зріст, цільова вага, драбинка винагород</span></div>
+    </div>
+  </section>
+
+  <div class="legend">
+    <div class="badges">
+      <span class="badge effort-s">S · до 1 дня</span>
+      <span class="badge effort-m">M · 2–4 дні</span>
+      <span class="badge effort-l">L · тиждень+</span>
+    </div>
+    <div>Кольорові теги показують, які дані використовує ідея.</div>
+  </div>
+
+  <section>
+    <h2>Швидкі перемоги</h2>
+    <p class="section-hint">Мало коду, помітний ефект. Усе — на даних, що вже є в БД.</p>
+    <div class="ideas">
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Прогноз досягнення цілі</h3>
+          <span class="badges"><span class="badge done">✓ виконано</span><span class="badge effort-s">S</span></span>
+        </div>
+        <p>За трендом ваги (ковзне середнє вже рахується) показувати: «при такому темпі
+        ти досягнеш наступної сходинки ~ 12 жовтня, а цільової ваги — у грудні».
+        Перетворює сухий графік на мотивацію.</p>
+        <p class="how">Лінійна регресія по МА за 4–6 тижнів → дата перетину з
+        <code>target_weight</code> і найближчою сходинкою rewards. Картка на «Цілях» і в «Аналітиці».</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-goal">цілі</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Сторінка рекордів (PR)</h3>
+          <span class="badges"><span class="badge done">✓ виконано</span><span class="badge effort-s">S</span></span>
+        </div>
+        <p>Таблиця особистих рекордів по всіх вправах з датами + стрічка «нові рекорди
+        цього місяця». Святкування нового PR одразу після збереження тренування.</p>
+        <p class="how">RPC <code>exercise_maxes</code> вже існує і повертає все потрібне —
+        лишилось відрендерити список і порівняти дату рекорду з датою сесії.</p>
+        <div class="chips"><span class="chip c-workout">тренування</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Аналітика замірів: ІМТ і пропорції</h3>
+          <span class="badge effort-s">S</span>
+        </div>
+        <p>Зріст уже в профілі, вага — в щоденнику: ІМТ рахується безкоштовно.
+        Плюс співвідношення талія/стегна і сумарний «мінус у сантиметрах» від першого заміру —
+        часто мотивує сильніше, ніж кілограми.</p>
+        <p class="how">Кілька похідних карток на сторінці «Заміри»; формули — чиста
+        функція, яку легко покрити vitest.</p>
+        <div class="chips"><span class="chip c-meas">заміри</span><span class="chip c-daily">щоденник</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Період «Рік» в аналітиці</h3>
+          <span class="badge effort-s">S</span>
+        </div>
+        <p>Зараз є лише тиждень/місяць. Річний масштаб (агрегація по тижнях) показує
+        сезонність і довгий тренд ваги, який на місяці не видно.</p>
+        <p class="how">Розширити <code>PeriodType</code> і агрегувати точки по тижнях,
+        щоб графік не мав 365 міток.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Стрік і кільця на «Сьогодні»</h3>
+          <span class="badges"><span class="badge done">✓ виконано</span><span class="badge effort-s">S</span></span>
+        </div>
+        <p>Кільця прогресу дня (вода з 8 склянок, кроки) та лічильник безперервних днів
+        ведення щоденника. М'яка гейміфікація, що тримає звичку заповнювати дані —
+        а якість усієї аналітики залежить саме від неї.</p>
+        <p class="how">Стрік — один запит дат за останні N днів; кільця — SVG поверх
+        уже наявної форми дня.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Нові сторінки</h2>
+    <div class="ideas">
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Тижневий дайджест</h3>
+          <span class="badges"><span class="badge done">✓ виконано</span><span class="badge effort-m">M</span></span>
+        </div>
+        <p>Автозвіт за тиждень одною сторінкою: середня вага і дельта, виконання по воді
+        та крокам, тренування й тоннаж, нові рекорди, фаза циклу наступного тижня з порадою.
+        Те, що зараз розкидано по чотирьох вкладках, — в одному погляді недільного вечора.</p>
+        <p class="how">Нова сторінка <code>/report</code>, дані — ті самі запити, що вже
+        використовують «Аналітика» і «Тренування». Далі можна додати «поділитись картинкою».</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-workout">тренування</span><span class="chip c-cycle">цикл</span><span class="chip c-goal">цілі</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Річна теплокарта активності</h3>
+          <span class="badge effort-m">M</span>
+        </div>
+        <p>Сітка «як у GitHub» на рік: колір дня — кроки, тренування або повнота
+        заповнення щоденника (перемикач метрики). Один погляд — і видно послідовність,
+        провали та найкращі періоди.</p>
+        <p class="how">Band-scale прямокутники за нотатками з міграції на TanStack Charts;
+        один запит дат+метрики за 365 днів.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-workout">тренування</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Досягнення</h3>
+          <span class="badge effort-m">M</span>
+        </div>
+        <p>Бейджі за накопичені факти: 100 тренувань, 30-денний стрік щоденника,
+        сумарний тоннаж «ти підняла слона 🐘», перші −5 кг, повний рік замірів.
+        Доповнює драбинку винагород (вона лише про вагу) прогресом у звичках.</p>
+        <p class="how">Список правил-предикатів над уже наявними агрегатами
+        (<code>workout_month_totals</code>, стріки, суми). Досягнення виводяться з даних —
+        окрема таблиця не обов'язкова.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-workout">тренування</span><span class="chip c-meas">заміри</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Глибша аналітика</h2>
+    <p class="section-hint">Найцінніше — на перетинах джерел даних, які поки не перетинаються.</p>
+    <div class="ideas">
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Баланс м'язових груп</h3>
+          <span class="badges"><span class="badge done">✓ виконано</span><span class="badge effort-m">M</span></span>
+        </div>
+        <p>Розподіл підходів і тоннажу по м'язових групах за тиждень/місяць + підказка
+        «ноги не тренувались 14 днів». Поле <code>muscle_group</code> вже є у кожної
+        вправи, але ніде не агрегується — а це головне питання будь-якого плану тренувань:
+        чи збалансований він.</p>
+        <p class="how">Групування сетів по <code>muscle_group</code> (RPC або клієнтом),
+        горизонтальні бари на сторінці «Тренування».</p>
+        <div class="chips"><span class="chip c-workout">тренування</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Аналітика харчування</h3>
+          <span class="badge effort-m">M</span>
+        </div>
+        <p>БЖВ зараз показуються лише як середні числа. Додати: розподіл калорій між
+        Б/Ж/В у відсотках, білок на кг поточної ваги (ключова метрика при силових),
+        патерни по днях тижня — «у вихідні +18% ккал».</p>
+        <p class="how">Все рахується з уже завантажених <code>daily_logs</code> —
+        нові картки та один-два графіки на сторінці «Аналітика».</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Симптоми по днях циклу</h3>
+          <span class="badge effort-m">M</span>
+        </div>
+        <p>Теплокарта: рядки — симптоми, колонки — день циклу, насиченість — частота за
+        всі цикли. Відповідає на «коли чекати головний біль» точніше за загальні поради
+        фаз — бо побудована на власних даних користувачки. Звідси — персональний прогноз
+        «наступного тижня ймовірні втома і здуття».</p>
+        <p class="how"><code>cycleDayFor</code> вже мапить дату в день циклу; лишилось
+        згрупувати symptoms і намалювати сітку. Розширення сторінки інсайтів циклу.</p>
+        <div class="chips"><span class="chip c-cycle">цикл</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Взаємозв'язки: що насправді працює</h3>
+          <span class="badge effort-l">L</span>
+        </div>
+        <p>Сторінка-відповідь на головне питання трекінгу: «що з того, що я роблю,
+        впливає на вагу?» Зіставлення тижневих середніх: ккал ↔ зміна ваги, кроки ↔ вага,
+        білок ↔ тоннаж. З чесним порогом значущості — як уже зроблено
+        в інсайтах циклу (<code>MIN_MEANINGFUL_DIFF</code>), щоб не видавати шум за закономірність.</p>
+        <p class="how">Агрегація по тижнях + кореляція/порівняння груп; показувати лише
+        висновки, що пройшли поріг. Найскладніша, але й найунікальніша фіча — такого
+        немає в масових трекерах.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-workout">тренування</span><span class="chip c-cycle">цикл</span></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-head">
+          <h3>Догляд ↔ стан шкіри</h3>
+          <span class="badge effort-l">L</span>
+        </div>
+        <p>Теги догляду вже є в щоденнику, а «акне» — серед симптомів циклу. Зіставлення:
+        частота акне в періоди регулярного догляду проти періодів без нього, з поправкою
+        на фазу циклу (акне корелює з пізньою лютеїновою само по собі).</p>
+        <p class="how">Потребує акуратної методології, інакше висновки будуть хибні —
+        робити після ідеї «Взаємозв'язки», на її ж інфраструктурі.</p>
+        <div class="chips"><span class="chip c-daily">щоденник</span><span class="chip c-cycle">цикл</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>З чого почати: топ-5</h2>
+    <p class="section-hint">Порядок за співвідношенням цінність/зусилля і тим, як ідеї підсилюють одна одну.
+    <b>Усі п'ять реалізовано у серпні 2026 ✓</b></p>
+    <div class="top">
+      <div class="top-item"><div><b>Прогноз досягнення цілі ✓</b><span>картка «Прогноз» на «Цілях» і в «Аналітиці»: дата досягнення сходинки та цільової ваги за трендом</span></div></div>
+      <div class="top-item"><div><b>Сторінка рекордів ✓</b><span>/workouts/records: усі PR по групах + секція «нові за 30 днів»</span></div></div>
+      <div class="top-item"><div><b>Стрік і кільця на «Сьогодні» ✓</b><span>кільця вода/кроки, що заповнюються під пальцями, і 🔥-лічильник днів поспіль</span></div></div>
+      <div class="top-item"><div><b>Баланс м'язових груп ✓</b><span>бари підходів/тоннажу за 7/30 днів + підказка про занедбані групи</span></div></div>
+      <div class="top-item"><div><b>Тижневий дайджест ✓</b><span>/report: вага з дельтою, звички, тренування з новими PR і фаза циклу з порадою</span></div></div>
+    </div>
+  </section>
+
+  <footer>
+    Складено за результатами аналізу кодової бази aura (Next.js + Supabase + TanStack Charts).
+    Жодна з ідей у розділах «Швидкі перемоги» та «Нові сторінки» не потребує змін схеми БД;
+    для «Досягнень» окрема таблиця опціональна, для решти достатньо RPC-функцій поверх наявних таблиць.
+  </footer>
+</div>
