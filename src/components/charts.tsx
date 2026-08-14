@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
@@ -17,6 +18,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { defineChart, dot, lineY, whenFocused } from "@tanstack/charts";
+import { d3Curve } from "@tanstack/charts/d3/shape";
+import { decorative } from "@tanstack/charts/mark/decorative";
+import { Chart } from "@tanstack/charts/react/tooltip";
+import { scaleLinear } from "@tanstack/charts/scales/linear";
+import { scalePoint } from "@tanstack/charts/scales/point";
+import { tooltip } from "@tanstack/charts/tooltip";
+import { curveMonotoneX } from "d3-shape";
+
+/**
+ * Підписи тіків TanStack фарбує токеном theme.muted, сітку — theme.grid.
+ * Передаємо CSS-змінні застосунку, щоб графіки жили в усіх темах.
+ */
+const CHART_THEME = {
+  foreground: "var(--muted)",
+  muted: "var(--muted)",
+  grid: "var(--primary-light)",
+};
+
+/** Той самий вигін, що recharts type="monotone". */
+const monotone = d3Curve(curveMonotoneX);
 
 export interface WeightPoint {
   label: string;
@@ -245,54 +267,95 @@ export function MetricLine({
   height?: number;
   unit?: string;
 }) {
-  const vals = data.map((d) => d.value).filter((v): v is number => v != null);
-  if (vals.length === 0) {
+  const definition = useMemo(() => {
+    // Замість recharts connectNulls: марки отримують лише заповнені дні,
+    // а повний список міток фіксує вісь X явним доменом.
+    const points = data.filter(
+      (d): d is { label: string; value: number } => d.value != null,
+    );
+    if (points.length === 0) return null;
+    const vals = points.map((p) => p.value);
+    const axis = niceAxis(Math.min(...vals), Math.max(...vals));
+    return defineChart({
+      marks: [
+        lineY(points, {
+          x: "label",
+          y: "value",
+          stroke: "var(--primary)",
+          strokeWidth: 3,
+          curve: monotone,
+        }),
+        // Статичні точки — декоративні, щоб не дублювати точки взаємодії лінії.
+        decorative(
+          dot(points, { x: "label", y: "value", r: 3.5, fill: "var(--primary)" }),
+        ),
+        // Аналог recharts activeDot: кільце над точкою під курсором.
+        whenFocused(
+          dot(points, {
+            x: "label",
+            y: "value",
+            r: 5,
+            fill: "var(--surface)",
+            stroke: "var(--primary)",
+            strokeWidth: 3,
+          }),
+          { match: "x" },
+        ),
+      ],
+      x: {
+        scale: scalePoint<string>().domain(data.map((d) => d.label)).padding(0.5),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 16, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain(axis.domain),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks,
+            format: (v) => fmtFixed(v, axis.decimals),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [data]);
+
+  if (!definition) {
     return (
       <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>
     );
   }
-  const axis = niceAxis(Math.min(...vals), Math.max(...vals));
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={16}
-        />
-        <YAxis
-          domain={axis.domain}
-          ticks={axis.ticks}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={axis.decimals > 0 ? 40 : 32}
-          tickFormatter={(v: number) => fmtFixed(v, axis.decimals)}
-        />
-        <Tooltip
-          content={({ active, payload, label }: any) =>
-            active && payload?.length ? (
-              <div className="rounded-lg bg-surface px-2 py-1 text-[11px] font-bold text-primary shadow-card">
-                {label}: {fmt(payload[0].value, 1)} {unit}
-              </div>
-            ) : null
-          }
-        />
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke="var(--primary)"
-          strokeWidth={3}
-          dot={{ r: 3.5, fill: "var(--primary)", strokeWidth: 0 }}
-          activeDot={{ r: 5, fill: "var(--surface)", stroke: "var(--primary)", strokeWidth: 3 }}
-          connectNulls
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <Chart
+      definition={definition}
+      height={height}
+      className="wellness-chart"
+      ariaLabel={`Графік замірів, ${unit}`}
+      renderTooltipBody={({ points }) => {
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as { label: string; value: number };
+        return (
+          <span className="text-primary">
+            {d.label}: {fmt(d.value, 1)} {unit}
+          </span>
+        );
+      }}
+    />
   );
 }

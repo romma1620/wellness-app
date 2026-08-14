@@ -162,6 +162,15 @@ input[type="number"] {
    а всі селектори тут — однакової ваги з тими, що їх вмикають, тож
    перемагає порядок оголошення. Якщо додати нову анімацію нижче цього
    блоку, reduced-motion знову перестане її вимикати. */
+/* Тултипи TanStack Charts у стилі карток застосунку (shadow-card з tailwind.config). */
+.wellness-chart {
+  --ts-chart-tooltip-background: var(--surface);
+  --ts-chart-tooltip-border: none;
+  --ts-chart-tooltip-border-radius: 12px;
+  --ts-chart-tooltip-shadow: 0 8px 24px -12px rgba(80, 55, 45, 0.16);
+  --ts-chart-tooltip-font: 700 11px/1.45 var(--font-nunito), system-ui, sans-serif;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aura-pulse,
   .aura-sheet,
