@@ -18,12 +18,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { defineChart, dot, lineY, whenFocused } from "@tanstack/charts";
+import { bandX, barY, defineChart, dot, lineY, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react/tooltip";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { scalePoint } from "@tanstack/charts/scales/point";
+import { scaleBand } from "@tanstack/charts/scales/band";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { curveMonotoneX } from "d3-shape";
 
@@ -177,60 +178,94 @@ function WeightTooltip({ active, payload, label }: any) {
 }
 
 export function StepsBars({ data }: { data: { label: string; steps: number | null }[] }) {
-  const has = data.some((d) => d.steps != null);
-  if (!has) {
+  const definition = useMemo(() => {
+    const points = data.filter(
+      (d): d is { label: string; steps: number } => d.steps != null,
+    );
+    if (points.length === 0) return null;
+    // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
+    const maxK = Math.max(...points.map((d) => d.steps)) / 1000;
+    const axis = niceAxis(0, maxK);
+    return defineChart({
+      marks: [
+        // Аналог recharts Tooltip cursor: підсвітка колонки під курсором.
+        whenFocused(
+          bandX(points, {
+            x: "label",
+            fill: "var(--primary-light)",
+            fillOpacity: 0.4,
+          }),
+          { match: "x" },
+        ),
+        barY(points, {
+          x: "label",
+          y: "steps",
+          fill: "var(--primary)",
+          radius: 4,
+        }),
+      ],
+      x: {
+        scale: scaleBand<string>().domain(data.map((d) => d.label)).padding(0.22),
+        axis: {
+          line: false,
+          ticks: { size: 0 },
+          tickLabels: {
+            fontSize: 10.5,
+            fontWeight: 700,
+            opacity: 1,
+            thin: { minGap: 12, priority: "ends" },
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear().domain([axis.domain[0] * 1000, axis.domain[1] * 1000]),
+        grid: true,
+        axis: {
+          line: false,
+          ticks: {
+            size: 0,
+            values: axis.ticks.map((t) => t * 1000),
+            format: (v) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals)),
+          },
+          tickLabels: { fontSize: 10, opacity: 1 },
+        },
+      },
+      focus: "group-x",
+      focusRing: false,
+      theme: CHART_THEME,
+      tooltip,
+    });
+  }, [data]);
+
+  if (!definition) {
     return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
-  // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
-  const maxK = Math.max(...data.map((d) => d.steps ?? 0)) / 1000;
-  const axis = niceAxis(0, maxK);
   return (
-    <ResponsiveContainer width="100%" height={170}>
-      <BarChart data={data} margin={{ top: 8, right: 6, left: -14, bottom: 0 }} barCategoryGap="22%">
-        <CartesianGrid stroke="var(--primary-light)" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10.5, fontWeight: 700, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          interval="preserveStartEnd"
-          minTickGap={12}
-        />
-        <YAxis
-          domain={[axis.domain[0] * 1000, axis.domain[1] * 1000]}
-          ticks={axis.ticks.map((t) => t * 1000)}
-          interval={0}
-          tick={{ fontSize: 10, fill: "var(--muted)" }}
-          tickLine={false}
-          axisLine={false}
-          width={40}
-          tickFormatter={(v: number) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals))}
-        />
-        <Tooltip
-          cursor={{ fill: "var(--primary-light)", opacity: 0.4 }}
-          content={({ active, payload, label }: any) =>
-            active && payload?.length ? (
-              <div className="rounded-lg bg-surface px-2 py-1 text-[11px] font-bold text-primary shadow-card">
-                {label}: {fmtInt(payload[0].value)} кроків
-              </div>
-            ) : null
-          }
-        />
-        <Legend
-          verticalAlign="top"
-          height={22}
-          content={() => (
-            <div className="flex justify-end pr-1 text-[11px] font-bold text-primary">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
-                кроки, тис.
-              </span>
-            </div>
-          )}
-        />
-        <Bar dataKey="steps" radius={[4, 4, 4, 4]} fill="var(--primary)" />
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      {/* Легенда й раніше була повністю кастомною — лишаємо її звичайним JSX. */}
+      <div className="flex h-[22px] items-center justify-end pr-1 text-[11px] font-bold text-primary">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
+          кроки, тис.
+        </span>
+      </div>
+      <Chart
+        definition={definition}
+        height={148}
+        className="wellness-chart"
+        ariaLabel="Кроки за днями"
+        renderTooltipBody={({ points }) => {
+          const p = points[0];
+          if (!p) return null;
+          const d = p.datum as { label: string; steps: number };
+          return (
+            <span className="text-primary">
+              {d.label}: {fmtInt(d.steps)} кроків
+            </span>
+          );
+        }}
+      />
+    </div>
   );
 }
 
