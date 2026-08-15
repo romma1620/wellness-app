@@ -1,6 +1,7 @@
 "use client";
 
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
+import { MuscleGroupChips } from "@/components/workouts/MuscleGroupChips";
 import {
   Button,
   Card,
@@ -100,6 +101,13 @@ export function RoutinesManager() {
     });
   }
 
+  // Чіпи групи — лише для справді нової назви: наявну вправу збереження
+  // прив'яже за назвою, і вибрана тут група була б проігнорована.
+  function isNewName(r: Row): boolean {
+    const n = r.name.trim().toLowerCase();
+    return !r.exerciseId && !!n && !exercises.some((x) => x.name.trim().toLowerCase() === n);
+  }
+
   function moveRow(key: string, dir: -1 | 1) {
     setEditor((e) => {
       if (!e) return e;
@@ -189,37 +197,51 @@ export function RoutinesManager() {
           />
           <div className="mt-3 flex flex-col gap-2">
             {editor.rows.map((r, idx) => (
-              <div key={r.key} className="flex items-center gap-2">
-                <div className="flex-1">
-                  <ExerciseAutocomplete
-                    value={r.name}
-                    exerciseId={r.exerciseId}
-                    exercises={exercises}
-                    onPick={(pick) =>
+              <div key={r.key}>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <ExerciseAutocomplete
+                      value={r.name}
+                      exerciseId={r.exerciseId}
+                      exercises={exercises}
+                      onPick={(pick) =>
+                        setEditor((s) =>
+                          s
+                            ? {
+                                ...s,
+                                rows: s.rows.map((x) =>
+                                  x.key === r.key
+                                    ? { ...x, name: pick.name, exerciseId: pick.exerciseId, muscleGroup: pick.muscleGroup }
+                                    : x,
+                                ),
+                              }
+                            : s,
+                        )
+                      }
+                    />
+                  </div>
+                  <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label="Вгору" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
+                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
+                  </button>
+                  <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === editor.rows.length - 1} aria-label="Вниз" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
+                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
+                  </button>
+                  <button type="button" onClick={() => setEditor((s) => (s ? { ...s, rows: s.rows.filter((x) => x.key !== r.key) } : s))} aria-label="Прибрати" className="flex h-8 w-8 items-center justify-center text-muted">
+                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l10 10M16 6L6 16" /></svg>
+                  </button>
+                </div>
+                {isNewName(r) && (
+                  <MuscleGroupChips
+                    value={r.muscleGroup}
+                    onChange={(g) =>
                       setEditor((s) =>
                         s
-                          ? {
-                              ...s,
-                              rows: s.rows.map((x) =>
-                                x.key === r.key
-                                  ? { ...x, name: pick.name, exerciseId: pick.exerciseId, muscleGroup: pick.muscleGroup }
-                                  : x,
-                              ),
-                            }
+                          ? { ...s, rows: s.rows.map((x) => (x.key === r.key ? { ...x, muscleGroup: g } : x)) }
                           : s,
                       )
                     }
                   />
-                </div>
-                <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label="Вгору" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
-                  <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
-                </button>
-                <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === editor.rows.length - 1} aria-label="Вниз" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
-                  <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
-                </button>
-                <button type="button" onClick={() => setEditor((s) => (s ? { ...s, rows: s.rows.filter((x) => x.key !== r.key) } : s))} aria-label="Прибрати" className="flex h-8 w-8 items-center justify-center text-muted">
-                  <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l10 10M16 6L6 16" /></svg>
-                </button>
+                )}
               </div>
             ))}
             <button

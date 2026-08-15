@@ -3,6 +3,7 @@
 import { DraftResumeSheet } from "@/components/workouts/DraftResumeSheet";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
 import { ExerciseMaxLine } from "@/components/workouts/ExerciseMaxLine";
+import { MuscleGroupChips } from "@/components/workouts/MuscleGroupChips";
 import { SetRow } from "@/components/workouts/SetRow";
 import { SaveIndicator, type SaveState } from "@/components/inputs";
 import {
@@ -136,6 +137,13 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       exercises: d.exercises.map((e) => (e.key === key ? { ...e, ...p } : e)),
     }));
   }
+  // Чіпи групи показуємо лише для справді нової назви: якщо така вправа вже
+  // є в довіднику, збереження прив'яже до неї і вибрана тут група пропала б.
+  function isNewName(e: DraftExercise): boolean {
+    const n = e.name.trim().toLowerCase();
+    return !e.exerciseId && !!n && !exercises.some((x) => x.name.trim().toLowerCase() === n);
+  }
+
   function move(key: string, dir: -1 | 1) {
     setDraft((d) => {
       const i = d.exercises.findIndex((e) => e.key === key);
@@ -325,6 +333,12 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
               max={ex.exerciseId ? (maxes.get(ex.exerciseId) ?? null) : null}
               sets={ex.sets}
             />
+            {isNewName(ex) && (
+              <MuscleGroupChips
+                value={ex.muscleGroup}
+                onChange={(g) => patchExercise(ex.key, { muscleGroup: g })}
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
