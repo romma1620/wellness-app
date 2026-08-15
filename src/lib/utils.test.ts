@@ -4,9 +4,14 @@ import {
   monthEnd,
   monthLabel,
   monthStartOf,
+  periodLabel,
+  periodRange,
   plural,
+  precedingRange,
+  rangeLabel,
   shortDateAbbr,
   splitTags,
+  weekBuckets,
   weekdayShort,
 } from "./utils";
 
@@ -105,5 +110,85 @@ describe("monthStartOf / addMonths", () => {
   it("перехід через рік", () => {
     expect(addMonths("2026-12-01", 1)).toBe("2027-01-01");
     expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+  });
+});
+
+describe("periodRange: рік", () => {
+  const now = new Date(2026, 7, 15); // 15 серпня 2026
+
+  it("останні 12 місяців, включно з сьогодні", () => {
+    const r = periodRange("year", 0, now);
+    expect(r.end).toBe("2026-08-15");
+    expect(r.start).toBe("2025-08-16");
+    expect(r.days).toBe(365);
+  });
+
+  it("offset зсуває вікно на 12 місяців назад", () => {
+    const r = periodRange("year", 1, now);
+    expect(r.end).toBe("2025-08-15");
+    expect(r.start).toBe("2024-08-16");
+  });
+});
+
+describe("periodLabel: рік", () => {
+  it("місяці з роками по краях вікна", () => {
+    const now = new Date(2026, 7, 15);
+    expect(periodLabel("year", 0, now)).toBe("сер 2025 – сер 2026");
+  });
+});
+
+describe("precedingRange", () => {
+  it("попередній відрізок тієї ж довжини впритул до початку", () => {
+    const r = precedingRange("2026-08-01", "2026-08-15");
+    expect(r).toEqual({ start: "2026-07-17", end: "2026-07-31", days: 15 });
+  });
+
+  it("одноденний період", () => {
+    const r = precedingRange("2026-08-15", "2026-08-15");
+    expect(r).toEqual({ start: "2026-08-14", end: "2026-08-14", days: 1 });
+  });
+});
+
+describe("rangeLabel", () => {
+  it("той самий місяць", () => {
+    expect(rangeLabel("2026-07-20", "2026-07-26")).toBe("20–26 лип");
+  });
+
+  it("різні місяці одного року", () => {
+    expect(rangeLabel("2026-07-28", "2026-08-03")).toBe("28 лип – 3 сер");
+  });
+
+  it("різні роки — з роками", () => {
+    expect(rangeLabel("2025-12-20", "2026-01-10")).toBe("20 гру 2025 – 10 січ 2026");
+  });
+});
+
+describe("weekBuckets", () => {
+  it("тижні Пн–Нд, краї обрізані по діапазону", () => {
+    // 2026-08-05 — середа, 2026-08-18 — вівторок
+    const buckets = weekBuckets("2026-08-05", "2026-08-18");
+    expect(buckets.map((b) => [b.start, b.end])).toEqual([
+      ["2026-08-05", "2026-08-09"],
+      ["2026-08-10", "2026-08-16"],
+      ["2026-08-17", "2026-08-18"],
+    ]);
+  });
+
+  it("dates містить усі дні кошика", () => {
+    const buckets = weekBuckets("2026-08-05", "2026-08-09");
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0].dates).toEqual([
+      "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09",
+    ]);
+  });
+
+  it("рік розкладається приблизно на 52–53 кошики", () => {
+    const buckets = weekBuckets("2025-08-16", "2026-08-15");
+    expect(buckets.length).toBeGreaterThanOrEqual(52);
+    expect(buckets.length).toBeLessThanOrEqual(54);
+    // без дір і перекриттів: кінець кошика + 1 день = початок наступного
+    for (let i = 1; i < buckets.length; i++) {
+      expect(buckets[i].start > buckets[i - 1].end).toBe(true);
+    }
   });
 });

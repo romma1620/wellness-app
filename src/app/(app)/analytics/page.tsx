@@ -2,6 +2,7 @@
 
 import { StepsBars, WeightChart, type WeightPoint } from "@/components/charts";
 import { CareDotChart } from "@/components/CareDotChart";
+import { NutritionCards } from "@/components/NutritionCards";
 import { ForecastCard } from "@/components/ForecastCard";
 import {
   PhaseBandsToggle,
@@ -10,7 +11,7 @@ import {
   usePhaseOverlay,
   WaterRetentionCard,
 } from "@/components/cycle/analytics";
-import { Card, EmptyState, ErrorBanner, FullLoader, Segmented } from "@/components/ui";
+import { Card, EmptyState, ErrorBanner, FullLoader, Input, Segmented } from "@/components/ui";
 import { buildCareColorMap, buildCareMatrix, type CareHistoryRow } from "@/lib/care";
 import { cycleDayFor } from "@/lib/cycle/derive";
 import type { DatedValue } from "@/lib/cycle/insights";
@@ -22,6 +23,7 @@ import {
   avg,
   cn,
   computeDelta,
+  daysBetween,
   fmt,
   fmtInt,
   fmtThousands,
@@ -29,6 +31,11 @@ import {
   periodLabel,
   periodRange,
   type PeriodType,
+  precedingRange,
+  rangeLabel,
+  shortDateAbbr,
+  todayISO,
+  weekBuckets,
 } from "@/lib/utils";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -53,11 +60,16 @@ const METRICS: {
   { key: "steps", label: "Кроки", goodDown: false, render: (v) => fmtThousands(v), unit: "тис." },
 ];
 
+/** «Свій» — довільний діапазон дат, не описується offset-ами periodRange. */
+type Mode = PeriodType | "custom";
+
 export default function AnalyticsPage() {
   const supabase = useMemo(() => createClient(), []);
-  const [period, setPeriod] = useState<PeriodType>("week");
+  const [period, setPeriod] = useState<Mode>("week");
   const [curOffset, setCurOffset] = useState(0); // 0 = поточний період
   const [cmpOffset, setCmpOffset] = useState(1); // 1 = попередній період
+  const [customStart, setCustomStart] = useState(() => addDays(todayISO(), -29));
+  const [customEnd, setCustomEnd] = useState(() => todayISO());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,21 +80,38 @@ export default function AnalyticsPage() {
   const [phaseWeights, setPhaseWeights] = useState<DatedValue[]>([]);
 
   const overlay = usePhaseOverlay();
-  const bandsOn = overlay.available && overlay.showBands;
   const { ranges: cycleRanges, cycles: cycleList, cycleStarts, phaseWindowStart } = overlay;
 
-  const { start: curStart, end: curEnd, days: N } = periodRange(period, curOffset);
-  const { start: cmpStart, end: cmpEnd } = periodRange(period, cmpOffset);
+  const isCustom = period === "custom";
+  // Інпути дат вільні, тож перевернутий діапазон просто нормалізуємо.
+  const [cs, ce] =
+    customStart <= customEnd ? [customStart, customEnd] : [customEnd, customStart];
+  const curRange = isCustom
+    ? { start: cs, end: ce, days: daysBetween(cs, ce) + 1 }
+    : periodRange(period, curOffset);
+  // Порівняння для «Свого» — автоматично попередній відрізок тієї ж довжини.
+  const cmpRange = isCustom ? precedingRange(cs, ce) : periodRange(period, cmpOffset);
+  const { start: curStart, end: curEnd, days: N } = curRange;
+  const { start: cmpStart, end: cmpEnd } = cmpRange;
+
+  const curLabel = isCustom ? rangeLabel(cs, ce) : periodLabel(period, curOffset);
+  const cmpLabel = isCustom ? rangeLabel(cmpStart, cmpEnd) : periodLabel(period, cmpOffset);
+
+  // Довгий період (рік або широкий «Свій») агрегуємо по тижнях: 365 денних
+  // точок нечитабельні, а смуги фаз і графік догляду в цьому масштабі губляться.
+  const weeklyAgg = N > 62;
+  const bandsOn = !weeklyAgg && overlay.available && overlay.showBands;
 
   // Діапазон завантаження покриває обидва періоди + буфер 7 днів для ковзного середнього.
   const earliest = curStart < cmpStart ? curStart : cmpStart;
   const latest = curEnd > cmpEnd ? curEnd : cmpEnd;
   const fetchStart = addDays(earliest, -7);
 
-  const changePeriod = (p: PeriodType) => {
+  const changePeriod = (p: Mode) => {
     setPeriod(p);
     setCurOffset(0);
     setCmpOffset(1);
+    if (p === "custom") setPickerOpen(true);
   };
 
   useEffect(() => {
@@ -197,33 +226,57 @@ export default function AnalyticsPage() {
   const labelFor = useCallback(
     (iso: string) => {
       const dt = parseISODate(iso);
-      return period === "week" ? WD[dt.getDay()] : String(dt.getDate());
+      if (period === "week") return WD[dt.getDay()];
+      // «Свій» може накрити два місяці — самий день числа дав би дублікати
+      // міток, а band-шкала графіків вимагає унікального домену.
+      if (period === "custom") return shortDateAbbr(iso);
+      return String(dt.getDate());
     },
     [period],
   );
 
-  // Дані для графіка ваги + ковзне середнє 7 днів.
-  const weightData: WeightPoint[] = useMemo(
-    () =>
-      periodDates.map((d) => {
-        // ковзне середнє за останні 7 календарних днів
-        const win: number[] = [];
-        for (let k = 6; k >= 0; k--) {
-          const w = byDate.get(addDays(d, -k))?.weight;
-          if (w != null) win.push(w);
-        }
-        return {
-          label: labelFor(d),
-          weight: byDate.get(d)?.weight ?? null,
-          ma: win.length >= 2 ? win.reduce((s, v) => s + v, 0) / win.length : null,
-          // Фаза їде в точці лише коли смуги ввімкнені: інакше тултип
-          // розповідав би про цикл на графіку, де його не видно.
-          phase: bandsOn ? phaseAt(d, cycleRanges) : null,
-          cycleDay: bandsOn ? cycleDayFor(d, cycleList) : null,
-        };
-      }),
-    [periodDates, byDate, labelFor, bandsOn, cycleRanges, cycleList],
+  /** Кошики тижнів для довгих періодів; порожньо в денному режимі. */
+  const buckets = useMemo(
+    () => (weeklyAgg ? weekBuckets(curStart, curEnd) : []),
+    [weeklyAgg, curStart, curEnd],
   );
+
+  // Дані для графіка ваги + ковзне середнє 7 днів (у тижневому режимі —
+  // середнє тижня + тренд по 4 кошиках).
+  const weightData: WeightPoint[] = useMemo(() => {
+    if (weeklyAgg) {
+      const avgs = buckets.map((b) => avg(b.dates.map((d) => byDate.get(d)?.weight)));
+      return buckets.map((b, i) => {
+        const win = avgs
+          .slice(Math.max(0, i - 3), i + 1)
+          .filter((v): v is number => v != null);
+        return {
+          label: shortDateAbbr(b.start),
+          weight: avgs[i],
+          ma: win.length >= 2 ? win.reduce((s, v) => s + v, 0) / win.length : null,
+          phase: null,
+          cycleDay: null,
+        };
+      });
+    }
+    return periodDates.map((d) => {
+      // ковзне середнє за останні 7 календарних днів
+      const win: number[] = [];
+      for (let k = 6; k >= 0; k--) {
+        const w = byDate.get(addDays(d, -k))?.weight;
+        if (w != null) win.push(w);
+      }
+      return {
+        label: labelFor(d),
+        weight: byDate.get(d)?.weight ?? null,
+        ma: win.length >= 2 ? win.reduce((s, v) => s + v, 0) / win.length : null,
+        // Фаза їде в точці лише коли смуги ввімкнені: інакше тултип
+        // розповідав би про цикл на графіку, де його не видно.
+        phase: bandsOn ? phaseAt(d, cycleRanges) : null,
+        cycleDay: bandsOn ? cycleDayFor(d, cycleList) : null,
+      };
+    });
+  }, [weeklyAgg, buckets, periodDates, byDate, labelFor, bandsOn, cycleRanges, cycleList]);
 
   const phaseBands = useMemo(
     () =>
@@ -244,16 +297,22 @@ export default function AnalyticsPage() {
     [bandsOn, cycleStarts, curStart, curEnd, labelFor],
   );
 
-  const stepsData = useMemo(
-    () =>
-      periodDates.map((d) => ({
-        label: labelFor(d),
-        steps: byDate.get(d)?.steps ?? null,
-      })),
-    [periodDates, byDate, labelFor],
-  );
+  const stepsData = useMemo(() => {
+    if (weeklyAgg) {
+      return buckets.map((b) => ({
+        label: shortDateAbbr(b.start),
+        steps: avg(b.dates.map((d) => byDate.get(d)?.steps)),
+      }));
+    }
+    return periodDates.map((d) => ({
+      label: labelFor(d),
+      steps: byDate.get(d)?.steps ?? null,
+    }));
+  }, [weeklyAgg, buckets, periodDates, byDate, labelFor]);
 
   const careRows = useMemo(() => {
+    // На тижневій агрегації картка догляду схована — не рахуємо матрицю на 365 днів.
+    if (weeklyAgg) return [];
     // Фільтруємо logs напряму, а не curLogs: curLogs — новий масив щоразу,
     // це зламало б мемоізацію.
     const inPeriod = logs.filter((l) => l.date >= curStart && l.date <= curEnd);
@@ -262,7 +321,7 @@ export default function AnalyticsPage() {
       careHistory !== null && careHistory.length ? careHistory : inPeriod,
     );
     return buildCareMatrix(inPeriod, curStart, N, colors);
-  }, [logs, careHistory, curStart, curEnd, N]);
+  }, [weeklyAgg, logs, careHistory, curStart, curEnd, N]);
 
   const hasAnyWeight = weightData.some((d) => d.weight != null);
   const hasAnyData = curLogs.length > 0;
@@ -271,17 +330,24 @@ export default function AnalyticsPage() {
     <div className="flex flex-col gap-[15px]">
       <div className="flex items-center justify-between px-1 pt-1">
         <h1 className="text-[22px] font-extrabold">Аналітика</h1>
-        <Link href="/report" className="text-[13px] font-extrabold text-primary">
-          Тижневий звіт
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/activity" className="text-[13px] font-extrabold text-primary">
+            Активність
+          </Link>
+          <Link href="/report" className="text-[13px] font-extrabold text-primary">
+            Звіт
+          </Link>
+        </div>
       </div>
 
-      <Segmented<PeriodType>
+      <Segmented<Mode>
         value={period}
         onChange={changePeriod}
         options={[
           { value: "week", label: "Тиждень" },
           { value: "month", label: "Місяць" },
+          { value: "year", label: "Рік" },
+          { value: "custom", label: "Свій" },
         ]}
       />
 
@@ -294,9 +360,9 @@ export default function AnalyticsPage() {
           <span className="flex flex-col">
             <span className="text-[11px] font-bold text-muted">Період · порівняння</span>
             <span className="text-[13px] font-extrabold">
-              {periodLabel(period, curOffset)}
+              {curLabel}
               <span className="text-muted"> · vs </span>
-              {periodLabel(period, cmpOffset)}
+              {cmpLabel}
             </span>
           </span>
           <ChevronDown
@@ -309,21 +375,51 @@ export default function AnalyticsPage() {
         </button>
         {pickerOpen && (
           <div className="flex flex-col gap-1 border-t border-bg px-[14px] pb-[14px] pt-2.5">
-            <PeriodStepper
-              label="Період"
-              value={periodLabel(period, curOffset)}
-              onOlder={() => setCurOffset((o) => o + 1)}
-              onNewer={() => setCurOffset((o) => Math.max(0, o - 1))}
-              canNewer={curOffset > 0}
-            />
-            <div className="my-1 h-px bg-bg" />
-            <PeriodStepper
-              label="Порівняти з"
-              value={periodLabel(period, cmpOffset)}
-              onOlder={() => setCmpOffset((o) => o + 1)}
-              onNewer={() => setCmpOffset((o) => Math.max(0, o - 1))}
-              canNewer={cmpOffset > 0}
-            />
+            {isCustom ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1">
+                    <span className="mb-1 block text-[12px] font-bold text-muted">Від</span>
+                    <Input
+                      type="date"
+                      value={customStart}
+                      max={todayISO()}
+                      onChange={(e) => e.target.value && setCustomStart(e.target.value)}
+                    />
+                  </label>
+                  <label className="flex-1">
+                    <span className="mb-1 block text-[12px] font-bold text-muted">До</span>
+                    <Input
+                      type="date"
+                      value={customEnd}
+                      max={todayISO()}
+                      onChange={(e) => e.target.value && setCustomEnd(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="mt-1 text-[12px] font-semibold text-muted">
+                  Порівнюється з попереднім відрізком тієї ж довжини: {cmpLabel}
+                </div>
+              </>
+            ) : (
+              <>
+                <PeriodStepper
+                  label="Період"
+                  value={curLabel}
+                  onOlder={() => setCurOffset((o) => o + 1)}
+                  onNewer={() => setCurOffset((o) => Math.max(0, o - 1))}
+                  canNewer={curOffset > 0}
+                />
+                <div className="my-1 h-px bg-bg" />
+                <PeriodStepper
+                  label="Порівняти з"
+                  value={cmpLabel}
+                  onOlder={() => setCmpOffset((o) => o + 1)}
+                  onNewer={() => setCmpOffset((o) => Math.max(0, o - 1))}
+                  canNewer={cmpOffset > 0}
+                />
+              </>
+            )}
           </div>
         )}
       </Card>
@@ -340,7 +436,7 @@ export default function AnalyticsPage() {
         />
       ) : (
         <>
-          {overlay.available && (
+          {!weeklyAgg && overlay.available && (
             <PhaseBandsToggle checked={overlay.showBands} onChange={overlay.setShowBands} />
           )}
 
@@ -384,7 +480,7 @@ export default function AnalyticsPage() {
 
           {/* Порівняння */}
           <div className="mx-1 -mb-1 text-[12.5px] font-bold text-muted">
-            {periodLabel(period, curOffset)} · порівняно з {periodLabel(period, cmpOffset)}
+            {curLabel} · порівняно з {cmpLabel}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {METRICS.map((m, idx) => {
@@ -416,17 +512,23 @@ export default function AnalyticsPage() {
             })}
           </div>
 
+          {/* Харчування */}
+          <NutritionCards logs={curLogs} />
+
           {/* Графік кроків */}
           <Card className="!p-[14px]">
             <div className="mb-2.5 text-[12px] font-bold text-muted">
-              Кроки, {period === "week" ? "тиж." : "міс."}
+              {weeklyAgg
+                ? "Кроки, середнє за тиждень"
+                : `Кроки, ${period === "week" ? "тиж." : "міс."}`}
             </div>
             <StepsBars data={stepsData} />
           </Card>
 
           {/* Догляд за шкірою: картку показуємо лише коли історія доладів
-              вже завантажена, інакше графік на мить мигне тимчасовими кольорами. */}
-          {careHistory !== null && (
+              вже завантажена, інакше графік на мить мигне тимчасовими кольорами.
+              На тижневій агрегації точки днів не мають куди лягти — ховаємо. */}
+          {!weeklyAgg && careHistory !== null && (
             <Card className="!p-[14px]">
               <div className="mb-2.5 text-[12px] font-bold text-muted">
                 Догляд за шкірою, {period === "week" ? "тиж." : "міс."}

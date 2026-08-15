@@ -125,7 +125,7 @@ const MONTHS_SHORT = [
   "лип", "сер", "вер", "жов", "лис", "гру",
 ];
 
-export type PeriodType = "week" | "month";
+export type PeriodType = "week" | "month" | "year";
 
 export interface PeriodRange {
   start: string; // ISO, включно
@@ -135,10 +135,15 @@ export interface PeriodRange {
 
 /**
  * Календарний період, зсунутий на `offset` назад (0 = поточний).
- * Тиждень — Пн–Нд; місяць — календарний місяць.
+ * Тиждень — Пн–Нд; місяць — календарний місяць; рік — ковзні останні
+ * 12 місяців, що закінчуються сьогодні (offset зсуває вікно на 12 місяців).
  */
-export function periodRange(type: PeriodType, offset: number): PeriodRange {
-  const now = new Date();
+export function periodRange(type: PeriodType, offset: number, now = new Date()): PeriodRange {
+  if (type === "year") {
+    const end = addMonths(toISODate(now), -12 * offset);
+    const start = addDays(addMonths(end, -12), 1);
+    return { start, end, days: daysBetween(start, end) + 1 };
+  }
   if (type === "week") {
     const fromMonday = (now.getDay() + 6) % 7; // 0=Sun -> 6, 1=Mon -> 0
     const start = new Date(
@@ -154,18 +159,68 @@ export function periodRange(type: PeriodType, offset: number): PeriodRange {
   return { start: toISODate(start), end: toISODate(end), days: end.getDate() };
 }
 
-/** Підпис періоду: "20–26 лип", "28 лип – 3 сер" або "Липень 2026". */
-export function periodLabel(type: PeriodType, offset: number): string {
-  const { start, end } = periodRange(type, offset);
+/** Підпис періоду: "20–26 лип", "Липень 2026" або "сер 2025 – сер 2026". */
+export function periodLabel(type: PeriodType, offset: number, now = new Date()): string {
+  const { start, end } = periodRange(type, offset, now);
   if (type === "month") {
     return monthLabel(start);
   }
-  const s = parseISODate(start);
-  const e = parseISODate(end);
+  if (type === "year") {
+    const s = parseISODate(start);
+    const e = parseISODate(end);
+    return `${MONTHS_SHORT[s.getMonth()]} ${s.getFullYear()} – ${MONTHS_SHORT[e.getMonth()]} ${e.getFullYear()}`;
+  }
+  return rangeLabel(start, end);
+}
+
+/**
+ * Підпис довільного діапазону дат: "20–26 лип", "28 лип – 3 сер",
+ * а через межу року — з роками: "20 гру 2025 – 10 січ 2026".
+ */
+export function rangeLabel(startIso: string, endIso: string): string {
+  const s = parseISODate(startIso);
+  const e = parseISODate(endIso);
+  if (s.getFullYear() !== e.getFullYear()) {
+    return `${s.getDate()} ${MONTHS_SHORT[s.getMonth()]} ${s.getFullYear()} – ${e.getDate()} ${MONTHS_SHORT[e.getMonth()]} ${e.getFullYear()}`;
+  }
   if (s.getMonth() === e.getMonth()) {
     return `${s.getDate()}–${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
   }
   return `${s.getDate()} ${MONTHS_SHORT[s.getMonth()]} – ${e.getDate()} ${MONTHS_SHORT[e.getMonth()]}`;
+}
+
+/** Відрізок тієї ж довжини, що [start, end], одразу перед ним. */
+export function precedingRange(startIso: string, endIso: string): PeriodRange {
+  const days = daysBetween(startIso, endIso) + 1;
+  const end = addDays(startIso, -1);
+  return { start: addDays(end, -(days - 1)), end, days };
+}
+
+// ----------------------- Тижнева агрегація -----------------------
+
+export interface WeekBucket {
+  start: string; // ISO, включно
+  end: string; // ISO, включно
+  dates: string[];
+}
+
+/**
+ * Розкладає діапазон дат на тижні Пн–Нд. Крайні кошики обрізаються по
+ * діапазону, тож перший і останній можуть бути коротші за 7 днів.
+ */
+export function weekBuckets(startIso: string, endIso: string): WeekBucket[] {
+  const buckets: WeekBucket[] = [];
+  let cur = startIso;
+  while (cur <= endIso) {
+    const fromMonday = (parseISODate(cur).getDay() + 6) % 7;
+    const weekEnd = addDays(cur, 6 - fromMonday);
+    const end = weekEnd < endIso ? weekEnd : endIso;
+    const dates: string[] = [];
+    for (let d = cur; d <= end; d = addDays(d, 1)) dates.push(d);
+    buckets.push({ start: cur, end, dates });
+    cur = addDays(end, 1);
+  }
+  return buckets;
 }
 
 /** "2026-08-01" → "Серпень 2026". Приймає будь-який день місяця. */
