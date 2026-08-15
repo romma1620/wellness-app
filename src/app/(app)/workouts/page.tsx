@@ -103,14 +103,9 @@ export default function WorkoutsPage() {
     <div className="flex flex-col gap-[15px]">
       <div className="flex items-center justify-between px-1 pt-1">
         <h1 className="text-[22px] font-extrabold">Тренування</h1>
-        <div className="flex items-center gap-3.5">
-          <Link href="/workouts/records" className="text-[13px] font-extrabold text-primary">
-            Рекорди
-          </Link>
-          <Link href="/workouts/routines" className="text-[13px] font-extrabold text-primary">
-            Шаблони
-          </Link>
-        </div>
+        <Link href="/workouts/routines" className="text-[13px] font-extrabold text-primary">
+          Шаблони
+        </Link>
       </div>
 
       <Button type="button" onClick={() => router.push("/workouts/new")}>

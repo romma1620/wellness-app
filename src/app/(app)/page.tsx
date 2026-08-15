@@ -10,7 +10,6 @@ import {
   type SaveState,
 } from "@/components/inputs";
 import { Card, DateField, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
-import { DayRings } from "@/components/DayRings";
 import { DaySkeleton } from "@/components/DaySkeleton";
 import { CARE_PRESETS } from "@/lib/care";
 import {
@@ -23,7 +22,6 @@ import {
   type DailyPatch,
 } from "@/lib/daily-log";
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
-import { currentStreak } from "@/lib/streak";
 import { createClient } from "@/lib/supabase/client";
 import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,7 +47,6 @@ export default function TodayPage() {
   const [baselineWeight, setBaselineWeight] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [save, setSave] = useState<SaveState>("idle");
-  const [loggedDates, setLoggedDates] = useState<string[]>([]);
 
   // Кожне завантаження має свій номер: відповідь, яку встиг обігнати
   // пізніший запит, ігнорується — інакше форма одного дня лишалась би
@@ -127,31 +124,6 @@ export default function TodayPage() {
     load(date);
   }, [date, load, flush]);
 
-  // Дати наявних записів для стріку. Помилка тиха: стрік — прикраса,
-  // без якої день має працювати як звичайно.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) return;
-        const { data, error } = await supabase
-          .from("daily_logs")
-          .select("date")
-          .eq("user_id", uid)
-          .gte("date", addDays(todayISO(), -370));
-        if (error) throw error;
-        if (!cancelled) setLoggedDates((data ?? []).map((r) => r.date as string));
-      } catch {
-        // без стріку
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase]);
-
   // Автозбереження (debounce). Таймер ніколи не скасовується завантаженням —
   // тільки замінюється новим патчем того самого дня.
   useEffect(() => {
@@ -198,14 +170,6 @@ export default function TodayPage() {
     min: 30,
     max: 200,
   });
-
-  // Стрік бачить і ще не збережене «сьогодні»: перше ж введене значення
-  // робить день заповненим одразу, без очікування автозбереження.
-  const dayHasData = day ? hasChanges(diffDay(EMPTY_DAY, day.form)) : false;
-  const streak = currentStreak(
-    isToday(date) && dayHasData ? [...loggedDates, date] : loggedDates,
-    todayISO(),
-  );
 
   return (
     <div className="flex flex-col gap-[15px]">
@@ -260,8 +224,6 @@ export default function TodayPage() {
         <DaySkeleton />
       ) : (
         <>
-          <DayRings water={form.water} steps={form.steps} streak={streak} />
-
           {/* Вага */}
           <Card className="flex items-end justify-between">
             <div className="w-full">

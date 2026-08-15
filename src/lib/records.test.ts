@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExerciseMax, UsedExercise } from "./workouts";
-import { buildRecordRows, recentRecords, recordsInRange } from "./records";
+import { buildRecordRows, recordsInRange } from "./records";
 
 const ex = (id: string, name: string, muscleGroup: UsedExercise["muscleGroup"]): UsedExercise => ({
   id,
@@ -39,31 +39,6 @@ describe("buildRecordRows", () => {
     ]);
     const rows = buildRecordRows([ex("y", "Щось", null), ex("x", "Тяга", "спина")], maxes);
     expect(rows.map((r) => r.name)).toEqual(["Тяга", "Щось"]);
-  });
-});
-
-describe("recentRecords", () => {
-  const rows = buildRecordRows(
-    [ex("a", "Присід", "ноги"), ex("b", "Тяга", "спина"), ex("c", "Жим", "груди")],
-    new Map([
-      ["a", max(80, 5, "2026-08-10")],
-      ["b", max(70, 6, "2026-07-20")],
-      ["c", max(40, 8, "2026-06-01")],
-    ]),
-  );
-
-  it("лишає рекорди за останні 30 днів, найсвіжіші перші", () => {
-    const recent = recentRecords(rows, "2026-08-15");
-    expect(recent.map((r) => r.name)).toEqual(["Присід", "Тяга"]);
-  });
-
-  it("рівно 30 днів тому — ще всередині вікна", () => {
-    const recent = recentRecords(rows, "2026-08-19");
-    expect(recent.map((r) => r.name)).toEqual(["Присід", "Тяга"]);
-  });
-
-  it("поза вікном — порожньо", () => {
-    expect(recentRecords(rows, "2026-12-01")).toEqual([]);
   });
 });
 

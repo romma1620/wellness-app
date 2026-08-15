@@ -1,5 +1,4 @@
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/types";
-import { addDays } from "@/lib/utils";
 import type { ExerciseMax, UsedExercise } from "@/lib/workouts";
 
 /** Рядок таблиці рекордів: вправа + її найкращий підхід. */
@@ -11,9 +10,6 @@ export interface RecordRow {
   reps: number;
   date: string; // YYYY-MM-DD, коли встановлено
 }
-
-/** Вікно секції «нові рекорди», днів. */
-export const RECENT_RECORD_DAYS = 30;
 
 function groupOrder(g: MuscleGroup | null): number {
   // null (без групи) — останні
@@ -56,13 +52,4 @@ export function recordsInRange(rows: RecordRow[], from: string, to: string): Rec
   return rows
     .filter((r) => r.date >= from && r.date <= to)
     .sort((a, b) => b.date.localeCompare(a.date));
-}
-
-/** Рекорди, встановлені за останні `days` днів, найсвіжіші перші. */
-export function recentRecords(
-  rows: RecordRow[],
-  today: string,
-  days = RECENT_RECORD_DAYS,
-): RecordRow[] {
-  return recordsInRange(rows, addDays(today, -days), today);
 }
