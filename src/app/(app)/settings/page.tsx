@@ -297,9 +297,9 @@ export default function SettingsPage() {
         }
       />
       <SettingsLink
-        href="/settings/cycle"
+        href="/cycle"
         title="Цикл"
-        subtitle="Трекінг, прогнози, фази в аналітиці"
+        subtitle="Календар, симптоми та прогнози"
         icon={
           <>
             <path d="M18 11a7 7 0 1 1-2.6-5.4" />

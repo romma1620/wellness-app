@@ -49,12 +49,12 @@ const TABS: { href: string; label: string; icon: ReactNode }[] = [
     ),
   },
   {
-    href: "/cycle",
-    label: "Цикл",
+    href: "/insights",
+    label: "Інсайти",
     icon: (
       <svg {...ICON_PROPS}>
-        <path d="M18 11a7 7 0 1 1-2.6-5.4" />
-        <path d="M18.4 3.4v3.4H15" />
+        <path d="M11 3a5.6 5.6 0 0 1 3.2 10.2c-.7.5-1.2 1.2-1.2 2v.3H9v-.3c0-.8-.5-1.5-1.2-2A5.6 5.6 0 0 1 11 3z" />
+        <path d="M9.2 19h3.6" />
       </svg>
     ),
   },
