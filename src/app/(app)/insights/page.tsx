@@ -18,7 +18,6 @@ import {
   addDays,
   cn,
   fmt,
-  fmtFixed,
   fmtInt,
   parseISODate,
   todayISO,
@@ -71,7 +70,7 @@ const STEPS_COPY: PairCopy = {
     </svg>
   ),
   xAxisLabel: "кроки, тис./день",
-  xTickFormat: (v) => fmtFixed(v / 1000, 0),
+  xTickFormat: (v) => fmt(v / 1000, 1),
   zeroLine: true,
   link: (a) =>
     a.diff < 0
