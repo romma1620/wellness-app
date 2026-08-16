@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyzePair,
   buildWeekAggs,
   deltaWeightPoints,
+  pearson,
+  strengthOf,
   tonnagePoints,
   type DayInput,
+  type PairPoint,
+  type PairThresholds,
   type WeekAgg,
 } from "@/lib/correlations";
 import { weekBuckets } from "@/lib/utils";
@@ -120,5 +125,130 @@ describe("tonnagePoints", () => {
       { weekStart: "w1", x: 90, y: 1200 },
       { weekStart: "w3", x: 70, y: 0 },
     ]);
+  });
+});
+
+/** Точки з масиву [x, y]. */
+function pts(pairs: [number, number][]): PairPoint[] {
+  return pairs.map(([x, y], i) => ({ weekStart: `w${i}`, x, y }));
+}
+
+const ABS: PairThresholds = { minXContrast: 100, minYDiff: 0.2, yDiffMode: "absolute" };
+const REL: PairThresholds = { minXContrast: 5, minYDiff: 0.12, yDiffMode: "relative" };
+
+describe("analyzePair", () => {
+  it("менше MIN_WEEKS точок — collecting із прогресом", () => {
+    const a = analyzePair(
+      pts(Array.from({ length: 7 }, (_, i): [number, number] => [1000 + i, 0])),
+      ABS,
+    );
+    expect(a).toEqual({ state: "collecting", n: 7, needed: 8 });
+  });
+
+  it("однакові X — no-contrast", () => {
+    const a = analyzePair(
+      pts([[1500, -0.5], [1500, 0.1], [1500, -0.2], [1500, 0.3], [1500, -0.4], [1500, 0], [1500, 0.2], [1500, -0.1]]),
+      ABS,
+    );
+    expect(a.state).toBe("no-contrast");
+  });
+
+  it("різниця Y нижче порога — no-link", () => {
+    const a = analyzePair(
+      pts([[1000, -0.1], [1100, -0.1], [1200, -0.1], [1300, -0.1], [1900, 0], [2000, 0], [2100, 0], [2200, 0]]),
+      ABS,
+    );
+    expect(a.state).toBe("no-link");
+    if (a.state === "no-link") expect(a.r).not.toBeNull();
+  });
+
+  it("значуща різниця — link із групами й медіаною", () => {
+    const a = analyzePair(
+      pts([[1000, -0.4], [1100, -0.4], [1200, -0.4], [1300, -0.4], [1900, 0.1], [2000, 0.1], [2100, 0.1], [2200, 0.1]]),
+      ABS,
+    );
+    expect(a.state).toBe("link");
+    if (a.state === "link") {
+      expect(a.lowX).toBeCloseTo(1150);
+      expect(a.highX).toBeCloseTo(2050);
+      expect(a.lowY).toBeCloseTo(-0.4);
+      expect(a.highY).toBeCloseTo(0.1);
+      expect(a.diff).toBeCloseTo(0.5);
+      expect(a.medianX).toBeCloseTo(1600); // між 1300 і 1900
+      expect(a.n).toBe(8);
+    }
+  });
+
+  it("поріг включно: різниця рівно 0.2 — link", () => {
+    const a = analyzePair(
+      pts([[1000, -0.2], [1100, -0.2], [1200, -0.2], [1300, -0.2], [1900, 0], [2000, 0], [2100, 0], [2200, 0]]),
+      ABS,
+    );
+    expect(a.state).toBe("link");
+  });
+
+  it("непарна кількість: середня точка відкидається з обох груп", () => {
+    const a = analyzePair(
+      pts([[1, 0], [2, 0], [3, 0], [4, 0], [5, 100], [6, 1], [7, 1], [8, 1], [9, 1]]),
+      { minXContrast: 1, minYDiff: 0.2, yDiffMode: "absolute" },
+    );
+    expect(a.state).toBe("link");
+    if (a.state === "link") {
+      expect(a.lowY).toBeCloseTo(0);
+      expect(a.highY).toBeCloseTo(1);
+      expect(a.medianX).toBeCloseTo(5); // між 4 і 6
+    }
+  });
+
+  it("relative: симетрична різниця вище порога — link", () => {
+    const a = analyzePair(
+      pts([[70, 100], [72, 100], [74, 100], [76, 100], [90, 115], [92, 115], [94, 115], [96, 115]]),
+      REL,
+    ); // 15 / 107.5 ≈ 0.14
+    expect(a.state).toBe("link");
+  });
+
+  it("relative: різниця нижче порога — no-link", () => {
+    const a = analyzePair(
+      pts([[70, 100], [72, 100], [74, 100], [76, 100], [90, 110], [92, 110], [94, 110], [96, 110]]),
+      REL,
+    ); // 10 / 105 ≈ 0.095
+    expect(a.state).toBe("no-link");
+  });
+
+  it("relative: обидві групи нульові — no-link, а не ділення на нуль", () => {
+    const a = analyzePair(
+      pts([[70, 0], [72, 0], [74, 0], [76, 0], [90, 0], [92, 0], [94, 0], [96, 0]]),
+      REL,
+    );
+    expect(a.state).toBe("no-link");
+  });
+});
+
+describe("pearson", () => {
+  it("ідеальна пряма — 1", () => {
+    expect(pearson(pts([[1, 1], [2, 2], [3, 3]]))).toBeCloseTo(1);
+  });
+
+  it("ідеальна обернена — −1", () => {
+    expect(pearson(pts([[1, 3], [2, 2], [3, 1]]))).toBeCloseTo(-1);
+  });
+
+  it("вироджена дисперсія — null", () => {
+    expect(pearson(pts([[1, 5], [2, 5], [3, 5]]))).toBeNull(); // y стала
+    expect(pearson(pts([[2, 1], [2, 2], [2, 3]]))).toBeNull(); // x стала
+  });
+
+  it("менше 3 точок — null", () => {
+    expect(pearson(pts([[1, 1], [2, 2]]))).toBeNull();
+  });
+});
+
+describe("strengthOf", () => {
+  it("шкала |r|: <0.3 слабкий, до 0.6 помітний, вище — сильний", () => {
+    expect(strengthOf(0.29)).toBe("weak");
+    expect(strengthOf(-0.3)).toBe("notable");
+    expect(strengthOf(0.6)).toBe("notable");
+    expect(strengthOf(-0.7)).toBe("strong");
   });
 });
