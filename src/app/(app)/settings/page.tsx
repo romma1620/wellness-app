@@ -2,8 +2,9 @@
 
 import { useTheme } from "@/components/ThemeProvider";
 import { ExportSheet } from "@/components/ExportSheet";
-import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel } from "@/components/ui";
+import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel, Segmented } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import type { ThemeMode } from "@/lib/theme-mode";
 import type { Profile, ThemeName } from "@/lib/types";
 import { parseNum } from "@/lib/utils";
 import Link from "next/link";
@@ -17,10 +18,16 @@ const THEME_SWATCHES: { value: ThemeName; label: string; color: string }[] = [
   { value: "pink", label: "Pink", color: "#E0759B" },
 ];
 
+const MODE_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: "light", label: "Світла" },
+  { value: "system", label: "Система" },
+  { value: "dark", label: "Темна" },
+];
+
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const { theme, setTheme, error: themeError } = useTheme();
+  const { theme, setTheme, mode, setMode, error: themeError } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -252,6 +259,13 @@ export default function SettingsPage() {
               </button>
             );
           })}
+        </div>
+        <div className="mt-5">
+          <FieldLabel>Режим</FieldLabel>
+          <Segmented options={MODE_OPTIONS} value={mode} onChange={setMode} />
+          <p className="mt-2 text-[11.5px] font-semibold text-muted">
+            «Система» повторює налаштування пристрою
+          </p>
         </div>
       </Card>
 

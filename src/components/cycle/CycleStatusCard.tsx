@@ -97,7 +97,7 @@ function forecastText(p: Prediction, today: string): string {
 
 function Tile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex-1 rounded-[13px] bg-white/70 px-2.5 py-[9px] text-center">
+    <div className="flex-1 rounded-[13px] bg-[var(--tint-tile)] px-2.5 py-[9px] text-center">
       <div className="text-[15px] font-extrabold leading-tight">{value}</div>
       <div className="mt-px text-[10.5px] font-bold text-muted">{label}</div>
     </div>
@@ -115,7 +115,7 @@ export function CycleStatusCard({
   prediction: Prediction | null;
   today: string;
 }) {
-  const tint = phase ? PHASE_TINTS[phase] : "#FBE2E8";
+  const tint = phase ? PHASE_TINTS[phase] : "var(--tint-rose-soft)";
 
   return (
     <div

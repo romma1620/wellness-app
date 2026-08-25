@@ -21,6 +21,39 @@
   --ring: rgba(60, 40, 30, 0.45);
 }
 
+/* Кольори тіней живуть окремо від тем: вони залежать лише від режиму. */
+:root {
+  --shadow-card: rgba(80, 55, 45, 0.16);
+  --shadow-soft: rgba(80, 55, 45, 0.25);
+  --shadow-up: rgba(70, 50, 40, 0.22);
+}
+
+/* Пастельні тінти даних (фази циклу, інсайти, календар). Як і PHASE_COLORS,
+   вони однакові на всіх чотирьох темах — це значення даних, не акцент
+   інтерфейсу, — але залежать від режиму: у темному пастельна підкладка стає
+   темним тінтом того самого відтінку, а парний *-fg світлішає.
+   --tint-tile — напівпрозора «плитка» поверх тінт-градієнтів. */
+:root {
+  --tint-rose: #fbe9ee;
+  --tint-rose-fg: #c05b71;
+  --tint-rose-soft: #fbe2e8;
+  --tint-spot: #f2cbd3;
+  --tint-spot-fg: #9c4e63;
+  --tint-lavender: #f1eaf8;
+  --tint-lavender-fg: #8d79ad;
+  --tint-green: #eaf4ef;
+  --tint-green-fg: #6e9c88;
+  --tint-green-badge: #e7f3ec;
+  --tint-green-badge-fg: #3f8a6e;
+  --tint-amber: #fbf0e2;
+  --tint-amber-fg: #7c5b32;
+  --tint-amber-badge-fg: #8a6234;
+  --tint-teal: #e4f1f4;
+  --tint-teal-fg: #3e7f8e;
+  --tint-teal-strong-fg: #2f6e7c;
+  --tint-tile: rgba(255, 255, 255, 0.7);
+}
+
 [data-theme="mint"] {
   --primary: #5fb89c;
   --primary-light: #cfebe0;
@@ -61,6 +94,96 @@
   --warn: #c98a3d;
   --neg: #cc5f7d;
   --ring: rgba(60, 30, 45, 0.45);
+}
+
+/* ============================================================
+   Темний режим: ті самі 4 теми, інвертовані під темний фон.
+   Відтінок теми зберігається у фоні й поверхнях, а --primary-light
+   зі світлої підкладки стає темною підкладкою-контейнером — чипи,
+   іконки й бордери працюють без змін у розмітці.
+   data-mode ставлять boot-скрипт у layout і ThemeProvider — сюди
+   приходить уже розгорнуте значення light/dark, ніколи "system".
+   ============================================================ */
+[data-mode="dark"] {
+  --shadow-card: rgba(0, 0, 0, 0.45);
+  --shadow-soft: rgba(0, 0, 0, 0.5);
+  --shadow-up: rgba(0, 0, 0, 0.5);
+
+  --tint-rose: #43242e;
+  --tint-rose-fg: #e58fa6;
+  --tint-rose-soft: #452631;
+  --tint-spot: #5a3340;
+  --tint-spot-fg: #e9a9bc;
+  --tint-lavender: #352c48;
+  --tint-lavender-fg: #b4a3d4;
+  --tint-green: #24382f;
+  --tint-green-fg: #8fc0a8;
+  --tint-green-badge: #1f3a2d;
+  --tint-green-badge-fg: #83cba9;
+  --tint-amber: #3f3120;
+  --tint-amber-fg: #d9b98c;
+  --tint-amber-badge-fg: #ddbb84;
+  --tint-teal: #1f343a;
+  --tint-teal-fg: #7fbdcb;
+  --tint-teal-strong-fg: #93cdd9;
+  --tint-tile: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-mode="dark"],
+[data-theme="peach"][data-mode="dark"] {
+  --primary: #e89a7b;
+  --primary-light: #3f2d25;
+  --bg: #1c1410;
+  --surface: #2a201b;
+  --text: #f2e7e0;
+  --muted: #a38d82;
+  --accent: #de939c;
+  --pos: #5fb393;
+  --warn: #d9a45c;
+  --neg: #d6806f;
+  --ring: rgba(255, 236, 226, 0.5);
+}
+
+[data-theme="mint"][data-mode="dark"] {
+  --primary: #6bc2a6;
+  --primary-light: #223e36;
+  --bg: #101915;
+  --surface: #1b2822;
+  --text: #e3f0ea;
+  --muted: #87a096;
+  --accent: #8fbcd1;
+  --pos: #57b192;
+  --warn: #d9a45c;
+  --neg: #d98576;
+  --ring: rgba(226, 244, 236, 0.5);
+}
+
+[data-theme="lavender"][data-mode="dark"] {
+  --primary: #a797d6;
+  --primary-light: #342b4d;
+  --bg: #151021;
+  --surface: #221b31;
+  --text: #ebe6f5;
+  --muted: #948ca8;
+  --accent: #c79bd6;
+  --pos: #5fb393;
+  --warn: #d9a45c;
+  --neg: #c77f9b;
+  --ring: rgba(236, 229, 249, 0.5);
+}
+
+[data-theme="pink"][data-mode="dark"] {
+  --primary: #e687aa;
+  --primary-light: #472b3a;
+  --bg: #1e1218;
+  --surface: #2c1d25;
+  --text: #f5e5ec;
+  --muted: #a78d98;
+  --accent: #cf92c7;
+  --pos: #5fb393;
+  --warn: #d9a45c;
+  --neg: #d97490;
+  --ring: rgba(248, 230, 238, 0.5);
 }
 
 html {
@@ -159,7 +282,7 @@ input[type="number"] {
   --ts-chart-tooltip-background: var(--surface);
   --ts-chart-tooltip-border: none;
   --ts-chart-tooltip-border-radius: 12px;
-  --ts-chart-tooltip-shadow: 0 8px 24px -12px rgba(80, 55, 45, 0.16);
+  --ts-chart-tooltip-shadow: 0 8px 24px -12px var(--shadow-card);
   --ts-chart-tooltip-font: 700 11px/1.45 var(--font-nunito), system-ui, sans-serif;
   --ts-chart-tooltip-color: var(--text);
 }

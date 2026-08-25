@@ -41,12 +41,14 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-// Застосовуємо тему до першого рендера, щоб уникнути мигання.
-// data-theme свідомо НЕ ставимо в JSX: атрибутом володіє цей скрипт і
-// ThemeProvider, інакше React може перезаписати вибір користувача дефолтом.
+// Застосовуємо тему й режим до першого рендера, щоб уникнути мигання.
+// data-theme/data-mode свідомо НЕ ставимо в JSX: атрибутами володіє цей скрипт
+// і ThemeProvider, інакше React може перезаписати вибір користувача дефолтом.
+// У data-mode кладемо вже розгорнуте light/dark — "system" розкривається тут
+// через matchMedia, як і в resolveMode із lib/theme-mode.
 const themeScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem('aura-theme');d.dataset.theme=${JSON.stringify(
   THEMES,
-)}.indexOf(t)>-1?t:'peach';}catch(e){d.dataset.theme='peach';}})();`;
+)}.indexOf(t)>-1?t:'peach';}catch(e){d.dataset.theme='peach';}try{var m=localStorage.getItem('aura-mode');if(m!=='light'&&m!=='dark'&&m!=='system')m='light';d.dataset.mode=m==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):m;}catch(e){d.dataset.mode='light';}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

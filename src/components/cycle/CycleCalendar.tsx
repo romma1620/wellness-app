@@ -11,16 +11,18 @@ import { useState } from "react";
  * читається як спад інтенсивності без жодних підписів.
  */
 const FLOW_FILL: Record<Flow, { bg: string; fg: string }> = {
-  spotting: { bg: "#F2CBD3", fg: "#9C4E63" },
+  // spotting — єдина пастельна пара, тож лише вона ходить через тінт-токени;
+  // light/medium/heavy — насичені середні тони, які читаються в обох режимах.
+  spotting: { bg: "var(--tint-spot)", fg: "var(--tint-spot-fg)" },
   light: { bg: "#E28FA0", fg: "#FFFFFF" },
   medium: { bg: "#D4677E", fg: "#FFFFFF" },
   heavy: { bg: "#B94A62", fg: "#FFFFFF" },
 };
 
-const FERTILE_BG = "#E4F1F4";
-const FERTILE_FG = "#3E7F8E";
-const OVULATION_FG = "#2F6E7C";
-const PREDICTED_FG = "#C05B71";
+const FERTILE_BG = "var(--tint-teal)";
+const FERTILE_FG = "var(--tint-teal-fg)";
+const OVULATION_FG = "var(--tint-teal-strong-fg)";
+const PREDICTED_FG = "var(--tint-rose-fg)";
 
 function dayStyle(day: CalendarDay): React.CSSProperties {
   if (day.mark === "flow" && day.flow) {

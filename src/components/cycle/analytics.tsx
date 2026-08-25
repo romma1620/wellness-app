@@ -198,7 +198,7 @@ export function WaterRetentionCard({
   return (
     <div
       className="flex gap-3 rounded-[18px] px-4 py-[15px]"
-      style={{ background: "#FBF0E2" }}
+      style={{ background: "var(--tint-amber)" }}
     >
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
@@ -216,7 +216,7 @@ export function WaterRetentionCard({
           <path d="M11 3.5c3.5 4 5.5 6.4 5.5 8.9a5.5 5.5 0 0 1-11 0c0-2.5 2-4.9 5.5-8.9Z" />
         </svg>
       </div>
-      <div className="text-[12.5px] font-bold leading-[1.5] [text-wrap:pretty]" style={{ color: "#7C5B32" }}>
+      <div className="text-[12.5px] font-bold leading-[1.5] [text-wrap:pretty]" style={{ color: "var(--tint-amber-fg)" }}>
         +{fmt(hint.deltaKg, 1)} кг проти фолікулярної фази — ти {where}. Ймовірна затримка
         води, типово для цих днів. Порівнюй із тим самим днем минулого циклу.
       </div>

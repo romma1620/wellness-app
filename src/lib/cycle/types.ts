@@ -157,13 +157,17 @@ export const PHASE_COLORS: Record<Phase, string> = {
   late_luteal: "#D9A05B",
 };
 
-/** Світлий тінт тієї ж фази — для фонів карток і плашок. */
+/**
+ * Тінт тієї ж фази — для фонів карток і плашок. Це CSS-токени з globals.css,
+ * а не hex: у темному режимі пастель стає темним тінтом того самого відтінку,
+ * і кожен споживач отримує це безкоштовно.
+ */
 export const PHASE_TINTS: Record<Phase, string> = {
-  menstrual: "#FBE2E8",
-  follicular: "#EAF4EF",
-  ovulation: "#E4F1F4",
-  luteal: "#F1EAF8",
-  late_luteal: "#FBF0E2",
+  menstrual: "var(--tint-rose-soft)",
+  follicular: "var(--tint-green)",
+  ovulation: "var(--tint-teal)",
+  luteal: "var(--tint-lavender)",
+  late_luteal: "var(--tint-amber)",
 };
 
 export const PHASE_LABELS: Record<Phase, string> = {

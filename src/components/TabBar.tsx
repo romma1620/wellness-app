@@ -74,7 +74,7 @@ export function TabBar() {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center">
-      <div className="w-full max-w-app bg-surface px-1.5 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-6px_22px_-12px_rgba(70,50,40,.22)]">
+      <div className="w-full max-w-app bg-surface px-1.5 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-6px_22px_-12px_var(--shadow-up)]">
         <div className="flex items-start justify-around pb-2">
           {TABS.map((t) => {
             const active = t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);

@@ -37,9 +37,10 @@ const ICON = {
 
 /** Тексти й вигляд трьох пар. Математика — у THRESHOLDS, тут лише подача. */
 const KCAL_COPY: PairCopy = {
-  tint: "#FBE9EE",
+  tint: "var(--tint-rose)",
   icon: (
-    <svg {...ICON} stroke="#C05B71">
+    // stroke="currentColor" + color у style: SVG-атрибути не парсять var().
+    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-rose-fg)" }}>
       <path d="M6.5 3v5.5M4 3v3a2.5 2.5 0 0 0 5 0V3M6.5 8.5V19" />
       <path d="M15 3c-1.6 1.2-2.5 3.1-2.5 5.5 0 1.6 1 2.5 2.5 2.5V19" />
     </svg>
@@ -63,9 +64,9 @@ const KCAL_COPY: PairCopy = {
 };
 
 const STEPS_COPY: PairCopy = {
-  tint: "#F1EAF8",
+  tint: "var(--tint-lavender)",
   icon: (
-    <svg {...ICON} stroke="#8D79AD">
+    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-lavender-fg)" }}>
       <path d="M3 11.5h3l2.5-6 4 11.5 2.5-5.5h4" />
     </svg>
   ),
@@ -89,9 +90,9 @@ const STEPS_COPY: PairCopy = {
 };
 
 const PROTEIN_COPY: PairCopy = {
-  tint: "#EAF4EF",
+  tint: "var(--tint-green)",
   icon: (
-    <svg {...ICON} stroke="#6E9C88">
+    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-green-fg)" }}>
       <path d="M4 8.5v5M18 8.5v5M6.5 7v8M15.5 7v8M6.5 11h9" />
     </svg>
   ),

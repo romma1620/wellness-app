@@ -22,9 +22,9 @@ const config: Config = {
         sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 8px 24px -12px rgba(80,55,45,.16)",
+        card: "0 8px 24px -12px var(--shadow-card)",
         cta: "0 16px 28px -12px var(--primary)",
-        soft: "0 4px 12px -6px rgba(80,55,45,.25)",
+        soft: "0 4px 12px -6px var(--shadow-soft)",
       },
       borderRadius: {
         xl2: "20px",

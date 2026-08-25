@@ -197,8 +197,8 @@ function StatsCard({ prediction }: { prediction: Prediction }) {
         <span
           className="rounded-full px-[11px] py-[5px] text-[11px] font-extrabold"
           style={{
-            background: regular ? "#E7F3EC" : "#FBF0E2",
-            color: regular ? "#3F8A6E" : "#8A6234",
+            background: regular ? "var(--tint-green-badge)" : "var(--tint-amber)",
+            color: regular ? "var(--tint-green-badge-fg)" : "var(--tint-amber-badge-fg)",
           }}
         >
           {regular ? "Регулярний" : "Нерівномірний"}
@@ -256,7 +256,7 @@ function LengthsCard({ cycles }: { cycles: Cycle[] }) {
               />
               <span
                 className="text-[9.5px] font-bold"
-                style={{ color: last ? "#C05B71" : "var(--muted)" }}
+                style={{ color: last ? "var(--tint-rose-fg)" : "var(--muted)" }}
               >
                 {len}
               </span>
@@ -318,7 +318,7 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="steps"
-        tint="#F1EAF8"
+        tint="var(--tint-lavender)"
         title={
           steps.diffPct < 0
             ? "Кроки падають у менструальні дні"
@@ -331,7 +331,8 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
             height="18"
             viewBox="0 0 22 22"
             fill="none"
-            stroke="#8D79AD"
+            stroke="currentColor"
+            style={{ color: "var(--tint-lavender-fg)" }}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -347,7 +348,7 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="tonnage"
-        tint="#EAF4EF"
+        tint="var(--tint-green)"
         title={
           tonnage.diffPct > 0
             ? "Найсильніші тренування — у фолікулярній фазі"
@@ -360,7 +361,8 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
             height="18"
             viewBox="0 0 22 22"
             fill="none"
-            stroke="#6E9C88"
+            stroke="currentColor"
+            style={{ color: "var(--tint-green-fg)" }}
             strokeWidth={2}
             strokeLinecap="round"
           >
@@ -376,7 +378,7 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="weight"
-        tint="#FBE9EE"
+        tint="var(--tint-rose)"
         title={`Вага у ПМС ${delta > 0 ? "вища" : "нижча"} на ${fmt(Math.abs(delta), 1)} кг`}
         text="Це вода, а не жир: порівнювати вагу варто з тим самим днем минулого циклу."
         icon={<span className="text-[17px]">💧</span>}

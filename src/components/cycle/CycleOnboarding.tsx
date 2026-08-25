@@ -42,15 +42,15 @@ export function CycleOnboarding({
 
       <div
         className="flex flex-col items-center rounded-xl2 px-5 pb-6 pt-[22px] text-center"
-        style={{ background: "linear-gradient(135deg, #FBE2E8 0%, var(--primary-light) 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--tint-rose-soft) 0%, var(--primary-light) 100%)" }}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-white/75">
+        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--tint-tile)] text-[var(--tint-rose-fg)]">
           <svg
             width="30"
             height="30"
             viewBox="0 0 22 22"
             fill="none"
-            stroke="#C05B71"
+            stroke="currentColor"
             strokeWidth={1.9}
             strokeLinecap="round"
           >
