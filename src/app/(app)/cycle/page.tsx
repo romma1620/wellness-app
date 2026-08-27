@@ -342,7 +342,7 @@ export default function CyclePage() {
       {/* Кнопка живе поверх контенту, над таб-баром: відмітити день — те,
           по що на цей екран заходять, і воно не має вимагати скролу. */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center">
-        <div className="w-full max-w-app px-[18px] pb-[calc(env(safe-area-inset-bottom)+74px)]">
+        <div className="w-full max-w-app px-[18px] pb-[calc(env(safe-area-inset-bottom)+88px)]">
           <Button
             type="button"
             className="pointer-events-auto"

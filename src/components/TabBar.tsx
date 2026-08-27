@@ -73,22 +73,29 @@ const TABS: { href: string; label: string; icon: ReactNode }[] = [
 export function TabBar() {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center">
-      <div className="w-full max-w-app bg-surface px-1.5 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-6px_22px_-12px_var(--shadow-up)]">
-        <div className="flex items-start justify-around pb-2">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center">
+      <div className="w-full max-w-app px-[14px] pb-[calc(env(safe-area-inset-bottom)+18px)]">
+        <div className="pointer-events-auto flex items-center rounded-full bg-surface p-[5px] shadow-[0_14px_30px_-12px_var(--shadow-up)]">
           {TABS.map((t) => {
             const active = t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
             return (
               <Link
                 key={t.href}
                 href={t.href}
+                aria-current={active ? "page" : undefined}
+                aria-label={t.label}
                 className={cn(
-                  "flex w-16 flex-col items-center gap-[5px] transition-colors",
-                  active ? "text-primary" : "text-muted",
+                  "flex h-[46px] basis-0 items-center justify-center rounded-full transition-[flex-grow,background-color,color] duration-300 motion-reduce:transition-none",
+                  active ? "grow-[2.5] bg-primary-light text-primary" : "grow text-muted",
                 )}
               >
                 {t.icon}
-                <span className={cn("text-[10.5px]", active ? "font-extrabold" : "font-semibold")}>
+                <span
+                  className={cn(
+                    "overflow-hidden whitespace-nowrap text-[11.5px] font-extrabold transition-[max-width,margin-left,opacity] duration-300 motion-reduce:transition-none",
+                    active ? "ml-[6px] max-w-[96px] opacity-100" : "ml-0 max-w-0 opacity-0",
+                  )}
+                >
                   {t.label}
                 </span>
               </Link>
