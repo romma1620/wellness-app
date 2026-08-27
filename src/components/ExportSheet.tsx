@@ -9,6 +9,7 @@ import {
 } from "@/lib/csv";
 import { loadExportData } from "@/lib/export-db";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { todayISO } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
@@ -32,6 +33,7 @@ function downloadCsv(csv: string, fileName: string) {
 
 export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const [busy, setBusy] = useState<ExportRange | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
@@ -41,10 +43,6 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
     setError(null);
     setEmpty(false);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
-
       const data = await loadExportData(supabase, uid, range);
       if (isExportEmpty(data)) {
         setEmpty(true);

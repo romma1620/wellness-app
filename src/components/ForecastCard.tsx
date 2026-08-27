@@ -1,11 +1,13 @@
 "use client";
 
 import { Card } from "@/components/ui";
+import { useUid } from "@/components/UserProvider";
 import { etaTo, weightTrend, TREND_WINDOW_DAYS, type Eta } from "@/lib/forecast";
 import { createClient } from "@/lib/supabase/client";
 import type { Reward } from "@/lib/types";
 import { addDays, cn, fmt, plural, shortDate, todayISO } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 interface Loaded {
   weights: { date: string; weight: number | null }[];
@@ -23,16 +25,15 @@ interface Loaded {
  */
 export function ForecastCard() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const today = useMemo(() => todayISO(), []);
-  const [data, setData] = useState<Loaded | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const { data } = useQuery({
+    queryKey: ["diary", uid, "forecast", today],
+    // Помилка тиха: прогноз — бонус поверх сторінки, а не її зміст,
+    // тож queryFn віддає null замість кидання.
+    queryFn: async (): Promise<Loaded | null> => {
       try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) return;
         const [logs, profile, rewards] = await Promise.all([
           supabase
             .from("daily_logs")
@@ -45,21 +46,16 @@ export function ForecastCard() {
           supabase.from("rewards").select("weight, gift").eq("user_id", uid),
         ]);
         if (logs.error || rewards.error) throw logs.error ?? rewards.error;
-        if (!cancelled) {
-          setData({
-            weights: (logs.data ?? []) as Loaded["weights"],
-            targetWeight: (profile.data?.target_weight ?? null) as number | null,
-            rewards: (rewards.data ?? []) as Loaded["rewards"],
-          });
-        }
+        return {
+          weights: (logs.data ?? []) as Loaded["weights"],
+          targetWeight: (profile.data?.target_weight ?? null) as number | null,
+          rewards: (rewards.data ?? []) as Loaded["rewards"],
+        };
       } catch {
-        // тихо: прогноз — бонус поверх сторінки, а не її зміст
+        return null;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, today]);
+    },
+  });
 
   const view = useMemo(() => {
     if (!data) return null;

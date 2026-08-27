@@ -3,6 +3,7 @@
 import { Card, ErrorBanner, FullLoader, Segmented } from "@/components/ui";
 import { dayCompleteness, heatLevel, weekRows } from "@/lib/activity";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import type { DailyLog } from "@/lib/types";
 import {
   addDays,
@@ -13,7 +14,8 @@ import {
   todayISO,
   weekdayHead,
 } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 type MetricKey = "steps" | "workouts" | "diary";
 
@@ -30,54 +32,42 @@ type DayRow = Pick<
 
 export default function ActivityPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const [metric, setMetric] = useState<MetricKey>("steps");
-  const [logs, setLogs] = useState<DayRow[]>([]);
-  const [workoutDates, setWorkoutDates] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
   const end = todayISO();
   const start = addDays(end, -364);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const [daily, workouts] = await Promise.all([
-          supabase
-            .from("daily_logs")
-            .select("date, weight, kcal, protein, fat, carbs, water, steps")
-            .eq("user_id", uid)
-            .gte("date", start)
-            .lte("date", end),
-          supabase
-            .from("workouts")
-            .select("date")
-            .eq("user_id", uid)
-            .gte("date", start)
-            .lte("date", end),
-        ]);
-        if (daily.error) throw daily.error;
-        if (workouts.error) throw workouts.error;
-        if (cancelled) return;
-        setLogs((daily.data ?? []) as DayRow[]);
-        setWorkoutDates((workouts.data ?? []).map((w) => w.date as string));
-      } catch {
-        if (!cancelled) setError("Не вдалося завантажити дані. Спробуй пізніше.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, start, end]);
+  const dataQ = useQuery({
+    queryKey: ["diary", uid, "activity", start, end],
+    queryFn: async () => {
+      const [daily, workouts] = await Promise.all([
+        supabase
+          .from("daily_logs")
+          .select("date, weight, kcal, protein, fat, carbs, water, steps")
+          .eq("user_id", uid)
+          .gte("date", start)
+          .lte("date", end),
+        supabase
+          .from("workouts")
+          .select("date")
+          .eq("user_id", uid)
+          .gte("date", start)
+          .lte("date", end),
+      ]);
+      if (daily.error) throw daily.error;
+      if (workouts.error) throw workouts.error;
+      return {
+        logs: (daily.data ?? []) as DayRow[],
+        workoutDates: (workouts.data ?? []).map((w) => w.date as string),
+      };
+    },
+  });
+  const logs = useMemo(() => dataQ.data?.logs ?? [], [dataQ.data]);
+  const workoutDates = useMemo(() => dataQ.data?.workoutDates ?? [], [dataQ.data]);
+  const loading = dataQ.isPending;
+  const error = dataQ.isError ? "Не вдалося завантажити дані. Спробуй пізніше." : null;
 
   /** Значення метрики за датою. Відсутність запису = немає значення. */
   const values = useMemo(() => {

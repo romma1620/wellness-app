@@ -4,9 +4,11 @@ import { useTheme } from "@/components/ThemeProvider";
 import { ExportSheet } from "@/components/ExportSheet";
 import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel, Segmented } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import type { ThemeMode } from "@/lib/theme-mode";
 import type { Profile, ThemeName } from "@/lib/types";
 import { parseNum } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -26,51 +28,56 @@ const MODE_OPTIONS: { value: ThemeMode; label: string }[] = [
 
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { theme, setTheme, mode, setMode, error: themeError } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [height, setHeight] = useState("");
   const [target, setTarget] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
 
+  const profileQ = useQuery({
+    queryKey: ["profile", uid],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as Profile | null;
+    },
+  });
+  const profile = profileQ.data ?? null;
+  const loading = profileQ.isPending;
+  const error = actionError ?? (profileQ.isError ? "Не вдалося завантажити профіль." : null);
+
+  // Поля форми засіваються зі знімка один раз: фонова ревалідація кешу
+  // не має переписувати те, що юзер уже редагує.
+  const seeded = useRef(false);
   useEffect(() => {
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
-        const p = (data ?? null) as Profile | null;
-        setProfile(p);
-        setName(p?.name ?? "");
-        setHeight(p?.height != null ? String(p.height).replace(".", ",") : "");
-        setTarget(p?.target_weight != null ? String(p.target_weight).replace(".", ",") : "");
-        setAvatarUrl(p?.avatar_url ?? null);
-      } catch {
-        setError("Не вдалося завантажити профіль.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [supabase]);
+    if (seeded.current || profileQ.data === undefined) return;
+    seeded.current = true;
+    const p = profileQ.data;
+    setName(p?.name ?? "");
+    setHeight(p?.height != null ? String(p.height).replace(".", ",") : "");
+    setTarget(p?.target_weight != null ? String(p.target_weight).replace(".", ",") : "");
+    setAvatarUrl(p?.avatar_url ?? null);
+  }, [profileQ.data]);
 
   async function saveProfile() {
     setSaving(true);
-    setError(null);
+    setActionError(null);
     setSavedMsg(false);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -80,10 +87,13 @@ export default function SettingsPage() {
         })
         .eq("id", uid);
       if (error) throw error;
+      // цільову вагу читають прогноз і цілі
+      void queryClient.invalidateQueries({ queryKey: ["profile", uid] });
+      void queryClient.invalidateQueries({ queryKey: ["diary", uid] });
       setSavedMsg(true);
       setTimeout(() => setSavedMsg(false), 2500);
     } catch {
-      setError("Не вдалося зберегти зміни.");
+      setActionError("Не вдалося зберегти зміни.");
     } finally {
       setSaving(false);
     }
@@ -93,19 +103,16 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Обери файл зображення.");
+      setActionError("Обери файл зображення.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Файл завеликий (макс. 5 МБ).");
+      setActionError("Файл завеликий (макс. 5 МБ).");
       return;
     }
     setUploading(true);
-    setError(null);
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${uid}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
@@ -117,8 +124,9 @@ export default function SettingsPage() {
       const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", uid);
       if (updErr) throw updErr;
       setAvatarUrl(url);
+      void queryClient.invalidateQueries({ queryKey: ["profile", uid] });
     } catch {
-      setError("Не вдалося завантажити фото.");
+      setActionError("Не вдалося завантажити фото.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

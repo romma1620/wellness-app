@@ -23,7 +23,9 @@ import {
 } from "@/lib/daily-log";
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SAVE_DEBOUNCE_MS = 700;
@@ -41,35 +43,34 @@ type DayState = {
 
 export default function TodayPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(todayISO());
   const [day, setDay] = useState<DayState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [baselineWeight, setBaselineWeight] = useState<number | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [save, setSave] = useState<SaveState>("idle");
 
-  // Кожне завантаження має свій номер: відповідь, яку встиг обігнати
-  // пізніший запит, ігнорується — інакше форма одного дня лишалась би
-  // на екрані під датою іншого.
-  const reqId = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<{ date: string; patch: DailyPatch } | null>(null);
+
+  const dayQ = useQuery({
+    queryKey: ["diary", uid, "day", date],
+    queryFn: () => loadDayWindow(supabase, uid, date),
+  });
 
   const commit = useCallback(
     async (target: string, patch: DailyPatch) => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const uid = userData.user?.id;
-        if (!uid) throw new Error("no-user");
         await saveDayPatch(supabase, uid, target, patch);
         // збережене стає новою базою, щоб не потрапити в наступний патч
         setDay((d) => (d && d.date === target ? { ...d, loaded: applySaved(d.loaded, patch) } : d));
         setSave("saved");
+        // аналітика, інсайти, прогноз і кеш цього ж дня читають ті самі рядки
+        void queryClient.invalidateQueries({ queryKey: ["diary", uid] });
       } catch {
         setSave("error");
       }
     },
-    [supabase],
+    [supabase, uid, queryClient],
   );
 
   /** Негайно відправити відкладене збереження: зміна дня, згортання застосунку, unmount. */
@@ -84,62 +85,50 @@ export default function TodayPage() {
     void commit(p.date, p.patch);
   }, [commit]);
 
-  const load = useCallback(
-    async (d: string) => {
-      const my = ++reqId.current;
-      setLoadError(null);
-      setLoading(true);
-      // Стан попереднього дня не має лишатись під новою датою: ефект
-      // автозбереження рахує дифф саме з нього.
-      setDay(null);
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const uid = userData.user?.id;
-        if (!uid) throw new Error("no-user");
-
-        const { current, baselineWeight: baseline } = await loadDayWindow(supabase, uid, d);
-        if (my !== reqId.current) return; // застаріла відповідь
-
-        const form = formFromRow(current);
-        setBaselineWeight(baseline);
-        setDay({ date: d, loaded: form, form });
-        setLoading(false);
-      } catch (err) {
-        if (my !== reqId.current) return;
-        setLoadError(
-          err instanceof Error && err.message === "no-user"
-            ? "Сесія завершилась. Онови сторінку."
-            : "Не вдалося завантажити день. Перевір зʼєднання.",
-        );
-        // без знімка з сервера редагувати нічого — інакше писали б наосліп
-        setDay(null);
-        setLoading(false);
-      }
-    },
-    [supabase],
-  );
-
   useEffect(() => {
     flush(); // незбережене з попереднього дня йде в базу, а не в смітник
-    load(date);
-  }, [date, load, flush]);
+  }, [date, flush]);
+
+  // Стан попереднього дня ніколи не читається під новою датою: похідна
+  // замість скидання в ефекті, тож помилка завантаження нової дати не
+  // покаже форму старої, а автозбереження не порахує дифф не з тим днем.
+  const activeDay = day && day.date === date ? day : null;
+
+  // Форма ініціалізується зі знімка сервера. Фонова ревалідація має право
+  // замінити її, лише поки юзер нічого не встиг надрукувати й нема
+  // невідправленого патча — інакше свіжий знімок затер би введене.
+  useEffect(() => {
+    const win = dayQ.data;
+    if (!win) return;
+    setDay((d) => {
+      if (d && d.date === date && (hasChanges(diffDay(d.loaded, d.form)) || pending.current)) {
+        return d;
+      }
+      const form = formFromRow(win.current);
+      return { date, loaded: form, form };
+    });
+  }, [dayQ.data, date]);
+
+  const loading = dayQ.isPending;
+  const baselineWeight = dayQ.data?.baselineWeight ?? null;
+  const loadError = dayQ.isError ? "Не вдалося завантажити день. Перевір зʼєднання." : null;
 
   // Автозбереження (debounce). Таймер ніколи не скасовується завантаженням —
   // тільки замінюється новим патчем того самого дня.
   useEffect(() => {
-    if (!day) return;
-    const patch = diffDay(day.loaded, day.form);
+    if (!activeDay) return;
+    const patch = diffDay(activeDay.loaded, activeDay.form);
     if (!hasChanges(patch)) return; // load або повернення значення назад
 
-    if (pending.current && pending.current.date !== day.date) flush();
-    pending.current = { date: day.date, patch };
+    if (pending.current && pending.current.date !== activeDay.date) flush();
+    pending.current = { date: activeDay.date, patch };
 
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
       flush();
     }, SAVE_DEBOUNCE_MS);
-  }, [day, flush]);
+  }, [activeDay, flush]);
 
   // Згортання застосунку чи вихід зі сторінки не мають зʼїдати останні 700 мс.
   useEffect(() => {
@@ -155,13 +144,13 @@ export default function TodayPage() {
     };
   }, [flush]);
 
-  const form = day?.form ?? EMPTY_DAY;
+  const form = activeDay?.form ?? EMPTY_DAY;
   // Індикатор рахується з реального стану форми, а не з окремого прапорця,
   // тому не може зависнути в «Збереження…» після перемикання дня.
-  const dirty = day ? hasChanges(diffDay(day.loaded, day.form)) : false;
+  const dirty = activeDay ? hasChanges(diffDay(activeDay.loaded, activeDay.form)) : false;
 
   const set = <K extends keyof DailyForm>(key: K, value: DailyForm[K]) =>
-    setDay((d) => (d ? { ...d, form: { ...d.form, [key]: value } } : d));
+    setDay((d) => (d && d.date === date ? { ...d, form: { ...d.form, [key]: value } } : d));
 
   const weekDelta =
     form.weight != null && baselineWeight != null ? form.weight - baselineWeight : null;

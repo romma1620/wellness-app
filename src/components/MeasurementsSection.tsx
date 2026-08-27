@@ -4,61 +4,59 @@ import { MetricLine, Sparkline } from "@/components/charts";
 import { NumberField } from "@/components/inputs";
 import { Button, Card, ErrorBanner, FullLoader, SectionLabel } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { MEASUREMENT_META, type Measurement, type MeasurementKey } from "@/lib/types";
 import { cn, daysBetween, fmt, shortDate, todayISO } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Form = Record<MeasurementKey, number | null>;
 const EMPTY: Form = { waist: null, hips: null, chest: null, leg: null, arm: null };
 
 export function MeasurementsSection() {
   const supabase = useMemo(() => createClient(), []);
-  const [rows, setRows] = useState<Measurement[]>([]);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<Form>(EMPTY);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [selected, setSelected] = useState<MeasurementKey>("waist");
 
-  const load = useMemo(
-    () => async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const { data, error } = await supabase
-          .from("measurements")
-          .select("*")
-          .eq("user_id", uid)
-          .order("date", { ascending: true });
-        if (error) throw error;
-        const list = (data ?? []) as Measurement[];
-        setRows(list);
-        const latest = list[list.length - 1];
-        if (latest) {
-          setForm({
-            waist: latest.waist,
-            hips: latest.hips,
-            chest: latest.chest,
-            leg: latest.leg,
-            arm: latest.arm,
-          });
-        }
-      } catch {
-        setError("Не вдалося завантажити заміри.");
-      } finally {
-        setLoading(false);
-      }
+  const rowsQ = useQuery({
+    queryKey: ["measurements", uid],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("measurements")
+        .select("*")
+        .eq("user_id", uid)
+        .order("date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Measurement[];
     },
-    [supabase],
-  );
+  });
+  const rows = useMemo(() => rowsQ.data ?? [], [rowsQ.data]);
+  const loading = rowsQ.isPending;
+  const error = actionError ?? (rowsQ.isError ? "Не вдалося завантажити заміри." : null);
 
+  // Форма засівається останнім заміром один раз: ревалідація кешу
+  // не має переписувати цифри, які юзер уже правит.
+  const seeded = useRef(false);
   useEffect(() => {
-    load();
-  }, [load]);
+    if (seeded.current || !rowsQ.data) return;
+    seeded.current = true;
+    const latest = rowsQ.data[rowsQ.data.length - 1];
+    if (latest) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- разовий seed форми зі знімка кешу
+      setForm({
+        waist: latest.waist,
+        hips: latest.hips,
+        chest: latest.chest,
+        leg: latest.leg,
+        arm: latest.arm,
+      });
+    }
+  }, [rowsQ.data]);
 
   const latest = rows[rows.length - 1] ?? null;
   const prev = rows[rows.length - 2] ?? null;
@@ -67,12 +65,9 @@ export function MeasurementsSection() {
 
   async function save() {
     setSaving(true);
-    setError(null);
+    setActionError(null);
     setSaved(false);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       const today = todayISO();
       const existing = rows.find((r) => r.date === today);
       const payload = { user_id: uid, date: today, ...form };
@@ -84,10 +79,10 @@ export function MeasurementsSection() {
         if (error) throw error;
       }
       setSaved(true);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: ["measurements", uid] });
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      setError("Не вдалося зберегти заміри. Спробуй ще раз.");
+      setActionError("Не вдалося зберегти заміри. Спробуй ще раз.");
     } finally {
       setSaving(false);
     }

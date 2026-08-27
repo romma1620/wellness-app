@@ -19,10 +19,12 @@ import {
   type CycleEntry,
 } from "@/lib/cycle/types";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { addDays, fmt, fmtInt, plural, todayISO } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 /** Інсайти показуємо лише коли завершених циклів достатньо, щоб щось порівнювати. */
 const MIN_CYCLES = 3;
@@ -45,78 +47,65 @@ function setTonnage(weight: number | null, reps: number): number {
 
 export default function CycleInsightsPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const today = useMemo(() => todayISO(), []);
 
-  const [data, setData] = useState<Loaded | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dataQ = useQuery({
+    queryKey: ["diary", uid, "cycle-insights", today],
+    queryFn: async (): Promise<Loaded> => {
+      const from = addDays(today, -730);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const from = addDays(today, -730);
+      const { settings } = await loadCycleSettings(supabase, uid);
+      const [entries, logs, workouts] = await Promise.all([
+        loadCycleEntries(supabase, uid, from, addDays(today, 90)),
+        supabase
+          .from("daily_logs")
+          .select("date, weight, steps")
+          .eq("user_id", uid)
+          .gte("date", from)
+          .order("date", { ascending: true }),
+        supabase
+          .from("workouts")
+          .select("date, workout_sets(weight, reps)")
+          .eq("user_id", uid)
+          .gte("date", from)
+          .order("date", { ascending: true }),
+      ]);
+      if (logs.error) throw logs.error;
+      if (workouts.error) throw workouts.error;
 
-        const { settings } = await loadCycleSettings(supabase, uid);
-        const [entries, logs, workouts] = await Promise.all([
-          loadCycleEntries(supabase, uid, from, addDays(today, 90)),
-          supabase
-            .from("daily_logs")
-            .select("date, weight, steps")
-            .eq("user_id", uid)
-            .gte("date", from)
-            .order("date", { ascending: true }),
-          supabase
-            .from("workouts")
-            .select("date, workout_sets(weight, reps)")
-            .eq("user_id", uid)
-            .gte("date", from)
-            .order("date", { ascending: true }),
-        ]);
-        if (logs.error) throw logs.error;
-        if (workouts.error) throw workouts.error;
-        if (cancelled) return;
+      const logRows = (logs.data ?? []) as {
+        date: string;
+        weight: number | null;
+        steps: number | null;
+      }[];
 
-        const logRows = (logs.data ?? []) as {
-          date: string;
-          weight: number | null;
-          steps: number | null;
-        }[];
-
-        // Один день = один сеанс тоннажу; кілька тренувань за день сумуються.
-        const perDay = new Map<string, number>();
-        for (const w of (workouts.data ?? []) as {
-          date: string;
-          workout_sets: { weight: number | null; reps: number }[] | null;
-        }[]) {
-          const total = (w.workout_sets ?? []).reduce(
-            (s, set) => s + setTonnage(set.weight, set.reps),
-            0,
-          );
-          if (total > 0) perDay.set(w.date, (perDay.get(w.date) ?? 0) + total);
-        }
-
-        setData({
-          entries,
-          weights: logRows.map((r) => ({ date: r.date, value: r.weight })),
-          steps: logRows.map((r) => ({ date: r.date, value: r.steps })),
-          tonnage: [...perDay.entries()].map(([date, value]) => ({ date, value })),
-          typicalCycleLength: settings.typical_cycle_length,
-          typicalPeriodLength: settings.typical_period_length,
-        });
-      } catch {
-        if (!cancelled) setError("Не вдалося завантажити інсайти. Перевір зʼєднання.");
-      } finally {
-        if (!cancelled) setLoading(false);
+      // Один день = один сеанс тоннажу; кілька тренувань за день сумуються.
+      const perDay = new Map<string, number>();
+      for (const w of (workouts.data ?? []) as {
+        date: string;
+        workout_sets: { weight: number | null; reps: number }[] | null;
+      }[]) {
+        const total = (w.workout_sets ?? []).reduce(
+          (s, set) => s + setTonnage(set.weight, set.reps),
+          0,
+        );
+        if (total > 0) perDay.set(w.date, (perDay.get(w.date) ?? 0) + total);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, today]);
+
+      return {
+        entries,
+        weights: logRows.map((r) => ({ date: r.date, value: r.weight })),
+        steps: logRows.map((r) => ({ date: r.date, value: r.steps })),
+        tonnage: [...perDay.entries()].map(([date, value]) => ({ date, value })),
+        typicalCycleLength: settings.typical_cycle_length,
+        typicalPeriodLength: settings.typical_period_length,
+      };
+    },
+  });
+  const data = dataQ.data ?? null;
+  const loading = dataQ.isPending;
+  const error = dataQ.isError ? "Не вдалося завантажити інсайти. Перевір зʼєднання." : null;
 
   const cycles = useMemo(
     () =>

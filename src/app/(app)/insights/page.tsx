@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PairInsightCard, type PairCopy } from "@/components/insights/PairInsightCard";
 import { Card, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
 import {
@@ -13,6 +14,7 @@ import {
   type DayInput,
 } from "@/lib/correlations";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { setTonnage } from "@/lib/workouts";
 import {
   addDays,
@@ -123,6 +125,7 @@ interface Loaded {
 
 export default function InsightsPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
 
   // Вікно аналізу: останні ANALYSIS_WEEKS завершених тижнів Пн–Нд.
   const { firstMonday, lastSunday } = useMemo(() => {
@@ -132,59 +135,44 @@ export default function InsightsPage() {
     return { firstMonday: addDays(lastSunday, -(ANALYSIS_WEEKS * 7 - 1)), lastSunday };
   }, []);
 
-  const [data, setData] = useState<Loaded | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dataQ = useQuery({
+    queryKey: ["diary", uid, "insights", firstMonday, lastSunday],
+    queryFn: async (): Promise<Loaded> => {
+      const [logs, workouts] = await Promise.all([
+        supabase
+          .from("daily_logs")
+          .select("date, weight, kcal, steps, protein")
+          .eq("user_id", uid)
+          .gte("date", firstMonday)
+          .lte("date", lastSunday)
+          .order("date", { ascending: true }),
+        supabase
+          .from("workouts")
+          .select("date, workout_sets(weight, reps)")
+          .eq("user_id", uid)
+          .gte("date", firstMonday)
+          .lte("date", lastSunday)
+          .order("date", { ascending: true }),
+      ]);
+      if (logs.error) throw logs.error;
+      if (workouts.error) throw workouts.error;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-
-        const [logs, workouts] = await Promise.all([
-          supabase
-            .from("daily_logs")
-            .select("date, weight, kcal, steps, protein")
-            .eq("user_id", uid)
-            .gte("date", firstMonday)
-            .lte("date", lastSunday)
-            .order("date", { ascending: true }),
-          supabase
-            .from("workouts")
-            .select("date, workout_sets(weight, reps)")
-            .eq("user_id", uid)
-            .gte("date", firstMonday)
-            .lte("date", lastSunday)
-            .order("date", { ascending: true }),
-        ]);
-        if (logs.error) throw logs.error;
-        if (workouts.error) throw workouts.error;
-        if (cancelled) return;
-
-        // Один день = сумарний тоннаж; кілька тренувань за день додаються.
-        const tonnageByDate = new Map<string, number>();
-        for (const w of (workouts.data ?? []) as {
-          date: string;
-          workout_sets: { weight: number | null; reps: number }[] | null;
-        }[]) {
-          const total = (w.workout_sets ?? []).reduce((s, set) => s + setTonnage(set), 0);
-          if (total > 0) tonnageByDate.set(w.date, (tonnageByDate.get(w.date) ?? 0) + total);
-        }
-
-        setData({ days: (logs.data ?? []) as DayInput[], tonnageByDate });
-      } catch {
-        if (!cancelled) setError("Не вдалося завантажити інсайти. Перевір зʼєднання.");
-      } finally {
-        if (!cancelled) setLoading(false);
+      // Один день = сумарний тоннаж; кілька тренувань за день додаються.
+      const tonnageByDate = new Map<string, number>();
+      for (const w of (workouts.data ?? []) as {
+        date: string;
+        workout_sets: { weight: number | null; reps: number }[] | null;
+      }[]) {
+        const total = (w.workout_sets ?? []).reduce((s, set) => s + setTonnage(set), 0);
+        if (total > 0) tonnageByDate.set(w.date, (tonnageByDate.get(w.date) ?? 0) + total);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, firstMonday, lastSunday]);
+
+      return { days: (logs.data ?? []) as DayInput[], tonnageByDate };
+    },
+  });
+  const data = dataQ.data ?? null;
+  const loading = dataQ.isPending;
+  const error = dataQ.isError ? "Не вдалося завантажити інсайти. Перевір зʼєднання." : null;
 
   const analyses = useMemo(() => {
     if (!data) return null;

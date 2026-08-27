@@ -1,5 +1,6 @@
 "use client";
 
+import { useUid } from "@/components/UserProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
   MODE_STORAGE_KEY,
@@ -70,6 +71,7 @@ export function ThemeProvider({
   initialTheme: ThemeName;
   children: ReactNode;
 }) {
+  const uid = useUid();
   const [theme, setThemeState] = useState<ThemeName>(initialTheme);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,9 +131,6 @@ export function ThemeProvider({
       void (async () => {
         try {
           const supabase = createClient();
-          const { data, error: authErr } = await supabase.auth.getUser();
-          const uid = data.user?.id;
-          if (authErr || !uid) throw authErr ?? new Error("no-user");
           const { error: updErr } = await supabase
             .from("profiles")
             .update({ theme: t })
@@ -146,7 +145,7 @@ export function ThemeProvider({
         }
       })();
     },
-    [commit],
+    [commit, uid],
   );
 
   return (

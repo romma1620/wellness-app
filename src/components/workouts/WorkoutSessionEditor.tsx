@@ -16,6 +16,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import type { Exercise, Routine } from "@/lib/types";
 import {
   newDraftExercise,
@@ -41,9 +42,10 @@ import {
   writeDraft,
   type StoredDraft,
 } from "@/lib/workout-draft";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const EMPTY_DRAFT = (): DraftWorkout => ({
   date: todayISO(),
@@ -53,18 +55,19 @@ const EMPTY_DRAFT = (): DraftWorkout => ({
   exercises: [newDraftExercise()],
 });
 
+const NO_EXERCISES: Exercise[] = [];
+const NO_ROUTINES: Routine[] = [];
+const NO_MAXES = new Map<string, ExerciseMax>();
+
 export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }) {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const router = useRouter();
 
   const [draft, setDraft] = useState<DraftWorkout>(EMPTY_DRAFT);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [maxes, setMaxes] = useState<Map<string, ExerciseMax>>(() => new Map());
-  const [routines, setRoutines] = useState<Routine[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [uid, setUid] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   // чернетка, знайдена в сховищі: поки вона тут, над редактором висить шіт
   const [stored, setStored] = useState<StoredDraft | null>(null);
   // "pending" — рішення про чернетку ще не ухвалене, автозбереження мовчить,
@@ -73,47 +76,51 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
     workoutId ? "fresh" : "pending",
   );
 
+  const editorQ = useQuery({
+    queryKey: ["workouts", uid, "editor", workoutId ?? "new"],
+    queryFn: async () => {
+      const [ex, rt, mx] = await Promise.all([
+        loadExercises(supabase, uid),
+        loadRoutines(supabase, uid),
+        // RPC ще не розкочена в проді — падає до появи міграції. На відміну
+        // від інших членів Promise.all, її провал не має валити весь маунт:
+        // без цього fallback редактор показав би порожню форму поверх
+        // існуючої сесії, а збереження стерло б її підходи.
+        loadExerciseMaxes(supabase, workoutId).catch(() => new Map<string, ExerciseMax>()),
+      ]);
+      const workout = workoutId ? await loadWorkoutDraft(supabase, uid, workoutId) : null;
+      return { exercises: ex, routines: rt, maxes: mx, workout };
+    },
+  });
+  const exercises = editorQ.data?.exercises ?? NO_EXERCISES;
+  const routines = editorQ.data?.routines ?? NO_ROUTINES;
+  const maxes = editorQ.data?.maxes ?? NO_MAXES;
+  const loading = editorQ.isPending;
+  const error = actionError ?? (editorQ.isError ? "Не вдалося завантажити дані." : null);
+
+  // Чернетка редагованої сесії і рішення про збережену чернетку — один раз
+  // на маунт: фонове оновлення кешу не має перезбирати форму під руками.
+  const seeded = useRef(false);
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const id = u.user?.id;
-        if (!id) throw new Error("no-user");
-        const [ex, rt, mx] = await Promise.all([
-          loadExercises(supabase, id),
-          loadRoutines(supabase, id),
-          // RPC ще не розкочена в проді — падає до появи міграції. На відміну
-          // від інших членів Promise.all, її провал не має валити весь маунт:
-          // без цього fallback редактор показав би порожню форму поверх
-          // існуючої сесії, а збереження стерло б її підходи.
-          loadExerciseMaxes(supabase, workoutId).catch(() => new Map<string, ExerciseMax>()),
-        ]);
-        setUid(id);
-        setExercises(ex);
-        setRoutines(rt);
-        setMaxes(mx);
-        if (workoutId) {
-          const d = await loadWorkoutDraft(supabase, id, workoutId);
-          if (d) setDraft(d);
-        } else {
-          const found = readDraft(id);
-          if (found) setStored(found);
-          else setDecision("fresh");
-        }
-      } catch {
-        setError("Не вдалося завантажити дані.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [supabase, workoutId]);
+    if (seeded.current || !editorQ.data) return;
+    seeded.current = true;
+    if (workoutId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- разовий seed чернетки зі знімка кешу
+      if (editorQ.data.workout) setDraft(editorQ.data.workout);
+    } else {
+      // localStorage читаємо лише після гідратації — під час рендера це
+      // дало б розбіжність із серверною розміткою
+      const found = readDraft(uid);
+      if (found) setStored(found);
+      else setDecision("fresh");
+    }
+  }, [editorQ.data, workoutId, uid]);
 
   // Автозбереження чернетки. Дебаунс 400 мс: набір ваги в SetRow міняє draft
   // на кожне натискання клавіші, а серіалізація всієї сесії на кожен символ
   // тут не потрібна.
   useEffect(() => {
-    if (workoutId || loading || decision === "pending" || !uid) return;
+    if (workoutId || loading || decision === "pending") return;
     // під час і одразу після збереження новий таймер не зводимо: інакше
     // таймер, зведений останнім натисканням клавіші, пережив би onSave —
     // щоб зведений таймер не переписав чернетку вже після clearDraft().
@@ -197,7 +204,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         exercises: exs.length ? exs : [newDraftExercise()],
       });
     } catch {
-      setError("Не вдалося підтягнути шаблон.");
+      setActionError("Не вдалося підтягнути шаблон.");
     }
   }
 
@@ -206,37 +213,47 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       (e) => e.name.trim() && e.sets.some((s) => s.reps != null && s.reps > 0),
     );
     if (!hasValid) {
-      setError("Додай хоча б одну вправу з підходом.");
+      setActionError("Додай хоча б одну вправу з підходом.");
       setSaveState("idle");
       return;
     }
     setSaveState("saving");
-    setError(null);
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       await saveWorkout(supabase, uid, draft, workoutId);
       // слот чернетки один на юзера, тож збереження правок чужої сесії
       // (редагування вже існуючого тренування) не має його чіпати
       if (!workoutId) clearDraft();
+      invalidateAfterWrite();
       setSaveState("saved");
       router.push("/workouts");
       router.refresh();
     } catch {
       setSaveState("error");
-      setError("Не вдалося зберегти тренування. Спробуй ще раз.");
+      setActionError("Не вдалося зберегти тренування. Спробуй ще раз.");
     }
+  }
+
+  /**
+   * Після запису: кеші редакторів зносимо повністю (seed-один-раз узяв би
+   * з них дочекані, але вже застарілі підходи), решту — звичайна інвалідація;
+   * тоннаж і рекорди читає й щоденниковий кеш.
+   */
+  function invalidateAfterWrite() {
+    queryClient.removeQueries({ queryKey: ["workouts", uid, "editor"] });
+    void queryClient.invalidateQueries({ queryKey: ["workouts", uid] });
+    void queryClient.invalidateQueries({ queryKey: ["diary", uid] });
   }
 
   async function onDelete() {
     if (!workoutId) return;
     try {
       await deleteWorkout(supabase, workoutId);
+      invalidateAfterWrite();
       router.push("/workouts");
       router.refresh();
     } catch {
-      setError("Не вдалося видалити тренування.");
+      setActionError("Не вдалося видалити тренування.");
     }
   }
 

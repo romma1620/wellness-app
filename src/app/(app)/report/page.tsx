@@ -17,13 +17,14 @@ import {
   plural,
   shortDate,
 } from "@/lib/utils";
+import { useUid } from "@/components/UserProvider";
 import { loadExerciseMaxes, loadUsedExercises } from "@/lib/workouts-db";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface WeekData {
-  offset: number;
   cur: ReportDay[];
   prev: ReportDay[];
   workouts: { sets: { weight: number | null; reps: number }[] }[];
@@ -31,78 +32,62 @@ interface WeekData {
 
 export default function ReportPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const [offset, setOffset] = useState(0);
-  const [data, setData] = useState<WeekData | null>(null);
-  const [records, setRecords] = useState<RecordRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   const overlay = usePhaseOverlay();
 
   // Дані тижня — щоденник обох тижнів (цей + порівняльний) і сесії цього.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setError(null);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const cur = periodRange("week", offset);
-        const prev = periodRange("week", offset + 1);
-        const [daily, workouts] = await Promise.all([
-          supabase
-            .from("daily_logs")
-            .select("date, weight, kcal, water, steps, sport, care, comment")
-            .eq("user_id", uid)
-            .gte("date", prev.start)
-            .lte("date", cur.end)
-            .order("date", { ascending: true }),
-          supabase
-            .from("workouts")
-            .select("date, workout_sets(weight, reps)")
-            .eq("user_id", uid)
-            .gte("date", cur.start)
-            .lte("date", cur.end),
-        ]);
-        if (daily.error) throw daily.error;
-        if (workouts.error) throw workouts.error;
-        if (cancelled) return;
-        const rows = (daily.data ?? []) as ReportDay[];
-        setData({
-          offset,
-          cur: rows.filter((d) => d.date >= cur.start),
-          prev: rows.filter((d) => d.date < cur.start),
-          workouts: (workouts.data ?? []).map((w: any) => ({ sets: w.workout_sets ?? [] })),
-        });
-      } catch {
-        if (!cancelled) setError("Не вдалося завантажити звіт. Спробуй пізніше.");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, offset]);
+  const weekQ = useQuery({
+    queryKey: ["diary", uid, "report", offset],
+    queryFn: async (): Promise<WeekData> => {
+      const cur = periodRange("week", offset);
+      const prev = periodRange("week", offset + 1);
+      const [daily, workouts] = await Promise.all([
+        supabase
+          .from("daily_logs")
+          .select("date, weight, kcal, water, steps, sport, care, comment")
+          .eq("user_id", uid)
+          .gte("date", prev.start)
+          .lte("date", cur.end)
+          .order("date", { ascending: true }),
+        supabase
+          .from("workouts")
+          .select("date, workout_sets(weight, reps)")
+          .eq("user_id", uid)
+          .gte("date", cur.start)
+          .lte("date", cur.end),
+      ]);
+      if (daily.error) throw daily.error;
+      if (workouts.error) throw workouts.error;
+      const rows = (daily.data ?? []) as ReportDay[];
+      return {
+        cur: rows.filter((d) => d.date >= cur.start),
+        prev: rows.filter((d) => d.date < cur.start),
+        workouts: (workouts.data ?? []).map((w: any) => ({ sets: w.workout_sets ?? [] })),
+      };
+    },
+  });
+  const error = weekQ.isError ? "Не вдалося завантажити звіт. Спробуй пізніше." : null;
 
-  // Рекорди — раз на візит: тижневий зріз ріжеться клієнтом.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  // Рекорди — окремим кешем: звіт живе й без них, тож помилка тиха.
+  const recordsQ = useQuery({
+    queryKey: ["workouts", uid, "records"],
+    queryFn: async (): Promise<RecordRow[]> => {
       try {
         const [exercises, maxes] = await Promise.all([
           loadUsedExercises(supabase),
           loadExerciseMaxes(supabase, null),
         ]);
-        if (!cancelled) setRecords(buildRecordRows(exercises, maxes));
+        return buildRecordRows(exercises, maxes);
       } catch {
-        // звіт живе й без рекордів
+        return [];
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase]);
+    },
+  });
+  const records = useMemo(() => recordsQ.data ?? [], [recordsQ.data]);
 
-  const ready = data?.offset === offset ? data : null;
+  const ready = weekQ.data ?? null;
   const stats = useMemo(() => (ready ? weekStats(ready.cur, ready.prev) : null), [ready]);
   const gym = useMemo(() => (ready ? sessionsSummary(ready.workouts) : null), [ready]);
   const { start: curStart, end: curEnd } = periodRange("week", offset);

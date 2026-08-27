@@ -19,10 +19,12 @@ import {
 } from "@/lib/cycle/types";
 import { buildCycleCsv, cycleExportFileName, type CycleCsvRow } from "@/lib/csv";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { cn, todayISO } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Minus, Plus } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const PERIOD_MIN = 1;
 const PERIOD_MAX = 12;
@@ -114,26 +116,21 @@ function Row({
 
 export default function CycleSettingsPage() {
   const supabase = useMemo(() => createClient(), []);
-  const [settings, setSettings] = useState<CycleSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const uid = useUid();
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"export" | "delete" | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        setSettings((await loadCycleSettings(supabase, uid)).settings);
-      } catch {
-        setError("Не вдалося завантажити налаштування.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [supabase]);
+  const settingsKey = useMemo(() => ["cycle", uid, "settings"] as const, [uid]);
+  const settingsQ = useQuery({
+    queryKey: settingsKey,
+    queryFn: async () => (await loadCycleSettings(supabase, uid)).settings,
+  });
+  const settings = settingsQ.data ?? null;
+  const loading = settingsQ.isPending;
+  const error =
+    actionError ?? (settingsQ.isError ? "Не вдалося завантажити налаштування." : null);
 
   /**
    * Оптимістично: перемикач мусить відповідати на тап одразу. Якщо запис
@@ -143,30 +140,25 @@ export default function CycleSettingsPage() {
   async function patch(next: Partial<Omit<CycleSettings, "user_id">>) {
     if (!settings) return;
     const prev = settings;
-    setSettings({ ...settings, ...next });
-    setError(null);
+    queryClient.setQueryData<CycleSettings>(settingsKey, { ...settings, ...next });
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       await saveCycleSettings(supabase, uid, next);
+      // ці ж налаштування читають календар циклу й накладка в аналітиці
+      void queryClient.invalidateQueries({ queryKey: ["cycle", uid], refetchType: "none" });
     } catch {
-      setSettings(prev);
-      setError("Не вдалося зберегти. Перевір зʼєднання.");
+      queryClient.setQueryData<CycleSettings>(settingsKey, prev);
+      setActionError("Не вдалося зберегти. Перевір зʼєднання.");
     }
   }
 
   async function exportCsv() {
     setBusy("export");
-    setError(null);
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
-
       const entries = await loadCycleEntries(supabase, uid, "1970-01-01", todayISO());
       if (entries.length === 0) {
-        setError("Записів циклу ще немає — експортувати нічого.");
+        setActionError("Записів циклу ще немає — експортувати нічого.");
         return;
       }
       const cycles = deriveCycles(entries.map((e) => ({ date: e.date, flow: e.flow })));
@@ -181,7 +173,7 @@ export default function CycleSettingsPage() {
       }));
       downloadCsv(buildCycleCsv(rows), cycleExportFileName(todayISO()));
     } catch {
-      setError("Не вдалося зібрати файл. Перевір зʼєднання.");
+      setActionError("Не вдалося зібрати файл. Перевір зʼєднання.");
     } finally {
       setBusy(null);
     }
@@ -189,16 +181,15 @@ export default function CycleSettingsPage() {
 
   async function deleteAll() {
     setBusy("delete");
-    setError(null);
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       await deleteAllCycleData(supabase, uid);
-      setSettings((await loadCycleSettings(supabase, uid)).settings);
+      // зникли і записи, і налаштування — все, що на них дивиться, застаріло
+      await queryClient.invalidateQueries({ queryKey: ["cycle", uid] });
+      await queryClient.invalidateQueries({ queryKey: ["diary", uid] });
       setConfirmOpen(false);
     } catch {
-      setError("Не вдалося видалити дані. Спробуй ще раз.");
+      setActionError("Не вдалося видалити дані. Спробуй ще раз.");
     } finally {
       setBusy(null);
     }

@@ -12,6 +12,7 @@ import {
   SectionLabel,
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import type { Exercise, MuscleGroup, Routine } from "@/lib/types";
 import {
   deleteRoutine,
@@ -22,8 +23,9 @@ import {
   saveRoutine,
 } from "@/lib/workouts-db";
 import type { DraftExercise } from "@/lib/workouts";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface Row {
   key: string;
@@ -43,41 +45,27 @@ const rowKey = () => `r${(seq += 1)}`;
 
 export function RoutinesManager() {
   const supabase = useMemo(() => createClient(), []);
-  const [routines, setRoutines] = useState<Routine[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const uid = useUid();
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = useMemo(
-    () => async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const [rt, ex] = await Promise.all([loadRoutines(supabase, uid), loadExercises(supabase, uid)]);
-        setRoutines(rt);
-        setExercises(ex);
-        const entries = await Promise.all(
-          rt.map(async (r) => [r.id, (await loadRoutineExercises(supabase, r.id)).length] as const),
-        );
-        setCounts(Object.fromEntries(entries));
-      } catch {
-        setError("Не вдалося завантажити шаблони.");
-      } finally {
-        setLoading(false);
-      }
+  const dataQ = useQuery({
+    queryKey: ["workouts", uid, "routines"],
+    queryFn: async () => {
+      const [rt, ex] = await Promise.all([loadRoutines(supabase, uid), loadExercises(supabase, uid)]);
+      const entries = await Promise.all(
+        rt.map(async (r) => [r.id, (await loadRoutineExercises(supabase, r.id)).length] as const),
+      );
+      return { routines: rt, exercises: ex, counts: Object.fromEntries(entries) };
     },
-    [supabase],
-  );
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  });
+  const routines = dataQ.data?.routines ?? [];
+  const exercises = dataQ.data?.exercises ?? [];
+  const counts = dataQ.data?.counts ?? {};
+  const loading = dataQ.isPending;
+  const error = actionError ?? (dataQ.isError ? "Не вдалося завантажити шаблони." : null);
 
   async function openEditor(r: Routine | null) {
     if (!r) {
@@ -123,15 +111,12 @@ export function RoutinesManager() {
   async function save() {
     if (!editor) return;
     if (!editor.name.trim()) {
-      setError("Вкажи назву шаблону.");
+      setActionError("Вкажи назву шаблону.");
       return;
     }
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
       const drafts: DraftExercise[] = editor.rows
         .filter((r) => r.name.trim())
         .map((r) => ({ key: r.key, exerciseId: r.exerciseId, name: r.name, muscleGroup: r.muscleGroup, sets: [] }));
@@ -139,9 +124,12 @@ export function RoutinesManager() {
       const exerciseIds = drafts.map((d) => idMap.get(d.key)).filter((v): v is string => !!v);
       await saveRoutine(supabase, uid, editor.name, exerciseIds, editor.id);
       setEditor(null);
-      await load();
+      // шаблони й вправи читає також редактор сесії — зносимо його кеш,
+      // бо той засівається один раз на маунт
+      queryClient.removeQueries({ queryKey: ["workouts", uid, "editor"] });
+      await queryClient.invalidateQueries({ queryKey: ["workouts", uid] });
     } catch {
-      setError("Не вдалося зберегти шаблон.");
+      setActionError("Не вдалося зберегти шаблон.");
     } finally {
       setSaving(false);
     }
@@ -152,9 +140,10 @@ export function RoutinesManager() {
     try {
       await deleteRoutine(supabase, id);
       setEditor(null);
-      await load();
+      queryClient.removeQueries({ queryKey: ["workouts", uid, "editor"] });
+      await queryClient.invalidateQueries({ queryKey: ["workouts", uid] });
     } catch {
-      setError("Не вдалося видалити шаблон.");
+      setActionError("Не вдалося видалити шаблон.");
     } finally {
       setSaving(false);
     }
@@ -254,7 +243,7 @@ export function RoutinesManager() {
           </div>
           <div className="mt-4 flex gap-2">
             <Button type="button" onClick={save} loading={saving}>Зберегти</Button>
-            <Button type="button" variant="outline" onClick={() => { setEditor(null); setError(null); }}>Скасувати</Button>
+            <Button type="button" variant="outline" onClick={() => { setEditor(null); setActionError(null); }}>Скасувати</Button>
           </div>
           {editor.id && (
             <button type="button" onClick={() => remove(editor.id!)} className="mt-3 w-full text-center text-[13px] font-extrabold text-neg">

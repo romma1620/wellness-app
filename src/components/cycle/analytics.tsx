@@ -16,8 +16,10 @@ import {
   type Phase,
 } from "@/lib/cycle/types";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { addDays, fmt, todayISO } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 
 /** Скільки останніх циклів іде в «середню вагу по фазах». */
 export const PHASE_WEIGHT_CYCLES = 3;
@@ -46,58 +48,61 @@ export interface PhaseOverlay {
  * і якщо вона не приїхала, аналітика мусить показати себе без неї, а не
  * банер про зламаний цикл.
  */
+interface OverlayData {
+  settings: CycleSettings;
+  entries: CycleEntry[];
+}
+
 export function usePhaseOverlay(): PhaseOverlay {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const today = useMemo(() => todayISO(), []);
 
-  const [settings, setSettings] = useState<CycleSettings | null>(null);
-  const [showBands, setShow] = useState(false);
-  const [entries, setEntries] = useState<CycleEntry[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const overlayKey = useMemo(() => ["cycle", uid, "overlay", today], [uid, today]);
+  const { data } = useQuery({
+    queryKey: overlayKey,
+    // Помилка тиха: цикл — накладка на графік ваги, аналітика мусить
+    // показати себе й без неї, тож queryFn віддає null замість кидання.
+    queryFn: async (): Promise<OverlayData | null> => {
       try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) return;
         const { settings } = await loadCycleSettings(supabase, uid);
-        if (cancelled) return;
-        setSettings(settings);
-        setShow(settings.phase_bands_in_charts);
-        if (!settings.enabled) return;
-
-        const rows = await loadCycleEntries(
+        if (!settings.enabled) return { settings, entries: [] };
+        const entries = await loadCycleEntries(
           supabase,
           uid,
           addDays(today, -730),
           addDays(today, 90),
         );
-        if (!cancelled) setEntries(rows);
+        return { settings, entries };
       } catch {
-        // без накладки, але з робочою аналітикою
+        return null;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, today]);
+    },
+  });
+  const settings = data?.settings ?? null;
+  const entries = useMemo(() => data?.entries ?? [], [data]);
+  const showBands = settings?.phase_bands_in_charts ?? false;
 
   const setShowBands = useCallback(
     (v: boolean) => {
-      setShow(v);
+      // Оптимістично в кеш: тумблер відповідає на тап одразу й однаково
+      // для всіх споживачів кешу.
+      queryClient.setQueryData<OverlayData | null>(overlayKey, (old) =>
+        old
+          ? { ...old, settings: { ...old.settings, phase_bands_in_charts: v } }
+          : old,
+      );
       void (async () => {
         try {
-          const { data: u } = await supabase.auth.getUser();
-          const uid = u.user?.id;
-          if (uid) await saveCycleSettings(supabase, uid, { phase_bands_in_charts: v });
+          await saveCycleSettings(supabase, uid, { phase_bands_in_charts: v });
         } catch {
           // тумблер лишається там, куди його поставили: перезбереження
           // при наступному перемиканні дешевше за відкат під пальцем
         }
       })();
     },
-    [supabase],
+    [supabase, uid, queryClient, overlayKey],
   );
 
   const cycles = useMemo(

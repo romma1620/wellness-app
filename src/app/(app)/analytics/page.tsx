@@ -17,6 +17,7 @@ import { cycleDayFor } from "@/lib/cycle/derive";
 import type { DatedValue } from "@/lib/cycle/insights";
 import { bandsForSeries, phaseAt } from "@/lib/cycle/phases";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import type { DailyLog } from "@/lib/types";
 import {
   addDays,
@@ -37,11 +38,16 @@ import {
   todayISO,
   weekBuckets,
 } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 const WD = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
+// Стабільні порожні значення: `data ?? []` новим масивом щорендера ламав би мемоїзацію.
+const EMPTY_LOGS: DailyLog[] = [];
+const EMPTY_WEIGHTS: DatedValue[] = [];
 
 type MetricKey = "weight" | "kcal" | "protein" | "fat" | "carbs" | "steps" | "water";
 const METRICS: {
@@ -65,19 +71,13 @@ type Mode = PeriodType | "custom";
 
 export default function AnalyticsPage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
   const [period, setPeriod] = useState<Mode>("week");
   const [curOffset, setCurOffset] = useState(0); // 0 = поточний період
   const [cmpOffset, setCmpOffset] = useState(1); // 1 = попередній період
   const [customStart, setCustomStart] = useState(() => addDays(todayISO(), -29));
   const [customEnd, setCustomEnd] = useState(() => todayISO());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [logs, setLogs] = useState<DailyLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // null = історія ще не завантажилась; [] = завантажилась, але порожня (справжній запасний шлях).
-  const [careHistory, setCareHistory] = useState<CareHistoryRow[] | null>(null);
-  /** Вага за останні цикли — окремо від періоду, бо цикли в нього не вміщаються. */
-  const [phaseWeights, setPhaseWeights] = useState<DatedValue[]>([]);
 
   const overlay = usePhaseOverlay();
   const { ranges: cycleRanges, cycles: cycleList, cycleStarts, phaseWindowStart } = overlay;
@@ -114,44 +114,34 @@ export default function AnalyticsPage() {
     if (p === "custom") setPickerOpen(true);
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
-        const { data, error } = await supabase
-          .from("daily_logs")
-          .select("*")
-          .eq("user_id", uid)
-          .gte("date", fetchStart)
-          .lte("date", latest)
-          .order("date", { ascending: true });
-        if (error) throw error;
-        if (!cancelled) setLogs((data ?? []) as DailyLog[]);
-      } catch {
-        if (!cancelled) setError("Не вдалося завантажити дані. Спробуй пізніше.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, fetchStart, latest]);
+  const logsQ = useQuery({
+    queryKey: ["diary", uid, "analytics", fetchStart, latest],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("daily_logs")
+        .select("*")
+        .eq("user_id", uid)
+        .gte("date", fetchStart)
+        .lte("date", latest)
+        .order("date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as DailyLog[];
+    },
+  });
+  const logs = logsQ.data ?? EMPTY_LOGS;
+  const loading = logsQ.isPending;
+  const error = logsQ.isError ? "Не вдалося завантажити дані. Спробуй пізніше." : null;
 
   // Кольори доглядів мають бути стабільні між періодами, тому порядок першої появи
-  // беремо з усієї історії. Помилка тут не критична — нижче є запасний шлях.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  // беремо з усієї історії. Помилка тут не критична (запасний шлях нижче), тож
+  // queryFn не кидає, а віддає порожню історію.
+  const careQ = useQuery({
+    queryKey: ["diary", uid, "care-history"],
+    // Порядок першої появи тега незмінний — кеш живе довго, а після
+    // редагування дня його все одно інвалідовує збереження щоденника.
+    staleTime: 60 * 60_000,
+    queryFn: async (): Promise<CareHistoryRow[]> => {
       try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) return;
         // Запит навмисно без ліміту: навіть якщо PostgREST обріже max-rows,
         // order("date", ascending: true) лишає найстаріші рядки — порядок першої
         // появи, а отже й колір кожного тега, збережеться.
@@ -162,49 +152,38 @@ export default function AnalyticsPage() {
           .not("care", "is", null)
           .order("date", { ascending: true });
         if (error) throw error;
-        if (!cancelled) setCareHistory((data ?? []) as CareHistoryRow[]);
+        return (data ?? []) as CareHistoryRow[];
       } catch {
-        if (!cancelled) setCareHistory([]);
+        return [];
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase]);
+    },
+  });
+  // undefined = історія ще не завантажилась; [] = завантажилась, але порожня.
+  const careHistory = careQ.data ?? null;
 
   // Вага по фазах рахується за останні цикли, а не за вибраний період:
-  // порівнювати фази всередині одного тижня нема сенсу.
-  useEffect(() => {
-    // Поки смуги вимкнені, ці ваги ніхто не читає — не тягнемо їх і не
-    // скидаємо: скидання тут було б зайвим рендером на кожен рух тумблера.
-    if (!bandsOn || !phaseWindowStart) return;
-    let cancelled = false;
-    (async () => {
+  // порівнювати фази всередині одного тижня нема сенсу. Поки смуги вимкнені,
+  // запит не йде (enabled), а вже завантажене живе в кеші.
+  const phaseQ = useQuery({
+    queryKey: ["diary", uid, "phase-weights", phaseWindowStart],
+    enabled: bandsOn && phaseWindowStart !== null,
+    queryFn: async (): Promise<DatedValue[]> => {
       try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) return;
         const { data, error } = await supabase
           .from("daily_logs")
           .select("date, weight")
           .eq("user_id", uid)
-          .gte("date", phaseWindowStart)
+          .gte("date", phaseWindowStart!)
           .not("weight", "is", null)
           .order("date", { ascending: true });
         if (error) throw error;
-        if (!cancelled) {
-          setPhaseWeights(
-            (data ?? []).map((r) => ({ date: r.date as string, value: r.weight as number })),
-          );
-        }
+        return (data ?? []).map((r) => ({ date: r.date as string, value: r.weight as number }));
       } catch {
-        if (!cancelled) setPhaseWeights([]);
+        return [];
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase, bandsOn, phaseWindowStart]);
+    },
+  });
+  const phaseWeights = phaseQ.data ?? EMPTY_WEIGHTS;
 
   const byDate = useMemo(() => {
     const m = new Map<string, DailyLog>();

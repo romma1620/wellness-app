@@ -27,7 +27,9 @@ import {
   type EntryDraft,
 } from "@/lib/cycle/types";
 import { createClient } from "@/lib/supabase/client";
+import { useUid } from "@/components/UserProvider";
 import { addDays, addMonths, monthEnd, monthStartOf, todayISO } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -51,15 +53,17 @@ function localEntry(date: string, draft: EntryDraft, prev: CycleEntry | undefine
   };
 }
 
+interface CycleData {
+  settings: CycleSettings;
+  onboarded: boolean;
+  entries: CycleEntry[];
+}
+
 export default function CyclePage() {
   const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const queryClient = useQueryClient();
   const today = useMemo(() => todayISO(), []);
-
-  const [settings, setSettings] = useState<CycleSettings | null>(null);
-  const [onboarded, setOnboarded] = useState(false);
-  const [entries, setEntries] = useState<CycleEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [viewMonth, setViewMonth] = useState(() => monthStartOf(todayISO()));
   const [sheetDate, setSheetDate] = useState<string | null>(null);
@@ -84,43 +88,41 @@ export default function CyclePage() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<{ date: string; draft: EntryDraft } | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      if (!uid) throw new Error("no-user");
+  const cycleKey = useMemo(
+    () => ["cycle", uid, "data", fetchFrom, fetchTo],
+    [uid, fetchFrom, fetchTo],
+  );
+  const dataQ = useQuery({
+    queryKey: cycleKey,
+    queryFn: async (): Promise<CycleData> => {
       const [s, e] = await Promise.all([
         loadCycleSettings(supabase, uid),
         loadCycleEntries(supabase, uid, fetchFrom, fetchTo),
       ]);
-      setSettings(s.settings);
-      setOnboarded(s.onboarded);
-      setEntries(e);
-    } catch {
-      setError("Не вдалося завантажити дані циклу. Перевір зʼєднання.");
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase, fetchFrom, fetchTo]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return { settings: s.settings, onboarded: s.onboarded, entries: e };
+    },
+  });
+  const settings = dataQ.data?.settings ?? null;
+  const onboarded = dataQ.data?.onboarded ?? false;
+  const entries = useMemo(() => dataQ.data?.entries ?? [], [dataQ.data]);
+  const loading = dataQ.isPending;
+  const error = dataQ.isError ? "Не вдалося завантажити дані циклу. Перевір зʼєднання." : null;
 
   const commit = useCallback(
     async (date: string, next: EntryDraft) => {
       try {
-        const { data: u } = await supabase.auth.getUser();
-        const uid = u.user?.id;
-        if (!uid) throw new Error("no-user");
         await saveCycleEntry(supabase, uid, date, next);
         setSaveState("saved");
+        // Активний запит не рефетчимо (обганяв би наступні тапи), лише
+        // позначаємо застарілим — наступний маунт підтягне серверні рядки
+        // замість синтетичних local:*. Похідні екрани — звичайна інвалідація.
+        void queryClient.invalidateQueries({ queryKey: ["cycle", uid], refetchType: "none" });
+        void queryClient.invalidateQueries({ queryKey: ["diary", uid] });
       } catch {
         setSaveState("error");
       }
     },
-    [supabase],
+    [supabase, uid, queryClient],
   );
 
   /** Негайно відправити відкладене: закриття панелі, згортання, unmount. */
@@ -214,11 +216,13 @@ export default function CyclePage() {
     const next: EntryDraft = { ...draft, ...patch };
     setDraft(next);
 
-    setEntries((prev) => {
-      const rest = prev.filter((e) => e.date !== sheetDate);
-      if (isEmptyDraft(next)) return rest;
-      const row = localEntry(sheetDate, next, prev.find((e) => e.date === sheetDate));
-      return [...rest, row].sort((a, b) => a.date.localeCompare(b.date));
+    // Оптимістично просто в кеш: календар і статуси читають звідти ж.
+    queryClient.setQueryData<CycleData>(cycleKey, (prev) => {
+      if (!prev) return prev;
+      const rest = prev.entries.filter((e) => e.date !== sheetDate);
+      if (isEmptyDraft(next)) return { ...prev, entries: rest };
+      const row = localEntry(sheetDate, next, prev.entries.find((e) => e.date === sheetDate));
+      return { ...prev, entries: [...rest, row].sort((a, b) => a.date.localeCompare(b.date)) };
     });
 
     setSaveState("saving");
@@ -230,19 +234,11 @@ export default function CyclePage() {
     }, SAVE_DEBOUNCE_MS);
   };
 
-  async function requireUid(): Promise<string> {
-    const { data: u } = await supabase.auth.getUser();
-    const uid = u.user?.id;
-    if (!uid) throw new Error("no-user");
-    return uid;
-  }
-
   /** Перший запуск: створює рядок налаштувань і перший день менструації. */
   async function finishOnboarding(v: {
     lastPeriodStart: string;
     typicalCycleLength: number;
   }) {
-    const uid = await requireUid();
     await saveCycleSettings(supabase, uid, {
       enabled: true,
       typical_cycle_length: v.typicalCycleLength,
@@ -257,7 +253,7 @@ export default function CyclePage() {
       notes: null,
     });
     setViewMonth(monthStartOf(v.lastPeriodStart));
-    await load();
+    await queryClient.invalidateQueries({ queryKey: ["cycle", uid] });
   }
 
   /**
@@ -265,8 +261,8 @@ export default function CyclePage() {
    * у базі, а зайвий «перший день менструації» тут зсунув би всі цикли.
    */
   async function reEnable() {
-    await saveCycleSettings(supabase, await requireUid(), { enabled: true });
-    await load();
+    await saveCycleSettings(supabase, uid, { enabled: true });
+    await queryClient.invalidateQueries({ queryKey: ["cycle", uid] });
   }
 
   if (loading) {
