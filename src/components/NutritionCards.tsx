@@ -20,7 +20,11 @@ const ZONE_HINTS = {
 } as const;
 
 /** Картки аналітики харчування. Рахується з уже завантажених логів періоду. */
-export function NutritionCards({ logs }: { logs: DailyLog[] }) {
+export function NutritionCards({
+  logs,
+}: {
+  logs: Pick<DailyLog, "date" | "weight" | "kcal" | "protein" | "fat" | "carbs">[];
+}) {
   const split = macroSplit(logs);
   const gPerKg = proteinPerKg(
     avg(logs.map((l) => l.protein)),

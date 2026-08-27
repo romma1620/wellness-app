@@ -12,11 +12,11 @@ import {
   Input,
   SectionLabel,
 } from "@/components/ui";
+import { useProfile, useRecentWeights, useRewards } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
-import type { DailyLog, Profile, Reward } from "@/lib/types";
 import { addDays, cn, fmt, todayISO } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 interface Editor {
@@ -33,37 +33,28 @@ export default function GoalsPage() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const goalsQ = useQuery({
-    queryKey: ["diary", uid, "goals"],
-    queryFn: async () => {
-      const [{ data: rw }, { data: pr }, { data: logs }] = await Promise.all([
-        supabase.from("rewards").select("*").eq("user_id", uid).order("weight", { ascending: true }),
-        supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-        supabase
-          .from("daily_logs")
-          .select("date, weight")
-          .eq("user_id", uid)
-          .gte("date", addDays(todayISO(), -30))
-          .order("date", { ascending: true }),
-      ]);
+  // Спільні запити з прогнозом і «Профілем» — на сторінці нуль власних.
+  const profileQ = useProfile();
+  const rewardsQ = useRewards();
+  const weightsQ = useRecentWeights();
 
-      const rows = (logs ?? []) as Pick<DailyLog, "date" | "weight">[];
-      const withWeight = rows.filter((r) => r.weight != null);
-      const last7 = rows.filter((r) => r.date >= addDays(todayISO(), -6) && r.weight != null);
-      return {
-        rewards: (rw ?? []) as Reward[],
-        profile: (pr ?? null) as Profile | null,
-        latestWeight: withWeight.length ? withWeight[withWeight.length - 1].weight! : null,
-        min7: last7.length ? Math.min(...last7.map((r) => r.weight!)) : null,
-      };
-    },
-  });
-  const rewards = useMemo(() => goalsQ.data?.rewards ?? [], [goalsQ.data]);
-  const profile = goalsQ.data?.profile ?? null;
-  const latestWeight = goalsQ.data?.latestWeight ?? null;
-  const min7 = goalsQ.data?.min7 ?? null;
-  const loading = goalsQ.isPending;
-  const error = actionError ?? (goalsQ.isError ? "Не вдалося завантажити цілі." : null);
+  const rewards = useMemo(() => rewardsQ.data ?? [], [rewardsQ.data]);
+  const profile = profileQ.data ?? null;
+  const { latestWeight, min7 } = useMemo(() => {
+    // Семантика як раніше: остання вага й мінімум тижня — в межах 30 днів.
+    const rows = (weightsQ.data ?? []).filter((r) => r.date >= addDays(todayISO(), -30));
+    const last7 = rows.filter((r) => r.date >= addDays(todayISO(), -6));
+    return {
+      latestWeight: rows.length ? rows[rows.length - 1].weight : null,
+      min7: last7.length ? Math.min(...last7.map((r) => r.weight)) : null,
+    };
+  }, [weightsQ.data]);
+  const loading = profileQ.isPending || rewardsQ.isPending || weightsQ.isPending;
+  const error =
+    actionError ??
+    (profileQ.isError || rewardsQ.isError || weightsQ.isError
+      ? "Не вдалося завантажити цілі."
+      : null);
 
   // Обчислення статусів сходинок.
   const computed = useMemo(() => {
@@ -87,7 +78,7 @@ export default function GoalsPage() {
 
   // Синхронізуємо збережений прапорець achieved (best-effort).
   useEffect(() => {
-    if (!goalsQ.data) return;
+    if (!rewardsQ.data || !weightsQ.data) return;
     rewards.forEach((r) => {
       const a = computed.isAchieved(r.weight);
       if (a !== r.achieved) {
@@ -95,7 +86,7 @@ export default function GoalsPage() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goalsQ.data]);
+  }, [rewardsQ.data, weightsQ.data]);
 
   async function saveEditor() {
     if (!editor) return;

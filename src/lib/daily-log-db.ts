@@ -5,26 +5,51 @@ import { addDays } from "@/lib/utils";
 
 type SB = SupabaseClient;
 
+/** Колонки, з яких збирається форма дня; службові (id, updated_at) не потрібні. */
+export type DayRow = Pick<
+  DailyLog,
+  | "date"
+  | "weight"
+  | "kcal"
+  | "protein"
+  | "fat"
+  | "carbs"
+  | "water"
+  | "steps"
+  | "sport"
+  | "care"
+  | "comment"
+>;
+const DAY_COLUMNS = "date, weight, kcal, protein, fat, carbs, water, steps, sport, care, comment";
+
 export interface DayWindow {
-  current: DailyLog | null;
+  current: DayRow | null;
   /** Найраніша вага за попередні 7 днів — база для тижневої дельти. */
   baselineWeight: number | null;
 }
 
 export async function loadDayWindow(sb: SB, uid: string, date: string): Promise<DayWindow> {
-  const { data, error } = await sb
-    .from("daily_logs")
-    .select("*")
-    .eq("user_id", uid)
-    .gte("date", addDays(date, -7))
-    .lte("date", date)
-    .order("date", { ascending: true });
-  if (error) throw error;
+  // Два вузькі запити паралельно замість восьми повних рядків: базовій вазі
+  // потрібне одне число, а не тексти коментарів за весь тиждень.
+  const [cur, base] = await Promise.all([
+    sb.from("daily_logs").select(DAY_COLUMNS).eq("user_id", uid).eq("date", date).maybeSingle(),
+    sb
+      .from("daily_logs")
+      .select("weight")
+      .eq("user_id", uid)
+      .gte("date", addDays(date, -7))
+      .lt("date", date)
+      .not("weight", "is", null)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (cur.error) throw cur.error;
+  if (base.error) throw base.error;
 
-  const rows = (data ?? []) as DailyLog[];
   return {
-    current: rows.find((r) => r.date === date) ?? null,
-    baselineWeight: rows.find((r) => r.date !== date && r.weight != null)?.weight ?? null,
+    current: (cur.data ?? null) as DayRow | null,
+    baselineWeight: (base.data?.weight ?? null) as number | null,
   };
 }
 

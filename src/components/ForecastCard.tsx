@@ -1,89 +1,58 @@
 "use client";
 
 import { Card } from "@/components/ui";
-import { useUid } from "@/components/UserProvider";
 import { etaTo, weightTrend, TREND_WINDOW_DAYS, type Eta } from "@/lib/forecast";
-import { createClient } from "@/lib/supabase/client";
-import type { Reward } from "@/lib/types";
+import { useProfile, useRecentWeights, useRewards } from "@/lib/queries";
 import { addDays, cn, fmt, plural, shortDate, todayISO } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-
-interface Loaded {
-  weights: { date: string; weight: number | null }[];
-  targetWeight: number | null;
-  rewards: Pick<Reward, "weight" | "gift">[];
-}
 
 /**
  * Прогноз досягнення цілі за поточним трендом ваги.
  *
- * Дані тягне сам: картка живе на двох сторінках («Цілі», «Аналітика»), і
- * жодна з них не завантажує потрібне вікно ваг цілком. Поки прогнозу немає
- * (мало даних, тренд не вниз) — не рендерить нічого: обіцянка без підстав
- * гірша за відсутність картки.
+ * Дані — зі спільних запитів (queries.ts): ті самі ваги, профіль і
+ * винагороди читають «Цілі» й «Профіль», тож картка не додає жодного
+ * власного запиту. Поки прогнозу немає (дані не приїхали, мало даних,
+ * тренд не вниз) — не рендерить нічого: помилка тут теж тиха, бо
+ * прогноз — бонус поверх сторінки, а не її зміст.
  */
 export function ForecastCard() {
-  const supabase = useMemo(() => createClient(), []);
-  const uid = useUid();
   const today = useMemo(() => todayISO(), []);
 
-  const { data } = useQuery({
-    queryKey: ["diary", uid, "forecast", today],
-    // Помилка тиха: прогноз — бонус поверх сторінки, а не її зміст,
-    // тож queryFn віддає null замість кидання.
-    queryFn: async (): Promise<Loaded | null> => {
-      try {
-        const [logs, profile, rewards] = await Promise.all([
-          supabase
-            .from("daily_logs")
-            .select("date, weight")
-            .eq("user_id", uid)
-            .gte("date", addDays(today, -TREND_WINDOW_DAYS))
-            .not("weight", "is", null)
-            .order("date", { ascending: true }),
-          supabase.from("profiles").select("target_weight").eq("id", uid).maybeSingle(),
-          supabase.from("rewards").select("weight, gift").eq("user_id", uid),
-        ]);
-        if (logs.error || rewards.error) throw logs.error ?? rewards.error;
-        return {
-          weights: (logs.data ?? []) as Loaded["weights"],
-          targetWeight: (profile.data?.target_weight ?? null) as number | null,
-          rewards: (rewards.data ?? []) as Loaded["rewards"],
-        };
-      } catch {
-        return null;
-      }
-    },
-  });
+  const profileQ = useProfile();
+  const rewardsQ = useRewards();
+  const weightsQ = useRecentWeights();
+  const ready = profileQ.isSuccess && rewardsQ.isSuccess && weightsQ.isSuccess;
 
   const view = useMemo(() => {
-    if (!data) return null;
-    const trend = weightTrend(data.weights, today);
+    if (!ready) return null;
+    const weights = weightsQ.data;
+    const rewards = rewardsQ.data;
+    const targetWeight = profileQ.data?.target_weight ?? null;
+
+    const trend = weightTrend(weights, today);
     if (!trend) return null;
 
     // «наступна сходинка» — як на «Цілях»: найбільша вага серед недосягнутих,
     // досягнутість — за мінімумом останніх 7 днів
-    const last7 = data.weights.filter((r) => r.date >= addDays(today, -6) && r.weight != null);
-    const min7 = last7.length ? Math.min(...last7.map((r) => r.weight!)) : null;
-    const unachieved = data.rewards.filter((r) => min7 == null || min7 > r.weight);
+    const last7 = weights.filter((r) => r.date >= addDays(today, -6));
+    const min7 = last7.length ? Math.min(...last7.map((r) => r.weight)) : null;
+    const unachieved = rewards.filter((r) => min7 == null || min7 > r.weight);
     const nextStep = unachieved.length
       ? unachieved.reduce((a, b) => (a.weight > b.weight ? a : b))
       : null;
 
     const stepEta = nextStep ? etaTo(trend, nextStep.weight, today) : null;
-    const targetEta =
-      data.targetWeight != null ? etaTo(trend, data.targetWeight, today) : null;
+    const targetEta = targetWeight != null ? etaTo(trend, targetWeight, today) : null;
     if (!stepEta && !targetEta) return null;
 
     return {
       perWeek: trend.slope * 7,
       nextStep,
       stepEta,
-      targetWeight: data.targetWeight,
+      targetWeight,
       targetEta,
     };
-  }, [data, today]);
+  }, [ready, weightsQ.data, rewardsQ.data, profileQ.data, today]);
 
   if (!view) return null;
 

@@ -3,12 +3,13 @@
 import { useTheme } from "@/components/ThemeProvider";
 import { ExportSheet } from "@/components/ExportSheet";
 import { Button, Card, ErrorBanner, FieldLabel, FullLoader, Input, SectionLabel, Segmented } from "@/components/ui";
+import { useProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import type { ThemeMode } from "@/lib/theme-mode";
-import type { Profile, ThemeName } from "@/lib/types";
+import type { ThemeName } from "@/lib/types";
 import { parseNum } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -44,18 +45,7 @@ export default function SettingsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
 
-  const profileQ = useQuery({
-    queryKey: ["profile", uid],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", uid)
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as Profile | null;
-    },
-  });
+  const profileQ = useProfile();
   const profile = profileQ.data ?? null;
   const loading = profileQ.isPending;
   const error = actionError ?? (profileQ.isError ? "Не вдалося завантажити профіль." : null);

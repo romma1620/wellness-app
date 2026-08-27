@@ -45,8 +45,15 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 const WD = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
+/** Колонки, які реально читає ця сторінка: sport і comment сюди не потрібні. */
+type AnalyticsLog = Pick<
+  DailyLog,
+  "date" | "weight" | "kcal" | "protein" | "fat" | "carbs" | "water" | "steps" | "care"
+>;
+const ANALYTICS_COLUMNS = "date, weight, kcal, protein, fat, carbs, water, steps, care";
+
 // Стабільні порожні значення: `data ?? []` новим масивом щорендера ламав би мемоїзацію.
-const EMPTY_LOGS: DailyLog[] = [];
+const EMPTY_LOGS: AnalyticsLog[] = [];
 const EMPTY_WEIGHTS: DatedValue[] = [];
 
 type MetricKey = "weight" | "kcal" | "protein" | "fat" | "carbs" | "steps" | "water";
@@ -119,13 +126,13 @@ export default function AnalyticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_logs")
-        .select("*")
+        .select(ANALYTICS_COLUMNS)
         .eq("user_id", uid)
         .gte("date", fetchStart)
         .lte("date", latest)
         .order("date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as DailyLog[];
+      return (data ?? []) as unknown as AnalyticsLog[];
     },
   });
   const logs = logsQ.data ?? EMPTY_LOGS;
@@ -141,6 +148,18 @@ export default function AnalyticsPage() {
     // редагування дня його все одно інвалідовує збереження щоденника.
     staleTime: 60 * 60_000,
     queryFn: async (): Promise<CareHistoryRow[]> => {
+      // Спершу RPC care_first_seen: по рядку на тег замість усієї історії —
+      // саме цей запит ріс разом із даними юзера. Результат синтезуємо у
+      // формат історії, який уже вміє buildCareColorMap.
+      try {
+        const { data, error } = await supabase.rpc("care_first_seen");
+        if (error) throw error;
+        return ((data ?? []) as { tag: string; first_date: string }[])
+          .map((r) => ({ date: r.first_date, care: r.tag }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+      } catch {
+        // RPC ще не розкочена — старий повний запит як запасний шлях.
+      }
       try {
         // Запит навмисно без ліміту: навіть якщо PostgREST обріже max-rows,
         // order("date", ascending: true) лишає найстаріші рядки — порядок першої
@@ -186,15 +205,21 @@ export default function AnalyticsPage() {
   const phaseWeights = phaseQ.data ?? EMPTY_WEIGHTS;
 
   const byDate = useMemo(() => {
-    const m = new Map<string, DailyLog>();
+    const m = new Map<string, AnalyticsLog>();
     logs.forEach((l) => m.set(l.date, l));
     return m;
   }, [logs]);
 
-  const curLogs = logs.filter((l) => l.date >= curStart && l.date <= curEnd);
-  const cmpLogs = logs.filter((l) => l.date >= cmpStart && l.date <= cmpEnd);
+  const curLogs = useMemo(
+    () => logs.filter((l) => l.date >= curStart && l.date <= curEnd),
+    [logs, curStart, curEnd],
+  );
+  const cmpLogs = useMemo(
+    () => logs.filter((l) => l.date >= cmpStart && l.date <= cmpEnd),
+    [logs, cmpStart, cmpEnd],
+  );
 
-  const metricAvg = (rows: DailyLog[], key: keyof DailyLog) =>
+  const metricAvg = (rows: AnalyticsLog[], key: keyof AnalyticsLog) =>
     avg(rows.map((r) => r[key] as number | null));
 
   const periodDates = useMemo(

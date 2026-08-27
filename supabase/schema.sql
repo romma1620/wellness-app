@@ -346,6 +346,26 @@ as $$
   order by s.exercise_id, s.weight desc, s.reps desc, w.date desc;
 $$;
 
+-- Порядок першої появи кожного тега догляду за всю історію.
+-- Живить стабільні кольори тегів в аналітиці: раніше клієнт тягнув усі рядки
+-- daily_logs з care, і запит ріс разом з історією; тут — по рядку на тег.
+-- Дзеркалить splitTags() зі src/lib/utils.ts (кома, трім, без порожніх) і
+-- careKey() (без регістру); tag — перший вжитий варіант написання.
+create or replace function public.care_first_seen()
+returns table (tag text, first_date date)
+language sql
+stable
+security invoker
+as $$
+  select distinct on (lower(btrim(t.tag))) btrim(t.tag), d.date
+  from public.daily_logs d
+  cross join lateral unnest(string_to_array(d.care, ',')) as t(tag)
+  where d.user_id = auth.uid()
+    and d.care is not null
+    and btrim(t.tag) <> ''
+  order by lower(btrim(t.tag)), d.date asc;
+$$;
+
 -- Під used_exercises() і вибірку сетів однієї вправи для графіка прогресу.
 -- exercise_maxes() цей індекс не прискорює: там усе одно потрібні seq scan
 -- по workout_sets, join з workouts і сортування за (exercise_id, weight desc,

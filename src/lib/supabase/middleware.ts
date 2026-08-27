@@ -27,12 +27,17 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // ВАЖЛИВО: не додавати код між createServerClient та getUser().
+  // ВАЖЛИВО: не додавати код між createServerClient та getClaims().
+  // getClaims() замість getUser(): при ввімкнених asymmetric signing keys
+  // підпис JWT перевіряється локально (JWKS кешується глобально на процес),
+  // тож навігація не чекає на круговий запит до Supabase Auth; на legacy
+  // HS256-секреті метод сам відкочується до серверної перевірки getUser().
   // Якщо бекенд недоступний — не валимо весь застосунок, вважаємо гостем.
-  let user = null;
+  let user: { id: string } | null = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+    const { data } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    user = sub ? { id: sub } : null;
   } catch {
     user = null;
   }

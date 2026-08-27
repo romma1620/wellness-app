@@ -44,7 +44,9 @@ function isTextKey(key: keyof DailyForm): key is TextKey {
   return (TEXT_KEYS as readonly string[]).includes(key);
 }
 
-export function formFromRow(row: DailyLog | null | undefined): DailyForm {
+export function formFromRow(
+  row: Pick<DailyLog, keyof DailyForm> | null | undefined,
+): DailyForm {
   if (!row) return EMPTY_DAY;
   return {
     weight: row.weight,
