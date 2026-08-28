@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
+import { Icon, type IconName } from "@/components/icons";
 import { ScatterChart } from "@/components/insights/ScatterChart";
 import { Card } from "@/components/ui";
 import { strengthOf, type PairAnalysis } from "@/lib/correlations";
 import { cn, fmt, plural } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
 
 export interface PairCopy {
-  icon: ReactNode;
-  /** Фон квадрата іконки. */
-  tint: string;
+  /** Іконка плитки — з набору застосунку. */
+  icon: IconName;
+  /** Колір даних пари (hex, як у дизайні): тінт плитки 16% + колір іконки. */
+  hex: string;
   xAxisLabel: string;
   xTickFormat?: (v: number) => string;
   zeroLine: boolean;
@@ -56,21 +57,24 @@ export function PairInsightCard({
   const weeksLabel = `${analysis.n} ${plural(analysis.n, "тиждень", "тижні", "тижнів")}`;
 
   return (
-    <Card className="!p-4">
+    <Card>
       <div className="flex items-start gap-[13px]">
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: copy.tint }}
+          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
+          style={{
+            background: `color-mix(in oklab, ${copy.hex} 16%, var(--surface))`,
+            color: copy.hex,
+          }}
         >
-          {copy.icon}
+          <Icon name={copy.icon} size={17} strokeWidth={1.7} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-extrabold [text-wrap:pretty]">{title}</div>
-          <div className="mt-0.5 text-[12.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+          <div className="text-[14px] font-bold [text-wrap:pretty]">{title}</div>
+          <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
             {text}
           </div>
-          <div className="mt-1.5 flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted">
+          <div className="mt-[10px] flex items-center justify-between">
+            <span className="text-[11px] font-medium text-muted">
               {analysis.state === "collecting"
                 ? `${weeksLabel} з ${analysis.needed}`
                 : `${weeksLabel} · останні 6 міс`}
@@ -79,20 +83,20 @@ export function PairInsightCard({
               <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="flex items-center gap-0.5 text-[12px] font-extrabold text-primary"
+                aria-expanded={open}
+                className="flex items-center gap-[3px] text-[12px] font-semibold text-accent"
               >
                 Деталі
-                <ChevronDown
-                  size={14}
-                  className={cn("transition-transform", open && "rotate-180")}
-                />
+                <span className={cn("flex transition-transform", open && "rotate-180")}>
+                  <Icon name="chevronDown" size={13} strokeWidth={1.8} />
+                </span>
               </button>
             )}
           </div>
         </div>
       </div>
       {expandable && open && (
-        <div className="mt-3 border-t border-bg pt-3">
+        <div className="mt-3 border-t border-line pt-3">
           <ScatterChart
             points={analysis.points}
             xLabel={copy.xAxisLabel}
@@ -101,7 +105,7 @@ export function PairInsightCard({
             medianX={analysis.state === "link" ? analysis.medianX : undefined}
           />
           {analysis.r != null && (
-            <div className="mt-1.5 text-center text-[11px] font-bold text-muted">
+            <div className="mt-1.5 text-center text-[11px] font-medium text-muted">
               Звʼязок {STRENGTH_LABELS[strengthOf(analysis.r)]} (r {fmt(analysis.r, 2)})
             </div>
           )}

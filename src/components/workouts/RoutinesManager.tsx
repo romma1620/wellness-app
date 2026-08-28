@@ -1,14 +1,18 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+import { BackLink } from "@/components/BackLink";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
 import { MuscleGroupChips } from "@/components/workouts/MuscleGroupChips";
 import {
   Button,
   Card,
+  Chip,
   EmptyState,
   ErrorBanner,
   FullLoader,
   Input,
+  Pill,
   SectionLabel,
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
@@ -22,9 +26,9 @@ import {
   resolveExerciseIds,
   saveRoutine,
 } from "@/lib/workouts-db";
+import { cn, plural } from "@/lib/utils";
 import type { DraftExercise } from "@/lib/workouts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 interface Row {
@@ -39,6 +43,10 @@ interface Editor {
   name: string;
   rows: Row[];
 }
+
+/** Кнопки «вгору/вниз/прибрати» біля назви вправи: без рамки, лише іконка. */
+const ROW_BTN =
+  "flex h-[34px] w-[30px] shrink-0 items-center justify-center rounded-[10px] text-muted transition active:bg-field disabled:opacity-30";
 
 let seq = 0;
 const rowKey = () => `r${(seq += 1)}`;
@@ -149,36 +157,38 @@ export function RoutinesManager() {
     }
   }
 
+  const header = (
+    <div className="flex items-center justify-between gap-3 px-[2px]">
+      <div className="flex min-w-0 items-center gap-3">
+        <BackLink href="/workouts" />
+        <h1 className="truncate text-[24px] font-bold tracking-[-.01em]">Шаблони</h1>
+      </div>
+      {!loading && !editor && (
+        <Pill icon="plus" onClick={() => openEditor(null)}>
+          Новий
+        </Pill>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="px-1 pt-1 text-[22px] font-extrabold">Шаблони</h1>
+      <div className="flex flex-col gap-[14px]">
+        {header}
         <FullLoader />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center justify-between px-1 pt-1">
-        <div className="flex items-center gap-2">
-          <Link href="/workouts" aria-label="Назад" className="text-muted">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
-          </Link>
-          <h1 className="text-[22px] font-extrabold">Шаблони</h1>
-        </div>
-        {!editor && (
-          <button type="button" onClick={() => openEditor(null)} className="text-[13px] font-extrabold text-primary">
-            + Новий
-          </button>
-        )}
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      {header}
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {editor && (
         <Card>
-          <SectionLabel>{editor.id ? "Редагувати шаблон" : "Новий шаблон"}</SectionLabel>
+          <SectionLabel icon="grid">{editor.id ? "Редагувати шаблон" : "Новий шаблон"}</SectionLabel>
           <Input
             placeholder="Назва (напр., Ноги)"
             value={editor.name}
@@ -209,14 +219,16 @@ export function RoutinesManager() {
                       }
                     />
                   </div>
-                  <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label="Вгору" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
-                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
+                  <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label="Вгору" className={ROW_BTN}>
+                    <span className="flex rotate-180">
+                      <Icon name="chevronDown" size={15} strokeWidth={1.8} />
+                    </span>
                   </button>
-                  <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === editor.rows.length - 1} aria-label="Вниз" className="flex h-8 w-7 items-center justify-center text-muted disabled:opacity-30">
-                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
+                  <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === editor.rows.length - 1} aria-label="Вниз" className={ROW_BTN}>
+                    <Icon name="chevronDown" size={15} strokeWidth={1.8} />
                   </button>
-                  <button type="button" onClick={() => setEditor((s) => (s ? { ...s, rows: s.rows.filter((x) => x.key !== r.key) } : s))} aria-label="Прибрати" className="flex h-8 w-8 items-center justify-center text-muted">
-                    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l10 10M16 6L6 16" /></svg>
+                  <button type="button" onClick={() => setEditor((s) => (s ? { ...s, rows: s.rows.filter((x) => x.key !== r.key) } : s))} aria-label="Прибрати" className={ROW_BTN}>
+                    <Icon name="x" size={14} strokeWidth={2} />
                   </button>
                 </div>
                 {isNewName(r) && (
@@ -233,41 +245,60 @@ export function RoutinesManager() {
                 )}
               </div>
             ))}
-            <button
-              type="button"
+            <Chip
+              dashed
+              icon="plus"
+              className="self-start"
               onClick={() => setEditor((s) => (s ? { ...s, rows: [...s.rows, { key: rowKey(), exerciseId: null, name: "", muscleGroup: null }] } : s))}
-              className="self-start rounded-full bg-primary-light px-4 py-2 text-[13px] font-extrabold text-primary"
             >
-              + вправа
-            </button>
+              Вправа
+            </Chip>
           </div>
           <div className="mt-4 flex gap-2">
             <Button type="button" onClick={save} loading={saving}>Зберегти</Button>
             <Button type="button" variant="outline" onClick={() => { setEditor(null); setActionError(null); }}>Скасувати</Button>
           </div>
           {editor.id && (
-            <button type="button" onClick={() => remove(editor.id!)} className="mt-3 w-full text-center text-[13px] font-extrabold text-neg">
+            <Button type="button" variant="danger" className="mt-3" onClick={() => remove(editor.id!)}>
+              <Icon name="trash" size={14} strokeWidth={1.8} />
               Видалити шаблон
-            </button>
+            </Button>
           )}
         </Card>
       )}
 
       {routines.length === 0 && !editor && (
-        <EmptyState emoji="🗂️" title="Ще немає шаблонів" hint="Створи шаблон (напр., «Ноги»), додай до нього вправи — і збиратимеш сесію в один тап." />
+        <EmptyState icon="grid" title="Ще немає шаблонів" hint="Створи шаблон (напр., «Ноги»), додай до нього вправи — і збиратимеш сесію в один тап." />
       )}
 
-      {routines.map((r) => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => openEditor(r)}
-          className="flex items-center justify-between rounded-2xl bg-surface p-4 text-left shadow-card active:scale-[.99]"
-        >
-          <span className="text-[15px] font-extrabold text-ink">{r.name}</span>
-          <span className="text-[12.5px] font-semibold text-muted">{counts[r.id] ?? 0} вправ</span>
-        </button>
-      ))}
+      {routines.length > 0 && (
+        <div className="overflow-hidden rounded-xl2 bg-surface">
+          {routines.map((r, i) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => openEditor(r)}
+              className={cn(
+                "flex w-full items-center gap-3 px-[18px] py-[13px] text-left transition active:bg-field",
+                i > 0 && "border-t border-line",
+              )}
+            >
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
+                <Icon name="dumbbell" size={17} strokeWidth={1.7} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13.5px] font-semibold text-ink">{r.name}</span>
+                <span className="mt-[2px] block text-[11.5px] font-normal text-muted">
+                  {counts[r.id] ?? 0} {plural(counts[r.id] ?? 0, "вправа", "вправи", "вправ")}
+                </span>
+              </span>
+              <span aria-hidden className="shrink-0 text-muted">
+                <Icon name="chevronRight" size={16} strokeWidth={1.8} />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

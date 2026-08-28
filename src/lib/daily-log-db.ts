@@ -54,6 +54,27 @@ export async function loadDayWindow(sb: SB, uid: string, date: string): Promise<
 }
 
 /**
+ * Дати з [from, to], за які в щоденнику є рядок — крапки під днями
+ * тижневої стрічки. Вибирається лише колонка date: стрічці не потрібно
+ * знати, що саме записано, лише що день не порожній.
+ */
+export async function loadLoggedDates(
+  sb: SB,
+  uid: string,
+  from: string,
+  to: string,
+): Promise<string[]> {
+  const { data, error } = await sb
+    .from("daily_logs")
+    .select("date")
+    .eq("user_id", uid)
+    .gte("date", from)
+    .lte("date", to);
+  if (error) throw error;
+  return ((data ?? []) as { date: string }[]).map((r) => r.date);
+}
+
+/**
  * Пише лише змінені колонки, тому помилковий або запізнілий запис фізично
  * не може стерти решту дня (повний upsert раніше саме це й робив).
  * Дата приходить аргументом і завжди належить формі, з якої зроблено патч.

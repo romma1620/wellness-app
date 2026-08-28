@@ -6,11 +6,16 @@ import {
   SaveIndicator,
   TagInput,
   useDecimalBuffer,
-  WaterDrops,
   type SaveState,
 } from "@/components/inputs";
-import { Card, DateField, ErrorBanner, SectionLabel, Textarea } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Card, DateField, ErrorBanner, PageTitle, SectionLabel, Textarea } from "@/components/ui";
 import { DaySkeleton } from "@/components/DaySkeleton";
+import { CycleRow } from "@/components/today/CycleRow";
+import { MacroBar } from "@/components/today/MacroBar";
+import { Sparkline } from "@/components/today/Sparkline";
+import { StatTile } from "@/components/today/StatTile";
+import { WeekStrip } from "@/components/today/WeekStrip";
 import { CARE_PRESETS } from "@/lib/care";
 import {
   applySaved,
@@ -22,13 +27,19 @@ import {
   type DailyPatch,
 } from "@/lib/daily-log";
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
+import { useRecentWeights } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
-import { addDays, cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
+import { cn, fmt, fmtInt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SAVE_DEBOUNCE_MS = 700;
+/** Ціль кроків для кільця плитки; окремої налаштовуваної цілі в застосунку нема. */
+const STEPS_GOAL = 10_000;
+const WATER_GOAL = 8;
+/** Скільки останніх ваг іде в міні-графік. */
+const SPARK_POINTS = 14;
 
 /**
  * Форма зберігається разом із датою, якій вона належить: збереження бере дату
@@ -159,53 +170,51 @@ export default function TodayPage() {
     min: 30,
     max: 200,
   });
+  const stepsInput = useDecimalBuffer(
+    form.steps,
+    (v) => set("steps", v == null ? null : Math.round(v)),
+    { min: 0, max: 100000 },
+  );
+
+  // Міні-графік ваги: спільна вибірка з прогнозом і «Цілями», лише хвіст.
+  const weightsQ = useRecentWeights();
+  const sparkValues = useMemo(
+    () => (weightsQ.data ?? []).slice(-SPARK_POINTS).map((w) => w.weight),
+    [weightsQ.data],
+  );
+
+  // Тап по плитці ставить курсор у відповідне поле; NumberField не
+  // прокидає ref, тож інпут шукаємо всередині обгортки.
+  const kcalWrap = useRef<HTMLDivElement>(null);
+  const focusKcal = () => kcalWrap.current?.querySelector("input")?.focus();
+
+  const water = form.water ?? 0;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      {/* Хедер з датою */}
-      <div className="flex items-center justify-between px-1 pt-1">
-        <button
-          type="button"
-          onClick={() => setDate((d) => addDays(d, -1))}
-          aria-label="Попередній день"
-          className="flex h-[38px] w-[38px] items-center justify-center rounded-[13px] bg-surface text-[20px] font-bold text-muted shadow-soft active:scale-95"
-        >
-          ‹
-        </button>
-        <div className="text-center">
-          <div className="text-[18px] font-extrabold">
-            {isToday(date) ? "Сьогодні" : "День"}
-          </div>
-          <DateField
-            value={date}
-            onChange={setDate}
-            max={todayISO()}
-            label="Дата дня у щоденнику"
-            className="flex items-center justify-center gap-1 text-[12.5px] font-semibold text-muted"
-          >
-            {humanDate(date)}
-            <span aria-hidden>📅</span>
-          </DateField>
-        </div>
-        <button
-          type="button"
-          onClick={() => !isToday(date) && setDate((d) => addDays(d, 1))}
-          aria-label="Наступний день"
-          disabled={isToday(date)}
-          className={cn(
-            "flex h-[38px] w-[38px] items-center justify-center rounded-[13px] text-[20px] font-bold active:scale-95",
-            isToday(date)
-              ? "bg-surface text-muted opacity-40"
-              : "bg-primary-light text-primary",
-          )}
-        >
-          ›
-        </button>
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle
+        subtitle={humanDate(date)}
+        right={
+          <>
+            <SaveIndicator state={dirty ? "saving" : save} />
+            <DateField
+              value={date}
+              onChange={setDate}
+              max={todayISO()}
+              label="Обрати дату"
+              className="!w-auto shrink-0"
+            >
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95">
+                <Icon name="calendar" size={15} strokeWidth={1.7} />
+              </span>
+            </DateField>
+          </>
+        }
+      >
+        {isToday(date) ? "Сьогодні" : "День"}
+      </PageTitle>
 
-      <div className="flex justify-end px-1">
-        <SaveIndicator state={dirty ? "saving" : save} />
-      </div>
+      <WeekStrip date={date} onSelect={setDate} />
 
       {loadError && <ErrorBanner>{loadError}</ErrorBanner>}
 
@@ -214,50 +223,102 @@ export default function TodayPage() {
       ) : (
         <>
           {/* Вага */}
-          <Card className="flex items-end justify-between">
-            <div className="w-full">
-              <div className="text-[12.5px] font-bold text-muted">Вага</div>
-              <div className="mt-1">
-                <input
-                  {...weightInput.inputProps}
-                  placeholder="—"
-                  className="w-full bg-transparent text-[40px] font-extrabold leading-none text-ink outline-none placeholder:text-primary-light"
-                />
-              </div>
-              <div
-                className={cn(
-                  "mt-1 text-[12px] font-bold",
-                  weightInput.outOfRange ? "text-neg" : "text-muted",
-                )}
-              >
-                кг · допустимо 30–200
-              </div>
-            </div>
-            {weekDelta != null && Math.abs(weekDelta) >= 0.05 && (
-              <div className="shrink-0 text-right">
-                <div
-                  className={cn(
-                    "text-[13px] font-extrabold",
-                    weekDelta < 0 ? "text-pos" : "text-warn",
-                  )}
-                >
-                  {weekDelta < 0 ? "↓" : "↑"} {fmt(Math.abs(weekDelta), 1)} кг
+          <Card>
+            <SectionLabel
+              icon="scale"
+              className="mb-0"
+              right={
+                weekDelta != null && Math.abs(weekDelta) >= 0.05 ? (
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-[10px] py-1 text-[11.5px] font-semibold",
+                      weekDelta < 0
+                        ? "bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] text-pos"
+                        : "bg-[color:color-mix(in_oklab,var(--warn)_14%,transparent)] text-warn",
+                    )}
+                  >
+                    <Icon name={weekDelta < 0 ? "arrowDown" : "arrowUp"} size={11} strokeWidth={2} />
+                    {fmt(Math.abs(weekDelta), 1)} кг за тиждень
+                  </span>
+                ) : undefined
+              }
+            >
+              Вага
+            </SectionLabel>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <input
+                    {...weightInput.inputProps}
+                    placeholder="—"
+                    aria-label="Вага, кг"
+                    className="w-full min-w-0 bg-transparent p-0 text-[44px] font-normal leading-none tracking-[-.01em] text-ink outline-none placeholder:text-muted"
+                  />
+                  <span className="shrink-0 text-[14px] font-medium text-muted">кг</span>
                 </div>
-                <div className="text-[11px] font-semibold text-muted">за тиждень</div>
+                {weightInput.outOfRange && (
+                  <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 30–200</div>
+                )}
               </div>
-            )}
+              <Sparkline values={sparkValues} />
+            </div>
+            <CycleRow date={date} />
           </Card>
+
+          {/* Плитки: калорії, кроки, вода */}
+          <div className="grid grid-cols-3 gap-[10px]">
+            {/* Цілі калорій у застосунку нема — кільце лише доріжка. */}
+            <StatTile
+              icon="bolt"
+              frac={0}
+              value={form.kcal != null ? fmtInt(form.kcal) : "—"}
+              label="Калорії"
+              sub={form.kcal != null ? "за день" : "—"}
+              onTap={focusKcal}
+              ariaLabel="Калорії — перейти до поля"
+            />
+            {/* Кроки редагуються прямо в плитці: окремого поля в дизайні нема. */}
+            <StatTile
+              icon="activity"
+              frac={(form.steps ?? 0) / STEPS_GOAL}
+              value={
+                <input
+                  {...stepsInput.inputProps}
+                  inputMode="numeric"
+                  placeholder="—"
+                  aria-label="Кроки"
+                  className={cn(
+                    "w-full bg-transparent p-0 text-center text-[14.5px] font-semibold outline-none placeholder:text-muted",
+                    stepsInput.outOfRange ? "text-neg" : "text-ink",
+                  )}
+                />
+              }
+              label="Кроки"
+              sub={`ціль ${fmtInt(STEPS_GOAL)}`}
+            />
+            <StatTile
+              icon="droplet"
+              frac={water / WATER_GOAL}
+              value={`${water} / ${WATER_GOAL}`}
+              label="Вода"
+              sub="тап — додати"
+              onTap={() => set("water", (water + 1) % (WATER_GOAL + 1))}
+              ariaLabel={`Вода: ${water} з ${WATER_GOAL} склянок, тап додає склянку`}
+            />
+          </div>
 
           {/* Харчування */}
           <Card>
-            <SectionLabel>Харчування</SectionLabel>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField
-                label="Калорії"
-                suffix="ккал"
-                value={form.kcal}
-                onChange={(v) => set("kcal", v)}
-              />
+            <SectionLabel icon="fork">Харчування</SectionLabel>
+            <div className="grid grid-cols-2 gap-[10px]">
+              <div ref={kcalWrap}>
+                <NumberField
+                  label="Калорії"
+                  suffix="ккал"
+                  value={form.kcal}
+                  onChange={(v) => set("kcal", v)}
+                />
+              </div>
               <NumberField
                 label="Білки"
                 suffix="г"
@@ -272,51 +333,37 @@ export default function TodayPage() {
                 onChange={(v) => set("carbs", v)}
               />
             </div>
+            <MacroBar protein={form.protein} fat={form.fat} carbs={form.carbs} />
           </Card>
 
-          {/* Вода */}
-          <Card>
-            <div className="mb-3 flex items-center justify-between">
-              <SectionLabel className="mb-0">Вода</SectionLabel>
-              <div className="text-[13px] font-extrabold text-primary">
-                {form.water ?? 0} / 8 склянок
-              </div>
-            </div>
-            <WaterDrops value={form.water} onChange={(v) => set("water", v)} />
-          </Card>
-
-          {/* Кроки + спорт */}
-          <div className="flex flex-col gap-3">
-            <Card>
-              <NumberField
-                label="Кроки"
-                suffix="кроків"
-                placeholder="0"
-                min={0}
-                max={100000}
-                value={form.steps}
-                onChange={(v) => set("steps", v == null ? null : Math.round(v))}
-              />
-            </Card>
-            <Card>
-              <SectionLabel>Спорт</SectionLabel>
+          {/* Спорт + догляд */}
+          <Card className="flex flex-col gap-[14px]">
+            <div>
+              <SectionLabel icon="dumbbell" className="mb-[10px]">
+                Спорт
+              </SectionLabel>
               <TagInput
                 value={form.sport}
                 onChange={(v) => set("sport", v)}
                 placeholder="зал, пілатес…"
               />
-            </Card>
-          </div>
-
-          {/* Догляд */}
-          <Card>
-            <SectionLabel>Догляд за шкірою</SectionLabel>
-            <PresetChips presets={CARE_PRESETS} value={form.care} onChange={(v) => set("care", v)} />
+            </div>
+            <div className="border-t border-line pt-[14px]">
+              <SectionLabel icon="leaf" className="mb-[10px]">
+                Догляд за шкірою
+              </SectionLabel>
+              <PresetChips
+                presets={CARE_PRESETS}
+                value={form.care}
+                onChange={(v) => set("care", v)}
+                addLabel="Своє"
+              />
+            </div>
           </Card>
 
-          {/* Коментар */}
+          {/* Нотатка */}
           <Card>
-            <SectionLabel>Коментар дня</SectionLabel>
+            <SectionLabel icon="pencil">Нотатка дня</SectionLabel>
             <Textarea
               rows={3}
               placeholder="Як минув день, самопочуття, настрій…"
@@ -326,10 +373,6 @@ export default function TodayPage() {
           </Card>
         </>
       )}
-
-      <p className="px-2 pt-1 text-center text-[12px] font-semibold text-muted">
-        Зміни зберігаються автоматично
-      </p>
     </div>
   );
 }

@@ -41,8 +41,11 @@ function useStableByKey<T>(value: T, key: string): T {
 const CHART_THEME = {
   foreground: "var(--muted)",
   muted: "var(--muted)",
-  grid: "var(--primary-light)",
+  grid: "var(--line)",
 };
+
+/** Підписи осей редизайну: 10px, вага 500, приглушені. */
+const TICK_LABELS = { fontSize: 10, fontWeight: 500, opacity: 1 } as const;
 
 /** Той самий вигін, що recharts type="monotone". */
 const monotone = d3Curve(curveMonotoneX);
@@ -122,21 +125,22 @@ export function WeightChart({
           id: "ma",
           x: "label",
           y: "ma",
-          stroke: "var(--accent)",
-          strokeWidth: 2.2,
-          strokeDasharray: "6 6",
+          stroke: "var(--muted)",
+          strokeWidth: 1.8,
+          strokeOpacity: 0.7,
+          strokeDasharray: "5 6",
           curve: monotone,
         }),
         lineY(weightPoints, {
           id: "weight",
           x: "label",
           y: "weight",
-          stroke: "var(--primary)",
-          strokeWidth: 3.2,
+          stroke: "var(--accent)",
+          strokeWidth: 2.4,
           curve: monotone,
         }),
         decorative(
-          dot(weightPoints, { x: "label", y: "weight", r: 3.5, fill: "var(--primary)" }),
+          dot(weightPoints, { x: "label", y: "weight", r: 3, fill: "var(--accent)" }),
         ),
         whenFocused(
           dot(weightPoints, {
@@ -144,8 +148,8 @@ export function WeightChart({
             y: "weight",
             r: 5,
             fill: "var(--surface)",
-            stroke: "var(--primary)",
-            strokeWidth: 3,
+            stroke: "var(--accent)",
+            strokeWidth: 2.4,
           }),
           { match: "x" },
         ),
@@ -159,12 +163,7 @@ export function WeightChart({
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            fontSize: 10.5,
-            fontWeight: 700,
-            opacity: 1,
-            thin: { minGap: 12, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 12, priority: "ends" } },
         },
       },
       y: {
@@ -177,7 +176,7 @@ export function WeightChart({
             values: axis.ticks,
             format: (v) => fmtFixed(v, axis.decimals),
           },
-          tickLabels: { fontSize: 10, opacity: 1 },
+          tickLabels: TICK_LABELS,
         },
       },
       focus: "group-x",
@@ -202,8 +201,8 @@ export function WeightChart({
         return (
           <div>
             <div className="text-muted">{d.label}</div>
-            {d.weight != null && <div className="text-primary">Вага {fmt(d.weight, 1)} кг</div>}
-            {d.ma != null && <div className="text-accent">Тренд {fmt(d.ma, 1)} кг</div>}
+            {d.weight != null && <div className="text-accent">Вага {fmt(d.weight, 1)} кг</div>}
+            {d.ma != null && <div className="text-muted">Тренд {fmt(d.ma, 1)} кг</div>}
             {phase && (
               <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
                 {d.cycleDay != null && `День циклу ${d.cycleDay} · `}
@@ -240,8 +239,8 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
         barY(points, {
           x: "label",
           y: "steps",
-          fill: "var(--primary)",
-          radius: 4,
+          fill: "var(--accent)",
+          radius: 5,
         }),
       ],
       x: {
@@ -249,12 +248,7 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            fontSize: 10.5,
-            fontWeight: 700,
-            opacity: 1,
-            thin: { minGap: 12, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 12, priority: "ends" } },
         },
       },
       y: {
@@ -267,7 +261,7 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
             values: axis.ticks.map((t) => t * 1000),
             format: (v) => (v === 0 ? "0" : fmtFixed(v / 1000, axis.decimals)),
           },
-          tickLabels: { fontSize: 10, opacity: 1 },
+          tickLabels: TICK_LABELS,
         },
       },
       focus: "group-x",
@@ -280,32 +274,24 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
   if (!definition) {
     return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
+  // Легенду («тис. кроків») малює шапка картки, що викликає графік.
   return (
-    <div>
-      {/* Легенда й раніше була повністю кастомною — лишаємо її звичайним JSX. */}
-      <div className="flex h-[22px] items-center justify-end pr-1 text-[11px] font-bold text-primary">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-sm bg-primary" />
-          кроки, тис.
-        </span>
-      </div>
-      <Chart
-        definition={definition}
-        height={148}
-        className="wellness-chart"
-        ariaLabel="Кроки за днями"
-        renderTooltipBody={({ points }) => {
-          const p = points[0];
-          if (!p) return null;
-          const d = p.datum as { label: string; steps: number };
-          return (
-            <span className="text-primary">
-              {d.label}: {fmtInt(d.steps)} кроків
-            </span>
-          );
-        }}
-      />
-    </div>
+    <Chart
+      definition={definition}
+      height={148}
+      className="wellness-chart"
+      ariaLabel="Кроки за днями"
+      renderTooltipBody={({ points }) => {
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as { label: string; steps: number };
+        return (
+          <span className="text-accent">
+            {d.label}: {fmtInt(d.steps)} кроків
+          </span>
+        );
+      }}
+    />
   );
 }
 
@@ -323,8 +309,8 @@ export function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={pts}
         fill="none"
-        stroke="var(--primary)"
-        strokeWidth={2.5}
+        stroke="var(--accent)"
+        strokeWidth={2.4}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -362,13 +348,13 @@ export function MetricLine({
         lineY(points, {
           x: "label",
           y: "value",
-          stroke: "var(--primary)",
-          strokeWidth: 3,
+          stroke: "var(--accent)",
+          strokeWidth: 2.4,
           curve: monotone,
         }),
         // Статичні точки — декоративні, щоб не дублювати точки взаємодії лінії.
         decorative(
-          dot(points, { x: "label", y: "value", r: 3.5, fill: "var(--primary)" }),
+          dot(points, { x: "label", y: "value", r: 3, fill: "var(--accent)" }),
         ),
         // Аналог recharts activeDot: кільце над точкою під курсором.
         whenFocused(
@@ -377,8 +363,8 @@ export function MetricLine({
             y: "value",
             r: 5,
             fill: "var(--surface)",
-            stroke: "var(--primary)",
-            strokeWidth: 3,
+            stroke: "var(--accent)",
+            strokeWidth: 2.4,
           }),
           { match: "x" },
         ),
@@ -388,12 +374,7 @@ export function MetricLine({
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            fontSize: 10,
-            fontWeight: 700,
-            opacity: 1,
-            thin: { minGap: 16, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 16, priority: "ends" } },
         },
       },
       y: {
@@ -406,7 +387,7 @@ export function MetricLine({
             values: axis.ticks,
             format: (v) => fmtFixed(v, axis.decimals),
           },
-          tickLabels: { fontSize: 10, opacity: 1 },
+          tickLabels: TICK_LABELS,
         },
       },
       focus: "group-x",
@@ -432,7 +413,7 @@ export function MetricLine({
         if (!p) return null;
         const d = p.datum as { label: string; value: number };
         return (
-          <span className="text-primary">
+          <span className="text-accent">
             {d.label}: {fmt(d.value, 1)} {unit}
           </span>
         );

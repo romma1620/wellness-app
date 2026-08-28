@@ -1,3 +1,4 @@
+import { AppHeader } from "@/components/AppHeader";
 import { QueryProvider } from "@/components/QueryProvider";
 import { TabBar } from "@/components/TabBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -37,7 +38,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <QueryProvider>
         <ThemeProvider initialTheme={theme}>
           <div className="mx-auto min-h-dvh max-w-app bg-bg">
-            <main className="px-[18px] pb-32 pt-3">{children}</main>
+            <div className="flex flex-col gap-[14px] px-[18px] pb-[130px] pt-[14px]">
+              <AppHeader />
+              <main>{children}</main>
+            </div>
             <TabBar />
           </div>
         </ThemeProvider>

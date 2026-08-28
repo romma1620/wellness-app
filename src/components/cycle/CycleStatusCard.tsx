@@ -1,16 +1,12 @@
 "use client";
 
+import { phaseTint } from "@/components/cycle/tint";
 import type { Prediction } from "@/lib/cycle/predict";
-import {
-  CONFIDENCE_LABELS,
-  PHASE_COLORS,
-  PHASE_LABELS,
-  PHASE_TINTS,
-  type Phase,
-} from "@/lib/cycle/types";
+import { CONFIDENCE_LABELS, PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { daysBetween, plural, shortDate } from "@/lib/utils";
 
-const R = 31;
+const SIZE = 78;
+const R = 33;
 const CIRC = 2 * Math.PI * R;
 /** Розрив між дугами, щоб межа фаз читалась як межа, а не як зміна кольору. */
 const GAP = 3;
@@ -29,45 +25,43 @@ function Ring({
   const span = Math.max(total, cycleDay, 1);
   const periodArc = (Math.min(periodLength, cycleDay) / span) * CIRC;
   const sinceArc = (Math.max(0, cycleDay - periodLength) / span) * CIRC;
+  const c = SIZE / 2;
 
   return (
-    <div className="relative h-[74px] w-[74px] shrink-0">
-      <svg width="74" height="74" viewBox="0 0 74 74">
-        <circle cx="37" cy="37" r={R} fill="none" stroke="#fff" strokeWidth="7" opacity=".65" />
+    <div className="relative h-[78px] w-[78px] shrink-0">
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+        <circle cx={c} cy={c} r={R} fill="none" stroke="var(--line)" strokeWidth="6" />
         <circle
-          cx="37"
-          cy="37"
+          cx={c}
+          cy={c}
           r={R}
           fill="none"
           stroke={PHASE_COLORS.menstrual}
-          strokeWidth="7"
+          strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={`${periodArc.toFixed(1)} ${CIRC.toFixed(1)}`}
-          transform="rotate(-90 37 37)"
+          transform={`rotate(-90 ${c} ${c})`}
         />
         {sinceArc > 0 && (
           <circle
-            cx="37"
-            cy="37"
+            cx={c}
+            cy={c}
             r={R}
             fill="none"
             stroke={PHASE_COLORS[phase]}
-            strokeWidth="7"
+            strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={`${sinceArc.toFixed(1)} ${CIRC.toFixed(1)}`}
             strokeDashoffset={-(periodArc + GAP)}
-            transform="rotate(-90 37 37)"
+            transform={`rotate(-90 ${c} ${c})`}
           />
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span
-          className="text-[15px] font-extrabold leading-none"
-          style={{ color: PHASE_COLORS[phase] }}
-        >
+        <span className="text-[15px] font-semibold leading-none text-ink">
           {cycleDay}/{total}
         </span>
-        <span className="mt-[3px] text-[9.5px] font-bold text-muted">днів</span>
+        <span className="mt-[3px] text-[9.5px] font-medium text-muted">днів</span>
       </div>
     </div>
   );
@@ -97,9 +91,11 @@ function forecastText(p: Prediction, today: string): string {
 
 function Tile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex-1 rounded-[13px] bg-[var(--tint-tile)] px-2.5 py-[9px] text-center">
-      <div className="text-[15px] font-extrabold leading-tight">{value}</div>
-      <div className="mt-px text-[10.5px] font-bold text-muted">{label}</div>
+    <div className="flex-1 rounded-[12px] border border-line bg-field p-[10px] text-center">
+      <div className="text-[14px] font-semibold leading-[1.25] text-ink">{value}</div>
+      <div className="mt-[2px] text-[10px] font-medium uppercase tracking-[.05em] text-muted">
+        {label}
+      </div>
     </div>
   );
 }
@@ -115,35 +111,35 @@ export function CycleStatusCard({
   prediction: Prediction | null;
   today: string;
 }) {
-  const tint = phase ? PHASE_TINTS[phase] : "var(--tint-rose-soft)";
+  // Без фази картка тримає колір менструації: це стан «ще без даних», а
+  // перший запис, який його змінить, — саме перший день менструації.
+  const tint = phaseTint(phase ?? "menstrual");
 
   return (
     <div
-      className="rounded-xl2 px-[18px] py-5 shadow-card"
-      // Другий стоп — акцент теми: картка мусить лишатись частиною
-      // застосунку, а не окремим «медичним» островом.
-      style={{ background: `linear-gradient(135deg, ${tint} 0%, var(--primary-light) 100%)` }}
+      className="rounded-xl2 px-[18px] py-5"
+      style={{ background: `linear-gradient(140deg, ${tint} 0%, var(--surface) 65%)` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {phase && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-[7px]">
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ background: PHASE_COLORS[phase] }}
               />
               <span
-                className="truncate text-[12.5px] font-extrabold uppercase tracking-[.02em]"
+                className="truncate text-[11px] font-semibold uppercase tracking-[.09em]"
                 style={{ color: PHASE_COLORS[phase] }}
               >
                 {PHASE_LABELS[phase]}
               </span>
             </div>
           )}
-          <div className="mt-1.5 text-[32px] font-extrabold leading-[1.15]">
+          <div className="mt-2 text-[34px] font-normal leading-[1.1] tracking-[-.01em] text-ink">
             {cycleDay !== null ? `День ${cycleDay}` : "Ще без даних"}
           </div>
-          <div className="mt-1.5 text-[13.5px] font-semibold leading-[1.45] text-muted [text-wrap:pretty]">
+          <div className="mt-2 text-[12.5px] font-normal leading-[1.5] text-muted [text-wrap:pretty]">
             {prediction
               ? forecastText(prediction, today)
               : "Відміть перший день менструації — і зʼявиться прогноз"}
@@ -161,7 +157,7 @@ export function CycleStatusCard({
       </div>
 
       {prediction && (
-        <div className="mt-[15px] flex gap-2">
+        <div className="mt-4 flex gap-2">
           <Tile value={shortDate(prediction.ovulation)} label="овуляція" />
           <Tile value={`${Math.round(prediction.avgLength)} дн.`} label="сер. цикл" />
           <Tile value={CONFIDENCE_LABELS[prediction.confidence]} label="точність" />

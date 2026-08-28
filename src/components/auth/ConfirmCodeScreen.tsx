@@ -1,6 +1,7 @@
 "use client";
 
 import { CodeInput } from "@/components/auth/CodeInput";
+import { Icon } from "@/components/icons";
 import { Button, ErrorBanner } from "@/components/ui";
 import { cooldownLeft, isValidOtp, translateAuthError } from "@/lib/auth";
 import { useEffect, useState } from "react";
@@ -73,10 +74,10 @@ export function ConfirmCodeScreen({
 
   return (
     <div className="flex w-full flex-col gap-[14px]">
-      <p className="text-center text-[14px] font-medium text-muted">
+      <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
         Ми надіслали 6-значний код на
         <br />
-        <span className="font-extrabold text-ink">{email}</span>
+        <span className="font-semibold text-ink">{email}</span>
       </p>
 
       <CodeInput
@@ -106,7 +107,7 @@ export function ConfirmCodeScreen({
         type="button"
         onClick={resend}
         disabled={left > 0 || resending}
-        className="py-1 text-center text-[13.5px] font-bold text-primary disabled:text-muted"
+        className="py-1 text-center text-[13px] font-semibold text-accent disabled:text-muted"
       >
         {resending
           ? "Надсилаємо…"
@@ -118,9 +119,10 @@ export function ConfirmCodeScreen({
       <button
         type="button"
         onClick={onBack}
-        className="py-1 text-center text-[13.5px] font-bold text-muted"
+        className="flex items-center justify-center gap-1 py-1 text-center text-[13px] font-medium text-muted"
       >
-        ← Назад до входу
+        <Icon name="chevronLeft" size={13} strokeWidth={1.8} />
+        Назад до входу
       </button>
     </div>
   );

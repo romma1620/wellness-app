@@ -11,20 +11,26 @@ const config: Config = {
         },
         bg: "var(--bg)",
         surface: "var(--surface)",
+        field: "var(--field)",
+        line: "var(--line)",
         ink: "var(--text)",
         muted: "var(--muted)",
         accent: "var(--accent)",
+        "on-accent": "var(--on-accent)",
         pos: "var(--pos)",
         warn: "var(--warn)",
         neg: "var(--neg)",
       },
       fontFamily: {
-        sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 8px 24px -12px var(--shadow-card)",
-        cta: "0 16px 28px -12px var(--primary)",
-        soft: "0 4px 12px -6px var(--shadow-soft)",
+        // Картки редизайну пласкі — тінь лишається лише в плаваючого таб-бара
+        // та панелей, що висять над контентом.
+        card: "none",
+        cta: "none",
+        soft: "none",
+        up: "0 18px 40px -18px var(--shadow-up)",
       },
       borderRadius: {
         xl2: "20px",

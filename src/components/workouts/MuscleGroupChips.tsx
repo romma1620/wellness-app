@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip, FieldLabel } from "@/components/ui";
 import { MUSCLE_GROUPS, type MuscleGroup } from "@/lib/types";
 
 /**
@@ -15,22 +16,13 @@ export function MuscleGroupChips({
   onChange: (g: MuscleGroup | null) => void;
 }) {
   return (
-    <div className="mt-2">
-      <div className="mb-1.5 text-[11.5px] font-bold text-muted">{"Група м'язів нової вправи"}</div>
-      <div className="flex flex-wrap gap-1.5">
+    <div className="mt-[10px]">
+      <FieldLabel>{"Група м'язів нової вправи"}</FieldLabel>
+      <div className="flex flex-wrap gap-2">
         {MUSCLE_GROUPS.map((g) => (
-          <button
-            key={g}
-            type="button"
-            onClick={() => onChange(value === g ? null : g)}
-            className={
-              value === g
-                ? "rounded-full bg-primary px-3 py-[7px] text-[12px] font-bold text-white"
-                : "rounded-full border-[1.5px] border-primary-light bg-bg px-3 py-[7px] text-[12px] font-semibold text-muted"
-            }
-          >
+          <Chip key={g} active={value === g} onClick={() => onChange(value === g ? null : g)}>
             {g}
-          </button>
+          </Chip>
         ))}
       </div>
     </div>

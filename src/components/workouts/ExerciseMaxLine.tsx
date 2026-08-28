@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { fmt, shortDateAbbr } from "@/lib/utils";
 import { prState, type DraftSet, type ExerciseMax } from "@/lib/workouts";
 
@@ -18,14 +19,15 @@ export function ExerciseMaxLine({ max, sets }: { max: ExerciseMax | null; sets: 
 
   if (state.kind === "beaten") {
     return (
-      <div className="mt-1.5 text-[12px] font-extrabold text-pos">
+      <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-pos">
+        <Icon name="arrowUp" size={11} strokeWidth={2} />
         Новий рекорд · +{fmt(state.delta, 1)} кг
       </div>
     );
   }
 
   return (
-    <div className="mt-1.5 text-[12px] font-semibold text-muted">
+    <div className="mt-2 text-[12px] font-medium text-muted">
       Макс {fmt(state.max.weight, 1)} кг × {state.max.reps} · {shortDateAbbr(state.max.date)}
     </div>
   );

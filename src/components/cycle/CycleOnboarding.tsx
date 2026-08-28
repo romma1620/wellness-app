@@ -1,8 +1,10 @@
 "use client";
 
 import { CycleLengthSlider } from "@/components/cycle/CycleLengthSlider";
-import { Button, DateField, ErrorBanner } from "@/components/ui";
-import { DEFAULT_SETTINGS } from "@/lib/cycle/types";
+import { phaseTint } from "@/components/cycle/tint";
+import { Icon } from "@/components/icons";
+import { Button, Card, DateField, ErrorBanner, PageTitle, SectionLabel } from "@/components/ui";
+import { DEFAULT_SETTINGS, PHASE_COLORS } from "@/lib/cycle/types";
 import { humanDate, todayISO } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,105 +37,78 @@ export function CycleOnboarding({
   }
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цикл</h1>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle>Цикл</PageTitle>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div
         className="flex flex-col items-center rounded-xl2 px-5 pb-6 pt-[22px] text-center"
-        style={{ background: "linear-gradient(135deg, var(--tint-rose-soft) 0%, var(--primary-light) 100%)" }}
+        style={{
+          background: `linear-gradient(140deg, ${phaseTint("menstrual")} 0%, var(--surface) 65%)`,
+        }}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--tint-tile)] text-[var(--tint-rose-fg)]">
-          <svg
-            width="30"
-            height="30"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.9}
-            strokeLinecap="round"
-          >
-            <path d="M18 11a7 7 0 1 1-2.6-5.4" />
-            <path d="M18.4 3.4v3.4H15" />
-          </svg>
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-[18px]"
+          style={{ background: phaseTint("menstrual"), color: PHASE_COLORS.menstrual }}
+        >
+          <Icon name="cycle" size={26} strokeWidth={1.6} />
         </div>
-        <div className="mt-3.5 text-[19px] font-extrabold">Додай трекінг циклу</div>
-        <div className="mt-[7px] text-[13.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+        <div className="mt-3.5 text-[19px] font-bold text-ink">Додай трекінг циклу</div>
+        <div className="mt-[7px] text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           Дні менструації, симптоми й настрій. Далі aura сама покаже фазу та прогноз — і
           зіставить їх із вагою та тренуваннями.
         </div>
       </div>
 
-      <div className="flex items-start gap-[13px] rounded-xl2 bg-surface p-4 shadow-card">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bg">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="4.5" y="9.5" width="13" height="9" rx="2.5" />
-            <path d="M7.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" />
-          </svg>
+      <Card className="flex items-start gap-[13px]">
+        <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
+          <Icon name="lock" size={17} strokeWidth={1.6} />
         </div>
         <div>
-          <div className="text-[14px] font-extrabold">Ці дані бачиш тільки ти</div>
-          <div className="mt-1 text-[12.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+          <div className="text-[13.5px] font-bold text-ink">Ці дані бачиш тільки ти</div>
+          <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
             Вони не потрапляють в аналітику застосунку. Вимкнути фічу або видалити все —
             одним тапом у профілі.
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="rounded-xl2 bg-surface p-4 pt-[18px] shadow-card">
-        <div className="mb-2.5 text-[12.5px] font-bold text-muted">
-          Коли почалась остання менструація?
-        </div>
+      <Card>
+        <SectionLabel icon="calendar">Остання менструація</SectionLabel>
         <DateField
           value={lastPeriod}
           onChange={setLastPeriod}
           max={todayISO()}
           label="Дата початку останньої менструації"
-          className="flex items-center justify-between rounded-[15px] border-[1.5px] border-primary-light bg-bg px-4 py-[15px]"
+          className="flex items-center justify-between rounded-[13px] border border-line bg-field px-[14px] py-3"
         >
-          <span className="text-[15px] font-extrabold">{humanDate(lastPeriod)}</span>
-          <svg
-            width="19"
-            height="19"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="var(--primary)"
-            strokeWidth={1.9}
-            strokeLinecap="round"
-          >
-            <rect x="3" y="4.5" width="16" height="15" rx="3.5" />
-            <path d="M3 9h16M7 2.5v3M15 2.5v3" />
-          </svg>
+          <span className="text-[15px] font-medium text-ink">{humanDate(lastPeriod)}</span>
+          <span className="flex text-muted">
+            <Icon name="calendar" size={16} strokeWidth={1.6} />
+          </span>
         </DateField>
-        <div className="mt-2.5 text-[11.5px] font-semibold text-muted">
+        <div className="mt-2.5 text-[11.5px] font-normal text-muted">
           Не памʼятаєш точно — постав приблизно, потім поправиш у календарі.
         </div>
-      </div>
+      </Card>
 
-      <div className="rounded-xl2 bg-surface p-4 pt-[18px] shadow-card">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-[12.5px] font-bold text-muted">Типова довжина циклу</span>
-          <span className="text-[16px] font-extrabold">{length} днів</span>
-        </div>
+      <Card>
+        <SectionLabel
+          icon="ruler"
+          right={<span className="text-[14px] font-semibold text-ink">{length} днів</span>}
+        >
+          Типова довжина циклу
+        </SectionLabel>
         <CycleLengthSlider value={length} onChange={setLength} />
         <button
           type="button"
           onClick={() => setLength(DEFAULT_SETTINGS.typical_cycle_length)}
-          className="mt-2 w-full text-center text-[12.5px] font-bold text-primary"
+          className="mt-2 w-full text-center text-[12.5px] font-semibold text-accent"
         >
           Не знаю точно
         </button>
-      </div>
+      </Card>
 
       <Button type="button" onClick={enable} loading={busy}>
         Увімкнути трекінг циклу
@@ -141,7 +116,7 @@ export function CycleOnboarding({
       <button
         type="button"
         onClick={() => router.push("/")}
-        className="pb-2 text-center text-[13px] font-bold text-muted"
+        className="pb-2 text-center text-[13px] font-medium text-muted"
       >
         Не зараз
       </button>

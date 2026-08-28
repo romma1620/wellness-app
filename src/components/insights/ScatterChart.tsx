@@ -9,11 +9,11 @@ import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 
-/** Ті самі токени тем, що в charts.tsx — графік живе в усіх темах. */
+/** Токени тем: підписи приглушені, сітка й осі — волосяна лінія. */
 const CHART_THEME = {
   foreground: "var(--muted)",
   muted: "var(--muted)",
-  grid: "var(--primary-light)",
+  grid: "var(--line)",
 };
 
 /**
@@ -46,9 +46,10 @@ export function ScatterChart({
         ...(zeroLine
           ? [
               decorative(
+                // Нульова лінія помітніша за сітку — це змістовий орієнтир.
                 ruleY([0], {
                   stroke: "var(--muted)",
-                  strokeOpacity: 0.5,
+                  strokeOpacity: 0.55,
                   strokeWidth: 1,
                 }),
               ),
@@ -66,7 +67,7 @@ export function ScatterChart({
             ]
           : []),
         decorative(
-          dot(points, { x: "x", y: "y", r: 3.5, fill: "var(--primary)", fillOpacity: 0.75 }),
+          dot(points, { x: "x", y: "y", r: 3.5, fill: "var(--accent)", fillOpacity: 0.8 }),
         ),
       ],
       x: {
@@ -78,7 +79,7 @@ export function ScatterChart({
             values: xAxis.ticks,
             format: (v) => (xTickFormat ?? ((n: number) => fmtFixed(n, xAxis.decimals)))(v),
           },
-          tickLabels: { fontSize: 10, fontWeight: 700, opacity: 1 },
+          tickLabels: { fontSize: 10, fontWeight: 500, opacity: 1 },
         },
       },
       y: {
@@ -91,7 +92,7 @@ export function ScatterChart({
             values: yAxis.ticks,
             format: (v) => fmtFixed(v, yAxis.decimals),
           },
-          tickLabels: { fontSize: 10, opacity: 1 },
+          tickLabels: { fontSize: 10, fontWeight: 500, opacity: 1 },
         },
       },
       theme: CHART_THEME,
@@ -107,7 +108,7 @@ export function ScatterChart({
         className="wellness-chart"
         ariaLabel={`Тижні за метрикою ${xLabel}`}
       />
-      <div className="mt-1 pr-1 text-right text-[10.5px] font-bold text-muted">{xLabel} →</div>
+      <div className="mt-1 pr-1 text-right text-[10px] font-medium text-muted">{xLabel} →</div>
     </div>
   );
 }

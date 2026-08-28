@@ -58,12 +58,16 @@ export function CodeInput({
             <div
               key={i}
               className={cn(
-                "flex h-[54px] w-[44px] items-center justify-center rounded-[15px] border-[1.5px] bg-surface text-[22px] font-extrabold text-ink transition",
-                error ? "border-neg" : active ? "border-primary" : "border-primary-light",
+                "flex h-[54px] w-[44px] items-center justify-center rounded-[13px] border bg-field text-[22px] font-semibold text-ink transition-colors",
+                error
+                  ? "border-neg"
+                  : active
+                    ? "border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]"
+                    : "border-line",
                 disabled && "opacity-50",
               )}
             >
-              {digit ?? (active ? <span className="aura-pulse text-primary">·</span> : "")}
+              {digit ?? (active ? <span className="aura-pulse text-accent">·</span> : "")}
             </div>
           );
         })}

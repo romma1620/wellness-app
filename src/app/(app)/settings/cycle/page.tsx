@@ -1,7 +1,18 @@
 "use client";
 
+import { BackLink } from "@/components/BackLink";
 import { CycleDisclaimer } from "@/components/cycle/PhaseTipCard";
-import { Button, Card, ErrorBanner, FullLoader, Sheet, Toggle } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import {
+  Button,
+  Card,
+  ErrorBanner,
+  FullLoader,
+  PageTitle,
+  SectionLabel,
+  Sheet,
+  Toggle,
+} from "@/components/ui";
 import {
   deleteAllCycleData,
   loadCycleEntries,
@@ -22,8 +33,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { cn, todayISO } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Minus, Plus } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 const PERIOD_MIN = 1;
@@ -57,7 +66,7 @@ function Stepper({
   onChange: (v: number) => void;
 }) {
   const btn =
-    "flex h-7 w-7 items-center justify-center rounded-full bg-primary-light text-primary transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
+    "flex h-7 w-7 items-center justify-center rounded-full border border-line bg-field text-ink transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
   return (
     <div className="flex items-center gap-2.5">
       <button
@@ -67,9 +76,21 @@ function Stepper({
         aria-label={`${label}: менше`}
         onClick={() => onChange(value - 1)}
       >
-        <Minus size={15} />
+        {/* «мінус» у наборі іконок немає — той самий штрих, що й у plus, без вертикалі */}
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 22 22"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          aria-hidden
+        >
+          <path d="M5 11h12" />
+        </svg>
       </button>
-      <span className="min-w-[54px] text-center text-[15px] font-extrabold">
+      <span className="min-w-[54px] text-center text-[14px] font-semibold text-ink">
         {value} {suffix}
       </span>
       <button
@@ -79,7 +100,7 @@ function Stepper({
         aria-label={`${label}: більше`}
         onClick={() => onChange(value + 1)}
       >
-        <Plus size={15} />
+        <Icon name="plus" size={13} strokeWidth={2} />
       </button>
     </div>
   );
@@ -99,14 +120,14 @@ function Row({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 py-[15px]",
-        !last && "border-b-[1.5px] border-bg",
+        "flex items-center justify-between gap-3 py-[14px]",
+        !last && "border-b border-line",
       )}
     >
       <div className="min-w-0">
-        <div className="text-[14px] font-bold text-muted">{title}</div>
+        <div className="text-[13.5px] font-semibold text-ink">{title}</div>
         {subtitle && (
-          <div className="mt-0.5 text-[12px] font-semibold text-muted opacity-80">{subtitle}</div>
+          <div className="mt-0.5 text-[11.5px] font-normal text-muted">{subtitle}</div>
         )}
       </div>
       {control}
@@ -196,16 +217,10 @@ export default function CycleSettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center gap-3 px-0 pt-1">
-        <Link
-          href="/settings"
-          aria-label="Назад до профілю"
-          className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-surface text-muted shadow-soft active:scale-95"
-        >
-          <ChevronLeft size={19} />
-        </Link>
-        <h1 className="text-[22px] font-extrabold">Цикл</h1>
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex items-center gap-3">
+        <BackLink href="/settings" label="Назад до профілю" />
+        <PageTitle className="flex-1">Цикл</PageTitle>
       </div>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
@@ -216,8 +231,8 @@ export default function CycleSettingsPage() {
         <>
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[14.5px] font-extrabold">Трекінг циклу</div>
-              <div className="mt-0.5 text-[12px] font-semibold text-muted">
+              <div className="text-[13.5px] font-semibold text-ink">Трекінг циклу</div>
+              <div className="mt-0.5 text-[11.5px] font-normal text-muted">
                 вкладка «Цикл» і фази в аналітиці
               </div>
             </div>
@@ -228,7 +243,7 @@ export default function CycleSettingsPage() {
             />
           </Card>
 
-          <Card className="!py-0">
+          <Card className="!py-1">
             <Row
               title="Типова довжина циклу"
               control={
@@ -271,8 +286,8 @@ export default function CycleSettingsPage() {
 
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[14.5px] font-extrabold">Фази на графіку ваги</div>
-              <div className="mt-0.5 text-[12px] font-semibold text-muted">
+              <div className="text-[13.5px] font-semibold text-ink">Фази на графіку ваги</div>
+              <div className="mt-0.5 text-[11.5px] font-normal text-muted">
                 фонові смуги в «Аналітиці»
               </div>
             </div>
@@ -284,8 +299,8 @@ export default function CycleSettingsPage() {
           </Card>
 
           <Card>
-            <div className="text-[14.5px] font-extrabold">Дані циклу</div>
-            <div className="mt-1 text-[12.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+            <SectionLabel icon="file">Дані циклу</SectionLabel>
+            <div className="text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
               Вимкнення ховає фічу, але записи лишаються. Видалення прибирає їх назавжди —
               без відновлення.
             </div>
@@ -295,15 +310,18 @@ export default function CycleSettingsPage() {
                 variant="outline"
                 loading={busy === "export"}
                 onClick={exportCsv}
-                className="!py-[13px] !text-[13.5px]"
+                className="!py-[12px] !text-[13.5px]"
               >
+                <Icon name="download" size={15} strokeWidth={1.8} />
                 Експорт CSV
               </Button>
               <Button
                 type="button"
+                variant="danger"
                 onClick={() => setConfirmOpen(true)}
-                className="!bg-neg/10 !py-[13px] !text-[13.5px] !text-neg !shadow-none"
+                className="!py-[12px] !text-[13.5px]"
               >
+                <Icon name="trash" size={15} strokeWidth={1.8} />
                 Видалити все
               </Button>
             </div>
@@ -315,7 +333,7 @@ export default function CycleSettingsPage() {
 
       {confirmOpen && (
         <Sheet open onClose={() => setConfirmOpen(false)} title="Видалити дані циклу?">
-          <p className="text-[13.5px] font-semibold leading-[1.55] text-muted [text-wrap:pretty]">
+          <p className="text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
             Зникнуть усі денні записи циклу й налаштування фічі. Прогнози й фази в
             аналітиці рахувати буде нізвідки. Відновити це неможливо — якщо потрібна копія,
             спершу зроби експорт CSV.
@@ -323,9 +341,9 @@ export default function CycleSettingsPage() {
           <div className="mt-4 flex flex-col gap-2.5">
             <Button
               type="button"
+              variant="danger"
               loading={busy === "delete"}
               onClick={deleteAll}
-              className="!bg-neg !shadow-none"
             >
               Так, видалити назавжди
             </Button>

@@ -1,18 +1,17 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { SaveIndicator, type SaveState } from "@/components/inputs";
-import { Sheet, Textarea } from "@/components/ui";
+import { Chip, SectionLabel, Sheet, Textarea } from "@/components/ui";
 import {
   FLOWS,
   FLOW_LABELS,
   MOODS,
-  MOOD_EMOJI,
   MOOD_LABELS,
   PHASE_LABELS,
   SYMPTOMS,
   type EntryDraft,
   type Flow,
-  type Mood,
   type Phase,
 } from "@/lib/cycle/types";
 import { cn, humanDate } from "@/lib/utils";
@@ -28,10 +27,6 @@ const DROP_SIZE: Record<Flow, { w: number; h: number; fill: string }> = {
 
 const DROP_PATH = "M7 0C7 0 1 7.2 1 11.3A6 6 0 0 0 13 11.3C13 7.2 7 0 7 0Z";
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <div className="text-[12.5px] font-bold text-muted">{children}</div>;
-}
-
 function FlowSelector({
   value,
   onChange,
@@ -40,7 +35,11 @@ function FlowSelector({
   onChange: (v: Flow | null) => void;
 }) {
   const cell =
-    "flex flex-1 flex-col items-center justify-end gap-[5px] rounded-[14px] px-1 py-[11px] transition active:scale-95";
+    "box-border flex flex-1 flex-col items-center justify-end gap-[5px] rounded-[13px] border px-1 py-[10px] transition active:scale-95";
+  const idle = "border-line bg-field";
+  // Активний осередок — акцентний тінт без заливки: крапля лишається
+  // кольору виділень, і шкала не втрачає свій градієнт на вибраному дні.
+  const on = "border-transparent bg-primary-light";
 
   return (
     <div className="flex gap-[7px]">
@@ -48,17 +47,12 @@ function FlowSelector({
         type="button"
         onClick={() => onChange(null)}
         aria-pressed={value === null}
-        className={cn(
-          cell,
-          value === null
-            ? "bg-primary shadow-cta"
-            : "border-[1.5px] border-primary-light bg-bg",
-        )}
+        className={cn(cell, value === null ? on : idle)}
       >
         <span
           className={cn(
-            "text-[15px] font-extrabold leading-[17px]",
-            value === null ? "text-white" : "text-muted",
+            "text-[15px] font-semibold leading-[17px]",
+            value === null ? "text-accent" : "text-muted",
           )}
         >
           —
@@ -66,7 +60,7 @@ function FlowSelector({
         <span
           className={cn(
             "text-[10.5px]",
-            value === null ? "font-extrabold text-white" : "font-bold text-muted",
+            value === null ? "font-semibold text-accent" : "font-medium text-muted",
           )}
         >
           немає
@@ -82,18 +76,15 @@ function FlowSelector({
             type="button"
             onClick={() => onChange(f)}
             aria-pressed={active}
-            className={cn(
-              cell,
-              active ? "bg-primary shadow-cta" : "border-[1.5px] border-primary-light bg-bg",
-            )}
+            className={cn(cell, active ? on : idle)}
           >
-            <svg width={w} height={h} viewBox="0 0 14 18" fill={active ? "#fff" : fill}>
+            <svg width={w} height={h} viewBox="0 0 14 18" fill={fill}>
               <path d={DROP_PATH} />
             </svg>
             <span
               className={cn(
                 "text-[10.5px]",
-                active ? "font-extrabold text-white" : "font-bold text-muted",
+                active ? "font-semibold text-accent" : "font-medium text-muted",
               )}
             >
               {FLOW_LABELS[f]}
@@ -122,12 +113,13 @@ function EnergyBars({
           // випадково поставлену енергію не було б як прибрати.
           onClick={() => onChange(value === n ? null : n)}
           aria-label={`Енергія ${n} з 5`}
+          aria-pressed={value !== null && n <= value}
           className="flex-1 py-2"
         >
           <span
             className={cn(
-              "block h-2.5 rounded-[5px]",
-              value !== null && n <= value ? "bg-primary" : "bg-primary-light",
+              "block h-2 rounded-[4px]",
+              value !== null && n <= value ? "bg-accent" : "bg-field",
             )}
           />
         </button>
@@ -185,74 +177,56 @@ export function DaySheet({
   return (
     <Sheet open={open} onClose={onClose} title={humanDate(date)} subtitle={subtitle}>
       <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2.5">
-          <Label>Виділення</Label>
+        <div>
+          <SectionLabel icon="droplet">Виділення</SectionLabel>
           <FlowSelector value={draft.flow} onChange={(flow) => onChange({ flow })} />
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <Label>Симптоми</Label>
+        <div>
+          <SectionLabel icon="activity">Симптоми</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {SYMPTOMS.map((s) => {
               const active = draft.symptoms.includes(s.key);
               return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => toggleSymptom(s.key)}
-                  aria-pressed={active}
-                  className={cn(
-                    "rounded-full px-[14px] py-[9px] text-[13px] transition active:scale-95",
-                    active
-                      ? "bg-primary font-extrabold text-white"
-                      : "border-[1.5px] border-primary-light bg-bg font-semibold text-muted",
-                  )}
-                >
+                <Chip key={s.key} active={active} onClick={() => toggleSymptom(s.key)}>
                   {s.label}
-                </button>
+                </Chip>
               );
             })}
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <Label>Настрій</Label>
-          <div className="flex justify-between">
+        <div>
+          <SectionLabel icon="sun">Настрій</SectionLabel>
+          <div className="flex flex-wrap gap-2">
             {MOODS.map((m) => {
               const active = draft.mood === m;
               return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => onChange({ mood: active ? null : m })}
-                  aria-label={`Настрій ${MOOD_LABELS[m]}`}
-                  aria-pressed={active}
-                  className={cn(
-                    "flex h-[34px] w-[34px] items-center justify-center rounded-full text-[17px] transition active:scale-90",
-                    active ? "bg-primary-light" : "bg-bg opacity-50",
-                  )}
-                  style={active ? { boxShadow: "0 0 0 2px var(--primary)" } : undefined}
-                >
-                  {MOOD_EMOJI[m]}
-                </button>
+                <Chip key={m} active={active} onClick={() => onChange({ mood: active ? null : m })}>
+                  {MOOD_LABELS[m]}
+                </Chip>
               );
             })}
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <Label>Енергія</Label>
-            <span className="text-[12.5px] font-extrabold text-primary">
-              {draft.energy ? `${draft.energy} / 5` : "—"}
-            </span>
-          </div>
+        <div>
+          <SectionLabel
+            icon="bolt"
+            right={
+              <span className="text-[12.5px] font-semibold text-accent">
+                {draft.energy ? `${draft.energy} / 5` : "—"}
+              </span>
+            }
+          >
+            Енергія
+          </SectionLabel>
           <EnergyBars value={draft.energy} onChange={(energy) => onChange({ energy })} />
         </div>
 
         {noteOpen || draft.notes ? (
-          <div className="flex flex-col gap-2.5">
-            <Label>Нотатка</Label>
+          <div>
+            <SectionLabel icon="file">Нотатка</SectionLabel>
             <Textarea
               rows={3}
               autoFocus={noteOpen && !draft.notes}
@@ -265,10 +239,12 @@ export function DaySheet({
           <button
             type="button"
             onClick={() => setNoteOpen(true)}
-            className="flex items-center justify-between rounded-[15px] border-[1.5px] border-primary-light bg-bg px-[15px] py-3.5 active:scale-[.99]"
+            className="flex items-center justify-between rounded-[13px] border border-line bg-field px-[14px] py-3 active:scale-[.99]"
           >
-            <span className="text-[14px] font-bold text-muted">Нотатка</span>
-            <span className="text-[18px] font-extrabold leading-none text-primary">+</span>
+            <span className="text-[14px] font-medium text-muted">Нотатка</span>
+            <span className="flex text-accent">
+              <Icon name="plus" size={15} strokeWidth={2} />
+            </span>
           </button>
         )}
       </div>

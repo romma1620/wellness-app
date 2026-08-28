@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { Input, Sheet } from "@/components/ui";
 import { MUSCLE_GROUPS } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -65,25 +66,14 @@ export function ExercisePicker({
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="flex w-full items-center justify-between gap-2 rounded-[15px] border-[1.5px] border-primary-light bg-surface px-4 py-[13px] text-left transition active:scale-[.99]"
+        className="flex w-full items-center justify-between gap-2 rounded-[13px] border border-line bg-field px-[14px] py-3 text-left transition active:scale-[.99]"
       >
-        <span className="truncate text-[15px] font-extrabold text-ink">
+        <span className="truncate text-[14px] font-semibold text-ink">
           {selected?.name ?? "Вибери вправу"}
         </span>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 22 22"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-muted"
-          aria-hidden
-        >
-          <path d="M5 8l6 6 6-6" />
-        </svg>
+        <span aria-hidden className="shrink-0 text-muted">
+          <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+        </span>
       </button>
 
       <Sheet open={open} onClose={close} title="Вправа">
@@ -93,6 +83,7 @@ export function ExercisePicker({
             value={query}
             placeholder="Пошук вправи"
             onChange={(e) => setQuery(e.target.value)}
+            suffix={<Icon name="search" size={14} strokeWidth={1.8} />}
           />
         </div>
         {/* висоту обмежує Sheet — він єдиний знає, де закінчується видима
@@ -104,14 +95,14 @@ export function ExercisePicker({
                 <ExerciseRow key={e.id} exercise={e} active={e.id === value} onPick={pick} />
               ))
             ) : (
-              <div className="py-6 text-center text-[13px] font-semibold text-muted">
+              <div className="py-6 text-center text-[13px] font-medium text-muted">
                 Нічого не знайшли
               </div>
             )
           ) : (
             sections.map((section) => (
               <div key={section.title}>
-                <div className="px-1 pb-1 pt-3 text-[12px] font-bold uppercase text-muted">
+                <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
                   {section.title}
                 </div>
                 {section.items.map((e) => (
@@ -140,14 +131,14 @@ function ExerciseRow({
       type="button"
       onClick={() => onPick(exercise.id)}
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-[11px] px-3 py-[11px] text-left text-[14px] active:bg-primary-light",
-        active ? "font-extrabold text-primary" : "font-semibold text-ink",
+        "flex w-full items-center justify-between gap-2 rounded-[11px] px-3 py-[11px] text-left text-[14px] active:bg-field",
+        active ? "bg-primary-light font-semibold text-accent" : "font-medium text-ink",
       )}
     >
       <span className="truncate">{exercise.name}</span>
       {active && (
-        <span aria-hidden className="shrink-0 text-[13px]">
-          ✓
+        <span aria-hidden className="shrink-0">
+          <Icon name="check" size={13} strokeWidth={2.2} />
         </span>
       )}
     </button>

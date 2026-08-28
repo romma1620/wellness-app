@@ -1,7 +1,9 @@
 "use client";
 
+import { Icon, type IconName } from "@/components/icons";
 import { cn, monthLabel, parseISODate, todayISO, toISODate, weekdayHead } from "@/lib/utils";
 import { keyboardInset } from "@/lib/viewport";
+import Link from "next/link";
 import {
   forwardRef,
   useEffect,
@@ -16,6 +18,7 @@ import { DayPicker, type ClassNames, type DayButtonProps } from "react-day-picke
 import { uk } from "react-day-picker/locale";
 
 // ----------------------- Card -----------------------
+/** Пласка картка редизайну: 20px радіус, поверхня без тіні, 18px відступ. */
 export function Card({
   children,
   className,
@@ -25,20 +28,72 @@ export function Card({
   className?: string;
   as?: "div" | "section" | "form";
 }) {
+  return <Tag className={cn("rounded-xl2 bg-surface p-[18px]", className)}>{children}</Tag>;
+}
+
+/**
+ * Підпис секції: 11px, капітель, розріджений трекінг; іконка перед ним
+ * завжди акцентна — так секції впізнаються швидше за текст.
+ */
+export function SectionLabel({
+  children,
+  className,
+  icon,
+  right,
+}: {
+  children: ReactNode;
+  className?: string;
+  icon?: IconName;
+  /** Слот праворуч у тому ж рядку (бейдж, посилання). */
+  right?: ReactNode;
+}) {
+  const label = (
+    <span className="flex items-center gap-2">
+      {icon && (
+        <span className="flex text-accent">
+          <Icon name={icon} size={15} />
+        </span>
+      )}
+      <span className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+        {children}
+      </span>
+    </span>
+  );
+  if (right === undefined) return <div className={cn("mb-3", className)}>{label}</div>;
   return (
-    <Tag className={cn("rounded-xl2 bg-surface p-4 shadow-card", className)}>{children}</Tag>
+    <div className={cn("mb-3 flex items-center justify-between gap-3", className)}>
+      {label}
+      {right}
+    </div>
   );
 }
 
-export function SectionLabel({ children, className }: { children: ReactNode; className?: string }) {
+/** Заголовок екрана: 24px, з опційним підзаголовком і слотом дій праворуч. */
+export function PageTitle({
+  children,
+  subtitle,
+  right,
+  className,
+}: {
+  children: ReactNode;
+  subtitle?: ReactNode;
+  right?: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("mb-3 text-[12.5px] font-bold text-muted", className)}>{children}</div>
+    <div className={cn("flex items-end justify-between gap-3 px-[2px]", className)}>
+      <div className="min-w-0">
+        <h1 className="text-[24px] font-bold tracking-[-.01em]">{children}</h1>
+        {subtitle && <div className="mt-[3px] text-[12px] font-medium text-muted">{subtitle}</div>}
+      </div>
+      {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
+    </div>
   );
 }
 
 // ----------------------- Button -----------------------
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "outline";
+  variant?: "primary" | "ghost" | "outline" | "danger";
   loading?: boolean;
 };
 
@@ -47,11 +102,13 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
   ref,
 ) {
   const base =
-    "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-[15px] text-[16px] font-extrabold transition active:scale-[.98] disabled:opacity-60 disabled:active:scale-100";
+    "inline-flex w-full items-center justify-center gap-2 rounded-[15px] px-4 py-[15px] text-[15px] font-bold transition active:scale-[.98] disabled:opacity-60 disabled:active:scale-100";
   const styles = {
-    primary: "bg-primary text-white shadow-cta",
-    outline: "border-[1.5px] border-primary-light bg-surface text-ink",
-    ghost: "bg-primary-light text-primary",
+    primary: "bg-accent text-on-accent",
+    outline: "border border-line bg-field text-ink text-[14px] font-semibold py-[14px]",
+    ghost: "bg-primary-light text-accent text-[14px] font-semibold py-[14px]",
+    danger:
+      "border border-[color:color-mix(in_oklab,var(--neg)_35%,transparent)] bg-transparent text-neg text-[14px] font-semibold py-[14px]",
   }[variant];
   return (
     <button
@@ -66,9 +123,74 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
   );
 });
 
+/**
+ * Пілюля-дія в шапці екрана («Активність», «Звіт», «Шаблони»): посилання,
+ * якщо є `href`, інакше кнопка.
+ */
+export function Pill({
+  href,
+  onClick,
+  icon,
+  children,
+  className,
+  active,
+}: {
+  href?: string;
+  onClick?: () => void;
+  icon?: IconName;
+  children: ReactNode;
+  className?: string;
+  active?: boolean;
+}) {
+  const cls = cn(
+    "flex items-center gap-[6px] rounded-full border px-3 py-[7px] text-[12px] font-semibold transition active:scale-95",
+    active ? "border-transparent bg-primary-light text-accent" : "border-line bg-surface text-accent",
+    className,
+  );
+  const inner = (
+    <>
+      {icon && <Icon name={icon} size={13} strokeWidth={1.8} />}
+      {children}
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={cls}>
+      {inner}
+    </button>
+  );
+}
+
+/** Кругла 34px кнопка з іконкою (шапка, навігація місяцями). */
+export const IconButton = forwardRef<
+  HTMLButtonElement,
+  ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string; size?: number }
+>(function IconButton({ icon, label, size = 15, className, ...rest }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      className={cn(
+        "flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95 disabled:opacity-40 disabled:active:scale-100",
+        className,
+      )}
+      {...rest}
+    >
+      <Icon name={icon} size={size} strokeWidth={1.7} />
+    </button>
+  );
+});
+
 // ----------------------- Field / Input -----------------------
 export function FieldLabel({ children }: { children: ReactNode }) {
-  return <div className="mb-[7px] text-[12.5px] font-bold text-muted">{children}</div>;
+  return <div className="mb-[6px] text-[11.5px] font-medium text-muted">{children}</div>;
 }
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -83,17 +205,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-[15px] border-[1.5px] bg-surface px-4 py-[13px]",
-        error ? "border-neg" : "border-primary-light",
+        "flex items-center gap-2 rounded-[13px] border bg-field px-[14px] py-3 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
+        error ? "border-neg" : "border-line",
         className,
       )}
     >
       <input
         ref={ref}
-        className="w-full bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-medium placeholder:text-muted"
+        className="w-full bg-transparent text-[15px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-muted"
         {...rest}
       />
-      {suffix && <span className="shrink-0 text-[13px] font-bold text-muted">{suffix}</span>}
+      {suffix && <span className="shrink-0 text-[12px] font-medium text-muted">{suffix}</span>}
     </div>
   );
 });
@@ -104,7 +226,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
       <textarea
         ref={ref}
         className={cn(
-          "w-full resize-none rounded-[15px] border-[1.5px] border-primary-light bg-surface px-4 py-3 text-[14px] font-medium leading-relaxed text-ink outline-none placeholder:text-muted",
+          "w-full resize-none rounded-[13px] border border-line bg-field px-[14px] py-3 text-[13.5px] font-normal leading-[1.6] text-ink outline-none transition-colors placeholder:text-muted focus:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
           className,
         )}
         {...rest}
@@ -137,15 +259,15 @@ function PickerDay({ day, modifiers, className, children, ...rest }: DayButtonPr
       ref={ref}
       {...rest}
       className={cn(
-        "mx-auto flex h-[38px] w-[38px] items-center justify-center rounded-full text-[14px] transition",
+        "mx-auto flex h-[36px] w-[36px] items-center justify-center rounded-full text-[13px] transition",
         selected
-          ? "bg-primary font-extrabold text-white shadow-soft"
+          ? "bg-accent font-bold text-on-accent"
           : today
-            ? "font-extrabold text-primary ring-[1.5px] ring-inset ring-primary"
-            : "font-bold text-ink",
+            ? "font-semibold text-accent ring-[1.5px] ring-inset ring-accent"
+            : "font-medium text-ink",
         outside && !selected && "text-muted opacity-35",
         disabled && "cursor-not-allowed opacity-25",
-        !disabled && !selected && "hover:bg-primary-light active:scale-90",
+        !disabled && !selected && "hover:bg-field active:scale-90",
         className,
       )}
     >
@@ -156,7 +278,7 @@ function PickerDay({ day, modifiers, className, children, ...rest }: DayButtonPr
 }
 
 const NAV_BUTTON =
-  "flex h-[30px] w-[30px] items-center justify-center rounded-[11px] bg-bg text-muted transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
+  "flex h-[30px] w-[30px] items-center justify-center rounded-[10px] border border-line text-muted transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
 
 /**
  * Класи розкладені по елементах react-day-picker, базовий CSS лібки не
@@ -172,11 +294,11 @@ const PICKER_CLASSES: Partial<ClassNames> = {
   month: "relative w-full",
   button_previous: cn(NAV_BUTTON, "absolute left-0 top-0 z-10"),
   button_next: cn(NAV_BUTTON, "absolute right-0 top-0 z-10"),
-  chevron: "h-[18px] w-[18px] fill-current",
+  chevron: "h-[16px] w-[16px] fill-current",
   month_caption: "mb-3 flex h-[30px] items-center justify-center",
-  caption_label: "text-[15px] font-extrabold",
+  caption_label: "text-[14px] font-bold",
   month_grid: "w-full border-collapse",
-  weekday: "pb-1.5 text-center text-[10.5px] font-extrabold text-muted",
+  weekday: "pb-1.5 text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted",
   day: "p-0 py-[2px] text-center align-middle",
 };
 
@@ -267,7 +389,7 @@ export function DateField({
               onChange(todayISO());
               setOpen(false);
             }}
-            className="mt-2 shrink-0 rounded-[14px] bg-primary-light py-3 text-center text-[13.5px] font-extrabold text-primary active:scale-[.99]"
+            className="mt-2 shrink-0 rounded-[13px] bg-primary-light py-3 text-center text-[13px] font-bold text-accent active:scale-[.99]"
           >
             Сьогодні
           </button>
@@ -278,43 +400,68 @@ export function DateField({
 }
 
 // ----------------------- Chip -----------------------
+/**
+ * Чип-перемикач. Активний — акцентний тінт; неактивний — тонка лінія без
+ * заливки. `dashed` — чип-дія «+ Додати». `onRemove` домальовує хрестик.
+ */
 export function Chip({
   active,
   children,
   onClick,
+  dashed,
+  icon,
+  className,
 }: {
   active?: boolean;
   children: ReactNode;
   onClick?: () => void;
+  dashed?: boolean;
+  icon?: IconName;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-[14px] py-[9px] text-[13px] font-bold transition active:scale-95",
+        "flex items-center gap-[6px] rounded-full px-[14px] py-2 text-[12.5px] transition active:scale-95",
         active
-          ? "bg-primary text-white"
-          : "border-[1.5px] border-primary-light bg-bg font-semibold text-muted",
+          ? "bg-primary-light font-semibold text-accent"
+          : dashed
+            ? "border border-dashed border-line bg-transparent font-medium text-muted"
+            : "border border-line bg-transparent font-medium text-muted",
+        className,
       )}
     >
+      {icon && <Icon name={icon} size={11} strokeWidth={2} />}
       {children}
     </button>
   );
 }
 
 // ----------------------- Segmented control -----------------------
+/**
+ * Сегменти. `surface` — самостійний блок на фоні сторінки (перемикач
+ * періоду); `outline` — усередині картки, обведений лінією.
+ */
 export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  variant = "surface",
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  variant?: "surface" | "outline";
 }) {
   return (
-    <div className="flex rounded-[14px] bg-primary-light p-[5px]">
+    <div
+      className={cn(
+        "flex p-1",
+        variant === "surface" ? "rounded-[14px] bg-surface" : "rounded-[13px] border border-line",
+      )}
+    >
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -323,8 +470,11 @@ export function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex-1 rounded-[11px] py-[9px] text-center text-[14px] transition",
-              active ? "bg-surface font-extrabold text-ink shadow-soft" : "font-bold text-muted",
+              "flex-1 text-center transition",
+              variant === "surface"
+                ? "rounded-[10px] py-[9px] text-[13px]"
+                : "rounded-[9px] py-2 text-[12.5px]",
+              active ? "bg-primary-light font-bold text-accent" : "font-medium text-muted",
             )}
           >
             {o.label}
@@ -361,15 +511,15 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[27px] w-[46px] shrink-0 rounded-[14px] transition-colors",
-        checked ? "bg-primary" : "bg-primary-light",
+        "relative h-[27px] w-[46px] shrink-0 rounded-[14px] border transition-colors",
+        checked ? "border-transparent bg-accent" : "border-line bg-field",
         disabled && "opacity-50",
       )}
     >
       <span
         className={cn(
-          "absolute top-[3px] h-[21px] w-[21px] rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,.2)] transition-[left]",
-          checked ? "left-[22px]" : "left-[3px]",
+          "absolute top-[2px] h-[21px] w-[21px] rounded-full transition-[left,background-color]",
+          checked ? "left-[22px] bg-on-accent" : "left-[2px] bg-muted",
         )}
       />
     </button>
@@ -392,8 +542,8 @@ export function Spinner({ className }: { className?: string }) {
 export function FullLoader({ label = "Завантаження…" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted">
-      <Spinner className="h-7 w-7 text-primary" />
-      <span className="text-[13px] font-bold">{label}</span>
+      <Spinner className="h-7 w-7 text-accent" />
+      <span className="text-[12.5px] font-medium">{label}</span>
     </div>
   );
 }
@@ -404,29 +554,30 @@ export function FullLoader({ label = "Завантаження…" }: { label?: 
  * примітив нічого не знає про конкретні картки.
  */
 export function Skeleton({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn("aura-pulse block rounded-[8px] bg-primary-light", className)}
-    />
-  );
+  return <span aria-hidden className={cn("aura-pulse block rounded-[8px] bg-field", className)} />;
 }
 
 // ----------------------- Empty state -----------------------
 export function EmptyState({
-  emoji = "🌱",
+  icon = "leaf",
   title,
   hint,
 }: {
-  emoji?: string;
+  icon?: IconName;
   title: string;
   hint?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl2 bg-surface px-6 py-10 text-center shadow-card">
-      <div className="text-[34px]">{emoji}</div>
-      <div className="text-[15px] font-extrabold text-ink">{title}</div>
-      {hint && <div className="max-w-[240px] text-[13px] font-medium text-muted">{hint}</div>}
+    <div className="flex flex-col items-center gap-3 rounded-xl2 bg-surface px-6 py-10 text-center">
+      <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary-light text-accent">
+        <Icon name={icon} size={20} />
+      </div>
+      <div className="text-[14.5px] font-bold text-ink">{title}</div>
+      {hint && (
+        <div className="max-w-[260px] text-[12.5px] font-normal leading-[1.55] text-muted">
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
@@ -434,7 +585,7 @@ export function EmptyState({
 // ----------------------- Error banner -----------------------
 export function ErrorBanner({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[14px] border-[1.5px] border-neg/40 bg-neg/10 px-4 py-3 text-[13px] font-bold text-neg">
+    <div className="rounded-[13px] border border-neg/35 bg-neg/10 px-4 py-3 text-[13px] font-semibold text-neg">
       {children}
     </div>
   );
@@ -445,41 +596,40 @@ export function Collapsible({
   title,
   subtitle,
   defaultOpen = false,
+  icon,
   children,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   defaultOpen?: boolean;
+  icon?: IconName;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-xl2 bg-surface shadow-card">
+    <div className="rounded-xl2 bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+        className="flex w-full items-center justify-between gap-3 px-[18px] py-[15px] text-left"
         aria-expanded={open}
       >
-        <div>
-          <div className="text-[15px] font-extrabold text-ink">{title}</div>
-          {subtitle && <div className="mt-0.5 text-[12px] font-semibold text-muted">{subtitle}</div>}
+        <div className="flex min-w-0 items-center gap-2">
+          {icon && (
+            <span className="flex shrink-0 text-accent">
+              <Icon name={icon} size={15} />
+            </span>
+          )}
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold text-ink">{title}</div>
+            {subtitle && <div className="mt-0.5 text-[11.5px] font-normal text-muted">{subtitle}</div>}
+          </div>
         </div>
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 22 22"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")}
-        >
-          <path d="M5 8l6 6 6-6" />
-        </svg>
+        <span className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")}>
+          <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+        </span>
       </button>
-      {open && <div className="border-t border-primary-light px-4 pb-4 pt-4">{children}</div>}
+      {open && <div className="border-t border-line px-[18px] pb-[18px] pt-4">{children}</div>}
     </div>
   );
 }
@@ -581,7 +731,7 @@ export function Sheet({
 
   return (
     <div
-      className="aura-fade fixed inset-0 z-50 flex items-end bg-black/40"
+      className="aura-fade fixed inset-0 z-50 flex items-end bg-black/55"
       // паддінг, а не зсув: висота контенту контейнера зменшується разом із
       // видимою областю, тож `max-h` панелі нижче рахується вже від неї
       style={{ paddingBottom: bottomInset }}
@@ -598,24 +748,24 @@ export function Sheet({
         // а не як окремий екран
         style={{ maxHeight: "calc(100% - 24px)" }}
         className={cn(
-          "aura-sheet mx-auto flex w-full max-w-app flex-col rounded-t-[24px] bg-surface p-5 outline-none",
+          "aura-sheet mx-auto flex w-full max-w-app flex-col rounded-t-[24px] border-t border-line bg-surface p-5 outline-none",
           "pb-[max(20px,env(safe-area-inset-bottom))]",
         )}
       >
         <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[17px] font-extrabold text-ink">{title}</div>
+            <div className="text-[17px] font-bold text-ink">{title}</div>
             {subtitle && (
-              <div className="mt-0.5 text-[12px] font-bold text-muted">{subtitle}</div>
+              <div className="mt-0.5 text-[12px] font-medium text-muted">{subtitle}</div>
             )}
           </div>
           <button
             type="button"
             onClick={() => closeRef.current()}
             aria-label="Закрити"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-[15px] font-bold text-primary active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-field text-muted active:scale-95"
           >
-            ✕
+            <Icon name="x" size={13} strokeWidth={2} />
           </button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>

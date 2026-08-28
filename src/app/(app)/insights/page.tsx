@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PairInsightCard, type PairCopy } from "@/components/insights/PairInsightCard";
-import { Card, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
+import { Collapsible, EmptyState, ErrorBanner, FullLoader, PageTitle } from "@/components/ui";
 import {
   ANALYSIS_WEEKS,
   analyzePair,
@@ -16,37 +16,15 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { setTonnage } from "@/lib/workouts";
-import {
-  addDays,
-  cn,
-  fmt,
-  fmtInt,
-  parseISODate,
-  todayISO,
-  weekBuckets,
-} from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { addDays, fmt, fmtInt, parseISODate, todayISO, weekBuckets } from "@/lib/utils";
 
-const ICON = {
-  width: 18,
-  height: 18,
-  viewBox: "0 0 22 22",
-  fill: "none",
-  strokeWidth: 2,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-};
-
-/** Тексти й вигляд трьох пар. Математика — у THRESHOLDS, тут лише подача. */
+/**
+ * Тексти й вигляд трьох пар. Математика — у THRESHOLDS, тут лише подача.
+ * Колір плитки — за метрикою-рушієм пари (харчування / кроки / тренування).
+ */
 const KCAL_COPY: PairCopy = {
-  tint: "var(--tint-rose)",
-  icon: (
-    // stroke="currentColor" + color у style: SVG-атрибути не парсять var().
-    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-rose-fg)" }}>
-      <path d="M6.5 3v5.5M4 3v3a2.5 2.5 0 0 0 5 0V3M6.5 8.5V19" />
-      <path d="M15 3c-1.6 1.2-2.5 3.1-2.5 5.5 0 1.6 1 2.5 2.5 2.5V19" />
-    </svg>
-  ),
+  hex: "#D4849A",
+  icon: "fork",
   xAxisLabel: "ккал/день",
   zeroLine: true,
   link: (a) =>
@@ -66,12 +44,8 @@ const KCAL_COPY: PairCopy = {
 };
 
 const STEPS_COPY: PairCopy = {
-  tint: "var(--tint-lavender)",
-  icon: (
-    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-lavender-fg)" }}>
-      <path d="M3 11.5h3l2.5-6 4 11.5 2.5-5.5h4" />
-    </svg>
-  ),
+  hex: "#A28BC4",
+  icon: "activity",
   xAxisLabel: "кроки, тис./день",
   xTickFormat: (v) => fmt(v / 1000, 1),
   zeroLine: true,
@@ -92,12 +66,8 @@ const STEPS_COPY: PairCopy = {
 };
 
 const PROTEIN_COPY: PairCopy = {
-  tint: "var(--tint-green)",
-  icon: (
-    <svg {...ICON} stroke="currentColor" style={{ color: "var(--tint-green-fg)" }}>
-      <path d="M4 8.5v5M18 8.5v5M6.5 7v8M15.5 7v8M6.5 11h9" />
-    </svg>
-  ),
+  hex: "#7FAE95",
+  icon: "dumbbell",
   xAxisLabel: "білок, г/день",
   zeroLine: false,
   link: (a) => {
@@ -188,13 +158,16 @@ export default function InsightsPage() {
   const isEmpty = data !== null && data.days.length === 0 && data.tonnageByDate.size === 0;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="px-1 pt-1">
-        <h1 className="text-[22px] font-extrabold">Інсайти</h1>
-        <p className="mt-0.5 text-[13px] font-semibold text-muted">
-          Що насправді впливає — по твоїх тижнях за останні 6 місяців
-        </p>
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle
+        subtitle={
+          <p className="text-[12.5px] font-normal text-muted">
+            Що насправді впливає — по твоїх тижнях за останні 6 місяців
+          </p>
+        }
+      >
+        Інсайти
+      </PageTitle>
 
       {loading ? (
         <FullLoader />
@@ -202,7 +175,7 @@ export default function InsightsPage() {
         <ErrorBanner>{error}</ErrorBanner>
       ) : isEmpty ? (
         <EmptyState
-          emoji="🔍"
+          icon="search"
           title="Ще немає даних"
           hint="Заповнюй щоденник на вкладці «Сьогодні» — і тут зʼявляться висновки про те, що працює саме для тебе."
         />
@@ -222,43 +195,29 @@ export default function InsightsPage() {
 
 /** Згорнута примітка про методологію — чесність фічі має бути перевірною. */
 function MethodologyCard() {
-  const [open, setOpen] = useState(false);
   return (
-    <Card className="!p-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3.5 text-left"
-      >
-        <span className="text-[13px] font-extrabold">Як це порахувано</span>
-        <ChevronDown
-          size={18}
-          className={cn("text-primary transition-transform", open && "rotate-180")}
-        />
-      </button>
-      {open && (
-        <div className="flex flex-col gap-2 border-t border-bg px-4 pb-4 pt-3 text-[12.5px] font-semibold leading-[1.55] text-muted">
-          <p>
-            Дані згортаються в тижні Пн–Нд за останні {ANALYSIS_WEEKS} завершених тижнів.
-            Тиждень враховується, коли метрику заповнено щонайменше 4 дні
-            (для ваги — 3 зважування).
-          </p>
-          <p>
-            Зміна ваги береться зі зсувом на тиждень: зʼїдене цього тижня видно
-            на терезах наступного.
-          </p>
-          <p>
-            Тижні діляться навпіл — «менші» проти «більших» за метрикою — і
-            порівнюються середні. Висновок зʼявляється лише коли різниця
-            перевищує поріг шуму: 0,2 кг/тиж для ваги, 12% для тоннажу.
-            «Звʼязку не видно» — теж чесний результат, а не помилка.
-          </p>
-          <p>
-            Коливання циклу тижневе усереднення згладжує, але не виключає
-            повністю — сприймай висновки як орієнтир, а не вирок.
-          </p>
-        </div>
-      )}
-    </Card>
+    <Collapsible icon="info" title="Як це порахувано">
+      <div className="flex flex-col gap-2 text-[12.5px] font-normal leading-[1.55] text-muted">
+        <p>
+          Дані згортаються в тижні Пн–Нд за останні {ANALYSIS_WEEKS} завершених тижнів.
+          Тиждень враховується, коли метрику заповнено щонайменше 4 дні
+          (для ваги — 3 зважування).
+        </p>
+        <p>
+          Зміна ваги береться зі зсувом на тиждень: зʼїдене цього тижня видно
+          на терезах наступного.
+        </p>
+        <p>
+          Тижні діляться навпіл — «менші» проти «більших» за метрикою — і
+          порівнюються середні. Висновок зʼявляється лише коли різниця
+          перевищує поріг шуму: 0,2 кг/тиж для ваги, 12% для тоннажу.
+          «Звʼязку не видно» — теж чесний результат, а не помилка.
+        </p>
+        <p>
+          Коливання циклу тижневе усереднення згладжує, але не виключає
+          повністю — сприймай висновки як орієнтир, а не вирок.
+        </p>
+      </div>
+    </Collapsible>
   );
 }

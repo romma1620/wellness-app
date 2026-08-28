@@ -1,7 +1,8 @@
 "use client";
 
 import { ConfirmCodeScreen } from "@/components/auth/ConfirmCodeScreen";
-import { Button, ErrorBanner, FieldLabel, Input } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button, ErrorBanner, FieldLabel, Input, Segmented } from "@/components/ui";
 import { MIN_PASSWORD_LENGTH, isSignupOfExistingEmail, translateAuthError } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -138,41 +139,32 @@ export default function LoginPage() {
   }[step];
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-app flex-col items-center bg-bg px-[30px] pb-10 pt-16">
-      <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[26px] bg-primary shadow-[0_14px_30px_-10px_var(--primary)]">
-        <span className="text-[38px] font-extrabold leading-none text-white">a</span>
-      </div>
-      <h1 className="mt-5 text-[30px] font-extrabold tracking-tight">aura</h1>
-      <p className="mt-2 whitespace-pre-line text-center text-[14.5px] text-muted">{subtitle}</p>
+    <div className="mx-auto flex min-h-dvh max-w-app flex-col items-center bg-bg px-[30px] pb-10 pt-[22vh] text-ink">
+      {/* Вордмарк як у шапці застосунку, лише більший: назва + акцентна крапка */}
+      <h1 className="flex items-center gap-[10px]">
+        <span className="text-[26px] font-bold uppercase tracking-[.3em]">aura</span>
+        <span className="h-[8px] w-[8px] rounded-full bg-accent" />
+      </h1>
+      <p className="mt-3 whitespace-pre-line text-center text-[13.5px] font-normal leading-[1.55] text-muted">
+        {subtitle}
+      </p>
 
       {step === "auth" && (
         <>
           {/* Перемикач вхід / реєстрація */}
-          <div className="mt-9 flex w-full rounded-2xl bg-primary-light p-[5px]">
-            {(
-              [
-                { m: "signin", label: "Вхід" },
-                { m: "signup", label: "Реєстрація" },
-              ] as const
-            ).map(({ m, label }) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMode(m);
-                  setError(null);
-                  setNeedsConfirm(false);
-                }}
-                className={
-                  "flex-1 rounded-xl py-[11px] text-center text-[14.5px] transition " +
-                  (mode === m
-                    ? "bg-surface font-extrabold text-ink shadow-soft"
-                    : "font-bold text-muted")
-                }
-              >
-                {label}
-              </button>
-            ))}
+          <div className="mt-9 w-full">
+            <Segmented<Mode>
+              value={mode}
+              onChange={(m) => {
+                setMode(m);
+                setError(null);
+                setNeedsConfirm(false);
+              }}
+              options={[
+                { value: "signin", label: "Вхід" },
+                { value: "signup", label: "Реєстрація" },
+              ]}
+            />
           </div>
 
           <form onSubmit={handleAuthSubmit} className="mt-6 flex w-full flex-col gap-[14px]">
@@ -199,7 +191,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShow((s) => !s)}
-                    className="font-bold text-primary"
+                    className="text-[12px] font-semibold text-accent"
                   >
                     {show ? "Сховати" : "Показати"}
                   </button>
@@ -222,7 +214,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => switchStep("forgot")}
-                className="py-1 text-center text-[13.5px] font-bold text-primary"
+                className="py-1 text-center text-[13px] font-semibold text-accent"
               >
                 Забув пароль?
               </button>
@@ -256,7 +248,7 @@ export default function LoginPage() {
 
       {step === "forgot" && (
         <form onSubmit={handleForgotSubmit} className="mt-9 flex w-full flex-col gap-[14px]">
-          <p className="text-center text-[14px] font-medium text-muted">
+          <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
             Введи свій email — надішлемо код
             <br />
             для зміни пароля
@@ -281,9 +273,10 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => switchStep("auth")}
-            className="py-1 text-center text-[13.5px] font-bold text-muted"
+            className="flex items-center justify-center gap-1 py-1 text-center text-[13px] font-medium text-muted"
           >
-            ← Назад до входу
+            <Icon name="chevronLeft" size={13} strokeWidth={1.8} />
+            Назад до входу
           </button>
         </form>
       )}
@@ -317,8 +310,8 @@ export default function LoginPage() {
 
       {step === "new-password" && (
         <form onSubmit={handleNewPasswordSubmit} className="mt-9 flex w-full flex-col gap-[14px]">
-          <p className="text-center text-[14px] font-medium text-muted">
-            Код прийнято! Задай новий пароль
+          <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
+            Код прийнято. Задай новий пароль
             <br />
             для свого акаунта
           </p>
@@ -334,7 +327,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShow((s) => !s)}
-                  className="font-bold text-primary"
+                  className="text-[12px] font-semibold text-accent"
                 >
                   {show ? "Сховати" : "Показати"}
                 </button>

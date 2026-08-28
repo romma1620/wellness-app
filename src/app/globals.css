@@ -3,35 +3,73 @@
 @tailwind utilities;
 
 /* ============================================================
-   Теми через CSS-змінні на [data-theme] (html-елемент).
-   Значення взяті 1:1 з дизайну.
+   Дизайн-токени редизайну (Aura — Redesign.dc.html).
+
+   Дві осі:
+   - режим (data-mode="light|dark") задає нейтральну палітру: фон, поверхні,
+     поля, лінії, текст, семантичні pos/neg/warn;
+   - тема (data-theme) задає лише один акцент. Ключі теми лишаються тими, що в
+     enum theme_name у БД (peach/mint/lavender/pink), але тепер це чотири
+     акценти редизайну: Gold / Sage / Mauve / Copper — підписи в lib/theme.ts.
+
+   --primary і --primary-light — аліаси акценту: класи bg-primary /
+   text-primary / border-primary-light по всьому застосунку автоматично
+   отримують новий вигляд.
    ============================================================ */
-:root,
-[data-theme="peach"] {
-  --primary: #e5906f;
-  --primary-light: #f7ddcf;
-  --bg: #fdf5f0;
-  --surface: #ffffff;
-  --text: #4b3a33;
-  --muted: #a08c81;
-  --accent: #d98b94;
-  --pos: #4a9d7e;
-  --warn: #c98a3d;
-  --neg: #c26a5a;
-  --ring: rgba(60, 40, 30, 0.45);
-}
-
-/* Кольори тіней живуть окремо від тем: вони залежать лише від режиму. */
 :root {
-  --shadow-card: rgba(80, 55, 45, 0.16);
-  --shadow-soft: rgba(80, 55, 45, 0.25);
-  --shadow-up: rgba(70, 50, 40, 0.22);
+  --accent: #c9a254;
+  --primary: var(--accent);
+  --primary-light: color-mix(in oklab, var(--accent) 16%, transparent);
+
+  /* світлий режим — базовий; data-mode ставлять boot-скрипт у layout і
+     ThemeProvider, сюди приходить уже розгорнуте light/dark, ніколи "system" */
+  --bg: #f4f1eb;
+  --surface: #ffffff;
+  --field: rgba(38, 32, 26, 0.04);
+  --line: rgba(38, 32, 26, 0.1);
+  --text: #26211c;
+  --muted: #8a8078;
+  --on-accent: #ffffff;
+  --pos: #3e8a6b;
+  --neg: #b55e4b;
+  --warn: #a6712f;
+  --ring: rgba(38, 32, 26, 0.45);
+
+  --shadow-up: rgba(0, 0, 0, 0.35);
 }
 
-/* Пастельні тінти даних (фази циклу, інсайти, календар). Як і PHASE_COLORS,
-   вони однакові на всіх чотирьох темах — це значення даних, не акцент
-   інтерфейсу, — але залежать від режиму: у темному пастельна підкладка стає
-   темним тінтом того самого відтінку, а парний *-fg світлішає.
+[data-theme="peach"] {
+  --accent: #c9a254; /* Gold */
+}
+[data-theme="mint"] {
+  --accent: #8fae9b; /* Sage */
+}
+[data-theme="lavender"] {
+  --accent: #a08bc0; /* Mauve */
+}
+[data-theme="pink"] {
+  --accent: #c98963; /* Copper */
+}
+
+[data-mode="dark"] {
+  --bg: #131110;
+  --surface: #1c1916;
+  --field: rgba(242, 238, 232, 0.05);
+  --line: rgba(242, 238, 232, 0.09);
+  --text: #f2eee8;
+  --muted: #9a9089;
+  --on-accent: #171310;
+  --pos: #7fb59b;
+  --neg: #ce7a66;
+  --warn: #c98a3d;
+  --ring: rgba(242, 238, 232, 0.5);
+
+  --shadow-up: rgba(0, 0, 0, 0.6);
+}
+
+/* Кольори даних (фази циклу, інсайти, календар). Не залежать від акценту —
+   це значення даних, не інтерфейсу, — але залежать від режиму: у темному
+   пастельна підкладка стає темним тінтом того самого відтінку.
    --tint-tile — напівпрозора «плитка» поверх тінт-градієнтів. */
 :root {
   --tint-rose: #fbe9ee;
@@ -54,61 +92,7 @@
   --tint-tile: rgba(255, 255, 255, 0.7);
 }
 
-[data-theme="mint"] {
-  --primary: #5fb89c;
-  --primary-light: #cfebe0;
-  --bg: #eff8f3;
-  --surface: #ffffff;
-  --text: #31453e;
-  --muted: #7e938b;
-  --accent: #7fafc4;
-  --pos: #3f8f76;
-  --warn: #c98a3d;
-  --neg: #ca6b5c;
-  --ring: rgba(40, 60, 50, 0.45);
-}
-
-[data-theme="lavender"] {
-  --primary: #9384c2;
-  --primary-light: #e4dcf2;
-  --bg: #f5f2fb;
-  --surface: #ffffff;
-  --text: #413952;
-  --muted: #8b84a0;
-  --accent: #b588c4;
-  --pos: #4a9d7e;
-  --warn: #c98a3d;
-  --neg: #b56a86;
-  --ring: rgba(55, 45, 70, 0.45);
-}
-
-[data-theme="pink"] {
-  --primary: #e0759b;
-  --primary-light: #f8d9e6;
-  --bg: #fdf3f7;
-  --surface: #ffffff;
-  --text: #4d3540;
-  --muted: #a58b98;
-  --accent: #c47fb9;
-  --pos: #4a9d7e;
-  --warn: #c98a3d;
-  --neg: #cc5f7d;
-  --ring: rgba(60, 30, 45, 0.45);
-}
-
-/* ============================================================
-   Темний режим: ті самі 4 теми, інвертовані під темний фон.
-   Відтінок теми зберігається у фоні й поверхнях, а --primary-light
-   зі світлої підкладки стає темною підкладкою-контейнером — чипи,
-   іконки й бордери працюють без змін у розмітці.
-   data-mode ставлять boot-скрипт у layout і ThemeProvider — сюди
-   приходить уже розгорнуте значення light/dark, ніколи "system".
-   ============================================================ */
 [data-mode="dark"] {
-  --shadow-card: rgba(0, 0, 0, 0.45);
-  --shadow-soft: rgba(0, 0, 0, 0.5);
-  --shadow-up: rgba(0, 0, 0, 0.5);
-
   --tint-rose: #43242e;
   --tint-rose-fg: #e58fa6;
   --tint-rose-soft: #452631;
@@ -129,65 +113,12 @@
   --tint-tile: rgba(255, 255, 255, 0.08);
 }
 
-:root[data-mode="dark"],
-[data-theme="peach"][data-mode="dark"] {
-  --primary: #e89a7b;
-  --primary-light: #3f2d25;
-  --bg: #1c1410;
-  --surface: #2a201b;
-  --text: #f2e7e0;
-  --muted: #a38d82;
-  --accent: #de939c;
-  --pos: #5fb393;
-  --warn: #d9a45c;
-  --neg: #d6806f;
-  --ring: rgba(255, 236, 226, 0.5);
-}
-
-[data-theme="mint"][data-mode="dark"] {
-  --primary: #6bc2a6;
-  --primary-light: #223e36;
-  --bg: #101915;
-  --surface: #1b2822;
-  --text: #e3f0ea;
-  --muted: #87a096;
-  --accent: #8fbcd1;
-  --pos: #57b192;
-  --warn: #d9a45c;
-  --neg: #d98576;
-  --ring: rgba(226, 244, 236, 0.5);
-}
-
-[data-theme="lavender"][data-mode="dark"] {
-  --primary: #a797d6;
-  --primary-light: #342b4d;
-  --bg: #151021;
-  --surface: #221b31;
-  --text: #ebe6f5;
-  --muted: #948ca8;
-  --accent: #c79bd6;
-  --pos: #5fb393;
-  --warn: #d9a45c;
-  --neg: #c77f9b;
-  --ring: rgba(236, 229, 249, 0.5);
-}
-
-[data-theme="pink"][data-mode="dark"] {
-  --primary: #e687aa;
-  --primary-light: #472b3a;
-  --bg: #1e1218;
-  --surface: #2c1d25;
-  --text: #f5e5ec;
-  --muted: #a78d98;
-  --accent: #cf92c7;
-  --pos: #5fb393;
-  --warn: #d9a45c;
-  --neg: #d97490;
-  --ring: rgba(248, 230, 238, 0.5);
-}
-
 html {
   background: var(--bg);
+  color-scheme: light;
+}
+html[data-mode="dark"] {
+  color-scheme: dark;
 }
 
 body {
@@ -277,13 +208,13 @@ input[type="number"] {
   animation: aura-sheet-up 0.22s ease-out both;
 }
 
-/* Тултипи TanStack Charts у стилі карток застосунку (shadow-card з tailwind.config). */
+/* Тултипи TanStack Charts у стилі карток застосунку. */
 .wellness-chart {
   --ts-chart-tooltip-background: var(--surface);
-  --ts-chart-tooltip-border: none;
+  --ts-chart-tooltip-border: 1px solid var(--line);
   --ts-chart-tooltip-border-radius: 12px;
-  --ts-chart-tooltip-shadow: 0 8px 24px -12px var(--shadow-card);
-  --ts-chart-tooltip-font: 700 11px/1.45 var(--font-nunito), system-ui, sans-serif;
+  --ts-chart-tooltip-shadow: 0 12px 28px -14px var(--shadow-up);
+  --ts-chart-tooltip-font: 600 11px/1.45 var(--font-sans), system-ui, sans-serif;
   --ts-chart-tooltip-color: var(--text);
 }
 

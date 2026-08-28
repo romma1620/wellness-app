@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, ErrorBanner, FullLoader, Segmented } from "@/components/ui";
+import { BackLink } from "@/components/BackLink";
+import { Card, ErrorBanner, FullLoader, PageTitle, SectionLabel, Segmented } from "@/components/ui";
 import { dayCompleteness, heatLevel, weekRows } from "@/lib/activity";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
@@ -112,8 +113,8 @@ export default function ActivityPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <h1 className="px-1 pt-1 text-[22px] font-extrabold">Активність за рік</h1>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle right={<BackLink href="/analytics" />}>Активність за рік</PageTitle>
 
       <Segmented<MetricKey>
         value={metric}
@@ -131,32 +132,34 @@ export default function ActivityPage() {
         <ErrorBanner>{error}</ErrorBanner>
       ) : (
         <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[12.5px] font-bold text-muted">
-              {activeDays} {plural(activeDays, "день", "дні", "днів")} з даними за рік
-            </span>
-            <span className="flex items-center gap-[3px] text-[10.5px] font-bold text-muted">
-              менше
-              {LEVEL_OPACITY.map((o, lvl) => (
-                <span
-                  key={lvl}
-                  className={cn(
-                    "inline-block h-[10px] w-[10px] rounded-[3px]",
-                    lvl === 0 ? "bg-primary-light" : "bg-primary",
-                  )}
-                  style={{ opacity: lvl === 0 ? 0.35 : o }}
-                />
-              ))}
-              більше
-            </span>
-          </div>
+          <SectionLabel
+            icon="grid"
+            right={
+              <span className="flex items-center gap-[3px] text-[10.5px] font-medium text-muted">
+                менше
+                {LEVEL_OPACITY.map((o, lvl) => (
+                  <span
+                    key={lvl}
+                    className={cn(
+                      "inline-block h-[10px] w-[10px] rounded-[3px]",
+                      lvl === 0 ? "bg-field" : "bg-accent",
+                    )}
+                    style={{ opacity: lvl === 0 ? 1 : o }}
+                  />
+                ))}
+                більше
+              </span>
+            }
+          >
+            {activeDays} {plural(activeDays, "день", "дні", "днів")} з даними
+          </SectionLabel>
 
           <div className="mx-auto grid w-full max-w-[340px] grid-cols-[32px_repeat(7,1fr)] gap-[3px]">
             <span />
             {COL_DAYS.map((jsDay) => (
               <span
                 key={jsDay}
-                className="pb-0.5 text-center text-[10px] font-bold text-muted"
+                className="pb-0.5 text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted"
               >
                 {weekdayHead(jsDay)}
               </span>
@@ -174,9 +177,9 @@ export default function ActivityPage() {
           </div>
 
           {selected && (
-            <div className="mt-3 rounded-[12px] bg-bg px-3 py-2 text-[12.5px] font-bold">
+            <div className="mt-3 rounded-[12px] border border-line bg-field px-3 py-2 text-[12.5px] font-semibold text-ink">
               {humanDate(selected)}
-              <span className="ml-1.5 font-semibold text-muted">{detailText(selected)}</span>
+              <span className="ml-1.5 font-normal text-muted">{detailText(selected)}</span>
             </div>
           )}
         </Card>
@@ -200,7 +203,7 @@ function FragmentRow({
 }) {
   return (
     <>
-      <span className="flex items-center text-[10px] font-bold text-muted">
+      <span className="flex items-center text-[10px] font-medium text-muted">
         {row.monthLabel}
       </span>
       {row.days.map((d, i) => {
@@ -220,9 +223,9 @@ function FragmentRow({
             <span
               className={cn(
                 "block h-full w-full rounded-[5px]",
-                lvl === 0 ? "bg-primary-light" : "bg-primary",
+                lvl === 0 ? "bg-field" : "bg-accent",
               )}
-              style={{ opacity: lvl === 0 ? 0.35 : LEVEL_OPACITY[lvl] }}
+              style={{ opacity: lvl === 0 ? 1 : LEVEL_OPACITY[lvl] }}
             />
           </button>
         );

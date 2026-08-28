@@ -1,6 +1,8 @@
 "use client";
 
 import { ForecastCard } from "@/components/ForecastCard";
+import { RewardLadder } from "@/components/goals/RewardLadder";
+import { Icon } from "@/components/icons";
 import { NumberField } from "@/components/inputs";
 import {
   Button,
@@ -10,12 +12,14 @@ import {
   FieldLabel,
   FullLoader,
   Input,
+  PageTitle,
   SectionLabel,
+  Sheet,
 } from "@/components/ui";
 import { useProfile, useRecentWeights, useRewards } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
-import { addDays, cn, fmt, todayISO } from "@/lib/utils";
+import { addDays, fmt, todayISO } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
@@ -69,6 +73,7 @@ export default function GoalsPage() {
     let progress: number | null = null;
     if (next && latestWeight != null) {
       remaining = latestWeight - next.weight;
+      // База прогресу — найнижча вже досягнута сходинка (або поточна вага, якщо таких нема).
       const baseline = achievedWeights.length ? Math.min(...achievedWeights) : latestWeight;
       const total = baseline - next.weight;
       progress = total > 0 ? Math.min(Math.max((baseline - latestWeight) / total, 0), 1) : remaining <= 0 ? 1 : 0;
@@ -87,6 +92,11 @@ export default function GoalsPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rewardsQ.data, weightsQ.data]);
+
+  function closeEditor() {
+    setEditor(null);
+    setActionError(null);
+  }
 
   async function saveEditor() {
     if (!editor) return;
@@ -135,57 +145,114 @@ export default function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цілі</h1>
+      <div className="flex flex-col gap-[14px]">
+        <PageTitle>Цілі</PageTitle>
         <FullLoader />
       </div>
     );
   }
 
   const { sorted, isAchieved, next, remaining, progress } = computed;
-  const firstAchievedIdx = sorted.findIndex((r) => isAchieved(r.weight));
+  const target = profile?.target_weight ?? null;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цілі</h1>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle>Цілі</PageTitle>
 
       {/* Поточна vs ціль */}
-      <Card className="flex items-center justify-between">
+      <Card className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[12.5px] font-bold text-muted">Поточна вага</div>
-          <div className="mt-0.5 text-[32px] font-extrabold leading-tight">
-            {latestWeight != null ? `${fmt(latestWeight, 1)} кг` : "—"}
+          <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+            Поточна вага
+          </div>
+          <div className="mt-2 text-[34px] font-normal leading-[1.1] tracking-[-.01em] text-ink">
+            {latestWeight != null ? (
+              <>
+                {fmt(latestWeight, 1)}{" "}
+                <span className="text-[14px] font-medium text-muted">кг</span>
+              </>
+            ) : (
+              <span className="text-muted">—</span>
+            )}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[12.5px] font-bold text-muted">Ціль</div>
-          <div className="mt-1 text-[20px] font-extrabold text-primary">
-            {profile?.target_weight != null ? `${fmt(profile.target_weight, 1)} кг` : "—"}
+          <div className="flex items-center justify-end gap-[6px] text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+            <span className="flex text-accent">
+              <Icon name="target" size={13} />
+            </span>
+            Ціль
           </div>
+          {target != null ? (
+            <div className="mt-2 text-[20px] font-medium text-accent">{fmt(target, 1)} кг</div>
+          ) : (
+            <>
+              <div className="mt-2 text-[20px] font-medium text-muted">—</div>
+              <div className="mt-[2px] text-[11px] font-normal text-muted">
+                Задай ціль у профілі
+              </div>
+            </>
+          )}
         </div>
       </Card>
 
       <ForecastCard />
 
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {error && !editor && <ErrorBanner>{error}</ErrorBanner>}
 
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-[2px]">
         <SectionLabel className="mb-0">Драбинка винагород</SectionLabel>
-        {!editor && (
-          <button
-            type="button"
-            onClick={() => setEditor({ id: null, weight: null, gift: "" })}
-            className="text-[13px] font-extrabold text-primary"
-          >
-            + Додати
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setEditor({ id: null, weight: null, gift: "" })}
+          className="flex items-center gap-1 text-[12.5px] font-semibold text-accent"
+        >
+          <Icon name="plus" size={13} strokeWidth={2} />
+          Додати
+        </button>
       </div>
 
-      {/* Редактор */}
+      {/* Порожній стан */}
+      {sorted.length === 0 && (
+        <EmptyState
+          icon="target"
+          title="Додай першу винагороду"
+          hint="Признач собі подарунок за досягнення певної ваги — це мотивує."
+        />
+      )}
+
+      {/* Драбинка */}
+      {sorted.length > 0 && (
+        <RewardLadder
+          steps={sorted}
+          isAchieved={isAchieved}
+          nextId={next?.id ?? null}
+          latestWeight={latestWeight}
+          remaining={remaining}
+          progress={progress}
+          onSelect={(r) => setEditor({ id: r.id, weight: r.weight, gift: r.gift })}
+        />
+      )}
+
+      {min7 == null && sorted.length > 0 && (
+        <p className="px-2 text-center text-[12px] font-normal leading-[1.5] text-muted">
+          Додай вагу у щоденнику — і сходинки почнуть відмічатися автоматично.
+        </p>
+      )}
+
+      {/* Редактор сходинки */}
       {editor && (
-        <Card>
-          <SectionLabel>{editor.id ? "Редагувати сходинку" : "Нова сходинка"}</SectionLabel>
+        <Sheet
+          open
+          onClose={closeEditor}
+          title={editor.id ? "Редагувати сходинку" : "Нова сходинка"}
+          subtitle="Вага, за досягнення якої чекає подарунок"
+        >
+          {error && (
+            <div className="mb-3">
+              <ErrorBanner>{error}</ErrorBanner>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <NumberField
               label="Вага"
@@ -198,148 +265,32 @@ export default function GoalsPage() {
             <div>
               <FieldLabel>Подарунок</FieldLabel>
               <Input
-                placeholder="Напр., Купальник 👙"
+                placeholder="Напр., Купальник"
                 value={editor.gift}
                 onChange={(e) => setEditor((s) => (s ? { ...s, gift: e.target.value } : s))}
               />
             </div>
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-col gap-2.5">
             <Button type="button" onClick={saveEditor} loading={saving}>
               Зберегти
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setEditor(null);
-                setActionError(null);
-              }}
-            >
+            <Button type="button" variant="outline" onClick={closeEditor}>
               Скасувати
             </Button>
+            {editor.id && (
+              <Button
+                type="button"
+                variant="danger"
+                loading={saving}
+                onClick={() => remove(editor.id as string)}
+              >
+                <Icon name="trash" size={14} />
+                Видалити сходинку
+              </Button>
+            )}
           </div>
-          {editor.id && (
-            <button
-              type="button"
-              onClick={() => remove(editor.id!)}
-              className="mt-3 w-full text-center text-[13px] font-extrabold text-neg"
-            >
-              Видалити сходинку
-            </button>
-          )}
-        </Card>
-      )}
-
-      {/* Порожній стан */}
-      {sorted.length === 0 && !editor && (
-        <EmptyState
-          emoji="🎁"
-          title="Додай першу винагороду"
-          hint="Признач собі подарунок за досягнення певної ваги — це мотивує."
-        />
-      )}
-
-      {/* Драбинка */}
-      {sorted.length > 0 && (
-        <div className="flex flex-col">
-          {sorted.map((r, idx) => {
-            const achieved = isAchieved(r.weight);
-            const isNext = next?.id === r.id;
-            const showYouAreHere = idx === firstAchievedIdx && firstAchievedIdx > 0 && latestWeight != null;
-            return (
-              <div key={r.id}>
-                {showYouAreHere && (
-                  <div className="flex items-center gap-[14px] pb-1">
-                    <div className="flex w-[30px] justify-center">
-                      <div className="h-3.5 w-3.5 rounded-full bg-primary shadow-[0_0_0_4px_var(--surface),0_0_0_6px_var(--primary)]" />
-                    </div>
-                    <div className="py-1 text-[12px] font-extrabold text-primary">
-                      Ти тут — {fmt(latestWeight, 1)} кг
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-stretch gap-[14px]">
-                  {/* Ліва вісь із вузлом */}
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={cn(
-                        "flex h-[30px] w-[30px] items-center justify-center rounded-full text-[16px] font-extrabold",
-                        achieved
-                          ? "bg-primary text-white"
-                          : isNext
-                            ? "border-[3px] border-primary bg-surface shadow-[0_0_0_4px_var(--primary-light)]"
-                            : "border-[2.5px] border-primary-light bg-surface",
-                      )}
-                    >
-                      {achieved ? "✓" : ""}
-                    </div>
-                    {idx < sorted.length - 1 && (
-                      <div
-                        className={cn(
-                          "w-[2.5px] flex-1",
-                          achieved ? "bg-primary" : "bg-primary-light",
-                        )}
-                      />
-                    )}
-                  </div>
-
-                  {/* Картка */}
-                  <button
-                    type="button"
-                    onClick={() => setEditor({ id: r.id, weight: r.weight, gift: r.gift })}
-                    className={cn(
-                      "mb-2 flex-1 rounded-2xl bg-surface p-[14px] text-left shadow-card transition active:scale-[.99]",
-                      isNext && "border-[1.5px] border-primary",
-                      !achieved && !isNext && "opacity-70",
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[15px] font-extrabold">
-                          {fmt(r.weight, 1)} кг
-                          {isNext && (
-                            <span className="ml-1.5 text-[11px] font-extrabold text-primary">· наступна</span>
-                          )}
-                        </div>
-                        <div className="text-[12.5px] font-semibold text-muted">{r.gift}</div>
-                      </div>
-                      <span
-                        className={cn(
-                          "text-[12px] font-extrabold",
-                          achieved ? "text-pos" : "text-muted",
-                        )}
-                      >
-                        {achieved ? "отримано" : "🔒"}
-                      </span>
-                    </div>
-                    {isNext && remaining != null && progress != null && (
-                      <div className="mt-3">
-                        <div className="h-2 overflow-hidden rounded-full bg-bg">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${Math.round(progress * 100)}%` }}
-                          />
-                        </div>
-                        <div className="mt-1.5 text-[11px] font-bold text-muted">
-                          {remaining > 0
-                            ? `ще ${fmt(remaining, 1)} кг · ${Math.round(progress * 100)}%`
-                            : "майже досягнуто!"}
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {min7 == null && sorted.length > 0 && (
-        <p className="px-2 text-center text-[12px] font-semibold text-muted">
-          Додай вагу у щоденнику — і сходинки почнуть відмічатися автоматично.
-        </p>
+        </Sheet>
       )}
     </div>
   );

@@ -8,7 +8,8 @@ import { CycleSkeleton } from "@/components/cycle/CycleSkeleton";
 import { CycleStatusCard } from "@/components/cycle/CycleStatusCard";
 import { CycleDisclaimer, PhaseTipCard } from "@/components/cycle/PhaseTipCard";
 import { DaySheet } from "@/components/cycle/DaySheet";
-import { Button, ErrorBanner } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button, ErrorBanner, IconButton, PageTitle, Pill } from "@/components/ui";
 import {
   loadCycleEntries,
   loadCycleSettings,
@@ -30,8 +31,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { addDays, addMonths, monthEnd, monthStartOf, todayISO } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Settings2 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SAVE_DEBOUNCE_MS = 450;
@@ -63,6 +63,7 @@ export default function CyclePage() {
   const supabase = useMemo(() => createClient(), []);
   const uid = useUid();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const today = useMemo(() => todayISO(), []);
 
   const [viewMonth, setViewMonth] = useState(() => monthStartOf(todayISO()));
@@ -267,8 +268,8 @@ export default function CyclePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-[15px]">
-        <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цикл</h1>
+      <div className="flex flex-col gap-[14px]">
+        <PageTitle>Цикл</PageTitle>
         <CycleSkeleton />
       </div>
     );
@@ -276,8 +277,8 @@ export default function CyclePage() {
 
   if (error && !settings) {
     return (
-      <div className="flex flex-col gap-[15px]">
-        <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цикл</h1>
+      <div className="flex flex-col gap-[14px]">
+        <PageTitle>Цикл</PageTitle>
         <ErrorBanner>{error}</ErrorBanner>
       </div>
     );
@@ -293,25 +294,23 @@ export default function CyclePage() {
 
   return (
     <>
-      <div className="flex flex-col gap-[15px]">
-        <div className="flex items-center justify-between px-1 pt-1">
-          <h1 className="text-[22px] font-extrabold">Цикл</h1>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/cycle/insights"
-              className="rounded-[13px] bg-surface px-3 py-2 text-[12.5px] font-extrabold text-primary shadow-soft active:scale-95"
-            >
-              Інсайти
-            </Link>
-            <Link
-              href="/settings/cycle"
-              aria-label="Налаштування циклу"
-              className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-surface text-muted shadow-soft active:scale-95"
-            >
-              <Settings2 size={18} />
-            </Link>
-          </div>
-        </div>
+      <div className="flex flex-col gap-[14px]">
+        <PageTitle
+          right={
+            <>
+              <Pill href="/cycle/insights" icon="bulb">
+                Інсайти
+              </Pill>
+              <IconButton
+                icon="sliders"
+                label="Налаштування циклу"
+                onClick={() => router.push("/settings/cycle")}
+              />
+            </>
+          }
+        >
+          Цикл
+        </PageTitle>
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
@@ -333,20 +332,11 @@ export default function CyclePage() {
         {todayPhase && <PhaseTipCard phase={todayPhase} />}
 
         <CycleDisclaimer />
-      </div>
 
-      {/* Кнопка живе поверх контенту, над таб-баром: відмітити день — те,
-          по що на цей екран заходять, і воно не має вимагати скролу. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center">
-        <div className="w-full max-w-app px-[18px] pb-[calc(env(safe-area-inset-bottom)+88px)]">
-          <Button
-            type="button"
-            className="pointer-events-auto"
-            onClick={() => openDay(today)}
-          >
-            Відмітити сьогодні
-          </Button>
-        </div>
+        <Button type="button" onClick={() => openDay(today)}>
+          <Icon name="pencil" size={16} strokeWidth={2} />
+          Відмітити сьогодні
+        </Button>
       </div>
 
       {sheetDate && draft && (

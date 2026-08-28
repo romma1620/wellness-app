@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { Input } from "@/components/ui";
 import type { Exercise, MuscleGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export function ExerciseAutocomplete({
         }}
       />
       {open && (matches.length > 0 || (q && !exactExists)) && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[15px] border-[1.5px] border-primary-light bg-surface p-1 shadow-card">
+        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[13px] border border-line bg-surface p-1">
           {matches.map((e) => (
             <button
               key={e.id}
@@ -57,22 +58,23 @@ export function ExerciseAutocomplete({
                 onPick({ name: e.name, exerciseId: e.id, muscleGroup: e.muscle_group });
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-[11px] px-3 py-2 text-left text-[14px] font-semibold text-ink active:bg-primary-light"
+              className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-[13.5px] font-medium text-ink active:bg-field"
             >
-              <span>{e.name}</span>
+              <span className="truncate">{e.name}</span>
               {e.muscle_group && (
-                <span className="text-[11px] font-bold text-muted">{e.muscle_group}</span>
+                <span className="shrink-0 text-[11px] font-medium text-muted">{e.muscle_group}</span>
               )}
             </button>
           ))}
           {q && !exactExists && (
             <div
               className={cn(
-                "px-3 py-2 text-[12.5px] font-bold text-primary",
-                matches.length > 0 && "border-t border-primary-light",
+                "flex items-center gap-[6px] px-3 py-2 text-[12px] font-semibold text-accent",
+                matches.length > 0 && "border-t border-line",
               )}
             >
-              + додасться нова вправа «{value.trim()}»
+              <Icon name="plus" size={11} strokeWidth={2.2} />
+              <span className="truncate">додасться нова вправа «{value.trim()}»</span>
             </div>
           )}
         </div>

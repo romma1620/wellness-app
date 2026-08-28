@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+import { BackLink } from "@/components/BackLink";
 import { DraftResumeSheet } from "@/components/workouts/DraftResumeSheet";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
 import { ExerciseMaxLine } from "@/components/workouts/ExerciseMaxLine";
@@ -9,9 +11,10 @@ import { SaveIndicator, type SaveState } from "@/components/inputs";
 import {
   Button,
   Card,
+  Chip,
+  DateField,
   ErrorBanner,
   FullLoader,
-  Input,
   SectionLabel,
   Textarea,
 } from "@/components/ui";
@@ -43,7 +46,6 @@ import {
   type StoredDraft,
 } from "@/lib/workout-draft";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -54,6 +56,10 @@ const EMPTY_DRAFT = (): DraftWorkout => ({
   note: "",
   exercises: [newDraftExercise()],
 });
+
+/** Кнопки «вгору/вниз» біля назви вправи: без рамки, лише іконка. */
+const MOVE_BTN =
+  "flex h-[34px] w-[30px] shrink-0 items-center justify-center rounded-[10px] text-muted transition active:bg-field disabled:opacity-30";
 
 const NO_EXERCISES: Exercise[] = [];
 const NO_ROUTINES: Routine[] = [];
@@ -260,13 +266,11 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   if (loading) return <FullLoader />;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <Link href="/workouts" aria-label="Назад" className="text-muted">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
-          </Link>
-          <h1 className="text-[22px] font-extrabold">
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex items-center justify-between gap-3 px-[2px]">
+        <div className="flex min-w-0 items-center gap-3">
+          <BackLink href="/workouts" />
+          <h1 className="truncate text-[24px] font-bold tracking-[-.01em]">
             {workoutId ? "Редагувати" : "Нове тренування"}
           </h1>
         </div>
@@ -277,31 +281,30 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
 
       {/* Дата + шаблон */}
       <Card>
-        <SectionLabel>Дата</SectionLabel>
-        <Input
-          type="date"
+        <SectionLabel icon="calendar">Дата</SectionLabel>
+        <DateField
           value={draft.date}
-          onChange={(e) => patch({ date: e.target.value || todayISO() })}
-        />
-        <div className="mt-1 text-[12px] font-semibold text-muted">{humanDate(draft.date)}</div>
+          onChange={(v) => patch({ date: v || todayISO() })}
+          label="Дата тренування"
+        >
+          <span className="flex items-center justify-between gap-2 rounded-[13px] border border-line bg-field px-[14px] py-3">
+            <span className="text-[14px] font-semibold text-ink">{humanDate(draft.date)}</span>
+            <span aria-hidden className="shrink-0 text-muted">
+              <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+            </span>
+          </span>
+        </DateField>
 
         {routines.length > 0 && (
           <>
-            <SectionLabel className="mb-2 mt-4">Шаблон</SectionLabel>
+            <SectionLabel icon="grid" className="mb-[10px] mt-4">
+              Шаблон
+            </SectionLabel>
             <div className="flex flex-wrap gap-2">
               {routines.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => applyRoutine(r.id)}
-                  className={
-                    draft.routineId === r.id
-                      ? "rounded-full bg-primary px-[14px] py-[9px] text-[13px] font-bold text-white"
-                      : "rounded-full border-[1.5px] border-primary-light bg-bg px-[14px] py-[9px] text-[13px] font-semibold text-muted"
-                  }
-                >
+                <Chip key={r.id} active={draft.routineId === r.id} onClick={() => applyRoutine(r.id)}>
                   {r.name}
-                </button>
+                </Chip>
               ))}
             </div>
           </>
@@ -332,18 +335,20 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
                 onClick={() => move(ex.key, -1)}
                 disabled={exIdx === 0}
                 aria-label="Вгору"
-                className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
+                className={MOVE_BTN}
               >
-                <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l6-6 6 6" /></svg>
+                <span className="flex rotate-180">
+                  <Icon name="chevronDown" size={15} strokeWidth={1.8} />
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => move(ex.key, 1)}
                 disabled={exIdx === draft.exercises.length - 1}
                 aria-label="Вниз"
-                className="flex h-8 w-7 items-center justify-center rounded-lg text-muted disabled:opacity-30"
+                className={MOVE_BTN}
               >
-                <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l6 6 6-6" /></svg>
+                <Icon name="chevronDown" size={15} strokeWidth={1.8} />
               </button>
             </div>
             <ExerciseMaxLine
@@ -379,22 +384,23 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
           </div>
 
           <div className="mt-3 flex items-center justify-between">
-            <button
-              type="button"
+            <Chip
+              dashed
+              icon="plus"
               onClick={() =>
                 patchExercise(ex.key, { sets: [...ex.sets, newDraftSet(ex.sets[ex.sets.length - 1])] })
               }
-              className="rounded-full bg-primary-light px-4 py-2 text-[13px] font-extrabold text-primary active:scale-95"
             >
-              + підхід
-            </button>
+              Підхід
+            </Chip>
             <button
               type="button"
               onClick={() =>
                 setDraft((d) => ({ ...d, exercises: d.exercises.filter((e) => e.key !== ex.key) }))
               }
-              className="text-[12.5px] font-bold text-neg"
+              className="flex items-center gap-[5px] px-1 text-[12px] font-semibold text-neg"
             >
+              <Icon name="trash" size={12} strokeWidth={1.8} />
               Прибрати вправу
             </button>
           </div>
@@ -404,14 +410,15 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       <button
         type="button"
         onClick={() => setDraft((d) => ({ ...d, exercises: [...d.exercises, newDraftExercise()] }))}
-        className="rounded-2xl border-[1.5px] border-dashed border-primary-light bg-surface py-4 text-center text-[14px] font-extrabold text-primary active:scale-[.99]"
+        className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
       >
-        + додати вправу
+        <Icon name="plus" size={14} strokeWidth={2.2} />
+        Додати вправу
       </button>
 
       {/* Нотатка */}
       <Card>
-        <SectionLabel>Нотатка</SectionLabel>
+        <SectionLabel icon="pencil">Нотатка</SectionLabel>
         <Textarea
           rows={2}
           placeholder="Самопочуття, деталі…"
@@ -425,13 +432,10 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
       </Button>
 
       {workoutId && (
-        <button
-          type="button"
-          onClick={onDelete}
-          className="w-full text-center text-[13px] font-extrabold text-neg"
-        >
+        <Button type="button" variant="danger" onClick={onDelete}>
+          <Icon name="trash" size={14} strokeWidth={1.8} />
           Видалити тренування
-        </button>
+        </Button>
       )}
 
       {stored && (

@@ -1,25 +1,25 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+import { mixOnSurface } from "@/components/cycle/tint";
 import { WEEKDAY_HEADS, type CalendarDay } from "@/lib/cycle/calendar";
 import { PHASE_COLORS, type Flow } from "@/lib/cycle/types";
 import { cn, monthLabel } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
 
 /**
  * Заливка дня кровотечі. Насиченість = сила виділень, тож рядок днів
  * читається як спад інтенсивності без жодних підписів.
  */
 const FLOW_FILL: Record<Flow, { bg: string; fg: string }> = {
-  // spotting — єдина пастельна пара, тож лише вона ходить через тінт-токени;
-  // light/medium/heavy — насичені середні тони, які читаються в обох режимах.
-  spotting: { bg: "var(--tint-spot)", fg: "var(--tint-spot-fg)" },
+  // spotting — тінт кольору менструації поверх поверхні; текст — токен,
+  // бо на світлій пастелі рожевий з дизайну не читався б.
+  spotting: { bg: mixOnSurface(PHASE_COLORS.menstrual, 22), fg: "var(--tint-spot-fg)" },
   light: { bg: "#E28FA0", fg: "#FFFFFF" },
   medium: { bg: "#D4677E", fg: "#FFFFFF" },
   heavy: { bg: "#B94A62", fg: "#FFFFFF" },
 };
 
-const FERTILE_BG = "var(--tint-teal)";
+const FERTILE_BG = mixOnSurface(PHASE_COLORS.ovulation, 22);
 const FERTILE_FG = "var(--tint-teal-fg)";
 const OVULATION_FG = "var(--tint-teal-strong-fg)";
 const PREDICTED_FG = "var(--tint-rose-fg)";
@@ -33,11 +33,11 @@ function dayStyle(day: CalendarDay): React.CSSProperties {
     return {
       background: FERTILE_BG,
       color: OVULATION_FG,
-      border: `2.2px solid ${PHASE_COLORS.ovulation}`,
+      border: `1.8px solid ${PHASE_COLORS.ovulation}`,
     };
   }
   if (day.mark === "predicted") {
-    return { border: `2px dashed ${PHASE_COLORS.menstrual}`, color: PREDICTED_FG };
+    return { border: `1.6px dashed ${PHASE_COLORS.menstrual}`, color: PREDICTED_FG };
   }
   if (day.mark === "fertile") {
     return { background: FERTILE_BG, color: FERTILE_FG };
@@ -50,12 +50,12 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
   const style = dayStyle(day);
 
   // «Сьогодні» — не стан дня, а місце на календарі, тож воно не заміщає
-  // заливку кровотечі, а обводить її кільцем поверх.
+  // заливку кровотечі, а обводить її подвійним кільцем поверх.
   if (day.today) {
-    style.boxShadow = "0 0 0 2.5px var(--surface), 0 0 0 5px var(--primary)";
+    style.boxShadow = "0 0 0 2px var(--surface), 0 0 0 4px var(--accent)";
     if (plain) {
-      style.background = "var(--primary)";
-      style.color = "#fff";
+      style.background = "var(--accent)";
+      style.color = "var(--on-accent)";
     }
   }
 
@@ -71,9 +71,9 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
       <span
         style={style}
         className={cn(
-          "flex h-[34px] w-[34px] items-center justify-center rounded-full text-[13.5px] transition-none",
-          plain && !day.today ? "font-bold" : "font-extrabold",
-          day.outside && "opacity-35",
+          "box-border flex h-[34px] w-[34px] items-center justify-center rounded-full text-[13px] transition-none",
+          day.today ? "font-bold" : plain ? "font-medium" : "font-semibold",
+          day.outside && "opacity-30",
           day.outside && plain && "text-muted",
         )}
       >
@@ -82,7 +82,7 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
       <span
         className={cn(
           "h-1 w-1 rounded-full",
-          day.hasEntry ? (day.today ? "bg-primary" : "bg-muted") : "bg-transparent",
+          day.hasEntry ? (day.today ? "bg-accent" : "bg-muted") : "bg-transparent",
         )}
       />
     </button>
@@ -92,11 +92,14 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
 function LegendDot({ style, label }: { style: React.CSSProperties; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="h-3 w-3 shrink-0 rounded-full" style={style} />
-      <span className="text-[11px] font-bold text-muted">{label}</span>
+      <span className="box-border h-[10px] w-[10px] shrink-0 rounded-full" style={style} />
+      <span className="text-[11px] font-medium text-muted">{label}</span>
     </span>
   );
 }
+
+const NAV_BTN =
+  "flex h-[30px] w-[30px] items-center justify-center rounded-[10px] border border-line text-muted transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
 
 export function CycleCalendar({
   monthStart,
@@ -111,37 +114,35 @@ export function CycleCalendar({
   onPick: (iso: string) => void;
   canGoForward: boolean;
 }) {
-  const [legendOpen, setLegendOpen] = useState(true);
-
   return (
-    <div className="rounded-xl2 bg-surface px-[14px] pb-[14px] pt-4 shadow-card">
+    <div className="rounded-xl2 bg-surface px-[14px] pb-[14px] pt-4">
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() => onMonth(-1)}
           aria-label="Попередній місяць"
-          className="flex h-[30px] w-[30px] items-center justify-center rounded-[11px] bg-bg text-muted active:scale-90"
+          className={NAV_BTN}
         >
-          <ChevronLeft size={18} />
+          <Icon name="chevronLeft" size={15} strokeWidth={1.8} />
         </button>
-        <div className="text-[15px] font-extrabold">{monthLabel(monthStart)}</div>
+        <div className="text-[14px] font-bold text-ink">{monthLabel(monthStart)}</div>
         <button
           type="button"
           onClick={() => canGoForward && onMonth(1)}
           disabled={!canGoForward}
           aria-label="Наступний місяць"
-          className={cn(
-            "flex h-[30px] w-[30px] items-center justify-center rounded-[11px] bg-bg text-muted",
-            canGoForward ? "active:scale-90" : "opacity-30",
-          )}
+          className={NAV_BTN}
         >
-          <ChevronRight size={18} />
+          <Icon name="chevronRight" size={15} strokeWidth={1.8} />
         </button>
       </div>
 
       <div className="mb-1.5 grid grid-cols-7">
         {WEEKDAY_HEADS.map((w) => (
-          <div key={w} className="text-center text-[10.5px] font-extrabold text-muted">
+          <div
+            key={w}
+            className="text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted"
+          >
             {w}
           </div>
         ))}
@@ -153,33 +154,26 @@ export function CycleCalendar({
         ))}
       </div>
 
-      <div className="mt-3.5 border-t-[1.5px] border-bg pt-3">
-        <button
-          type="button"
-          onClick={() => setLegendOpen((o) => !o)}
-          aria-expanded={legendOpen}
-          className="text-[11px] font-extrabold text-primary"
-        >
-          {legendOpen ? "Згорнути легенду" : "Що означають кольори"}
-        </button>
-        {legendOpen && (
-          <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-2.5">
-            <LegendDot style={{ background: PHASE_COLORS.menstrual }} label="менструація" />
-            <LegendDot
-              style={{ border: `2px dashed ${PHASE_COLORS.menstrual}` }}
-              label="прогноз"
-            />
-            <LegendDot
-              style={{ border: `2px solid ${PHASE_COLORS.ovulation}` }}
-              label="овуляція"
-            />
-            <LegendDot style={{ background: FERTILE_BG }} label="фертильні дні" />
-            <span className="flex items-center gap-1.5">
-              <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-muted" />
-              <span className="text-[11px] font-bold text-muted">є запис</span>
-            </span>
-          </div>
-        )}
+      <div className="mt-3.5 border-t border-line pt-3">
+        <div className="flex flex-wrap gap-x-3.5 gap-y-2.5">
+          <LegendDot style={{ background: PHASE_COLORS.menstrual }} label="менструація" />
+          <LegendDot
+            style={{ border: `1.6px dashed ${PHASE_COLORS.menstrual}` }}
+            label="прогноз"
+          />
+          <LegendDot
+            style={{ border: `1.6px solid ${PHASE_COLORS.ovulation}` }}
+            label="овуляція"
+          />
+          <LegendDot
+            style={{ background: mixOnSurface(PHASE_COLORS.ovulation, 30) }}
+            label="фертильні дні"
+          />
+          <span className="flex items-center gap-1.5">
+            <span className="h-1 w-1 shrink-0 rounded-full bg-muted" />
+            <span className="text-[11px] font-medium text-muted">є запис</span>
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
 "use client";
 
 import { usePhaseOverlay } from "@/components/cycle/analytics";
-import { Card, EmptyState, ErrorBanner, FullLoader, SectionLabel } from "@/components/ui";
+import { BackLink } from "@/components/BackLink";
+import { Icon } from "@/components/icons";
+import { Card, EmptyState, ErrorBanner, FullLoader, IconButton, PageTitle, SectionLabel } from "@/components/ui";
 import { PHASE_TIPS } from "@/lib/cycle/tips";
-import { PHASE_COLORS, PHASE_LABELS, PHASE_TINTS } from "@/lib/cycle/types";
+import { PHASE_COLORS, PHASE_LABELS } from "@/lib/cycle/types";
 import { buildRecordRows, recordsInRange, type RecordRow } from "@/lib/records";
 import { sessionsSummary, weekStats, type ReportDay } from "@/lib/report";
 import { createClient } from "@/lib/supabase/client";
@@ -20,8 +22,6 @@ import {
 import { useUid } from "@/components/UserProvider";
 import { loadExerciseMaxes, loadUsedExercises } from "@/lib/workouts-db";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 interface WeekData {
@@ -100,37 +100,25 @@ export default function ReportPage() {
   const emptyWeek = stats?.daysLogged === 0 && gym?.sessions === 0;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center gap-2 px-1 pt-1">
-        <Link href="/analytics" aria-label="Назад" className="text-muted">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
-        </Link>
-        <h1 className="text-[22px] font-extrabold">Тижневий звіт</h1>
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle right={<BackLink href="/analytics" />}>Тижневий звіт</PageTitle>
 
       {/* Перемикач тижня */}
-      <Card className="flex items-center justify-between !py-2.5">
-        <button
-          type="button"
+      <Card className="flex items-center justify-between !px-3 !py-[10px]">
+        <IconButton
+          icon="chevronLeft"
+          label="Попередній тиждень"
+          className="!bg-field"
           onClick={() => setOffset((o) => o + 1)}
-          aria-label="Попередній тиждень"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-primary active:scale-90"
-        >
-          <ChevronLeft size={19} />
-        </button>
-        <span className="text-[14px] font-extrabold">{periodLabel("week", offset)}</span>
-        <button
-          type="button"
-          onClick={() => setOffset((o) => Math.max(0, o - 1))}
+        />
+        <span className="text-[14px] font-bold">{periodLabel("week", offset)}</span>
+        <IconButton
+          icon="chevronRight"
+          label="Наступний тиждень"
+          className="!bg-field"
           disabled={offset === 0}
-          aria-label="Наступний тиждень"
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full text-primary active:scale-90",
-            offset === 0 && "opacity-25",
-          )}
-        >
-          <ChevronRight size={19} />
-        </button>
+          onClick={() => setOffset((o) => Math.max(0, o - 1))}
+        />
       </Card>
 
       {error ? (
@@ -139,7 +127,7 @@ export default function ReportPage() {
         <FullLoader />
       ) : emptyWeek ? (
         <EmptyState
-          emoji="🗓️"
+          icon="calendar"
           title="Порожній тиждень"
           hint="За цей тиждень немає ні щоденника, ні тренувань."
         />
@@ -147,24 +135,38 @@ export default function ReportPage() {
         <>
           {/* Вага */}
           <Card>
-            <SectionLabel>Вага</SectionLabel>
+            <SectionLabel icon="scale">Вага</SectionLabel>
             <div className="flex items-end justify-between">
-              <div className="text-[32px] font-extrabold leading-none">
-                {fmt(stats.avgWeight, 1)}
+              <div className="flex items-baseline gap-[6px]">
+                <span className="text-[34px] font-normal leading-[1.1] tracking-[-.01em]">
+                  {fmt(stats.avgWeight, 1)}
+                </span>
                 {stats.avgWeight != null && (
-                  <span className="ml-1 text-[13px] font-bold text-muted">кг у середньому</span>
+                  <span className="text-[12.5px] font-medium text-muted">кг у середньому</span>
                 )}
               </div>
               {stats.weightDiff != null && (
-                <div
-                  className={cn(
-                    "text-[14px] font-extrabold",
-                    stats.weightDiff < 0 ? "text-pos" : stats.weightDiff > 0 ? "text-warn" : "text-muted",
-                  )}
-                >
-                  {stats.weightDiff < 0 ? "↓" : stats.weightDiff > 0 ? "↑" : "→"}{" "}
-                  {fmt(Math.abs(stats.weightDiff), 1)} кг
-                  <div className="text-right text-[11px] font-bold text-muted">за тиждень</div>
+                <div className="flex flex-col items-end gap-[3px]">
+                  <span
+                    className={cn(
+                      "flex items-center gap-[3px] rounded-full px-[9px] py-[3px] text-[11.5px] font-semibold",
+                      stats.weightDiff < 0
+                        ? "bg-[color:color-mix(in_oklab,var(--pos)_13%,transparent)] text-pos"
+                        : stats.weightDiff > 0
+                          ? "bg-[color:color-mix(in_oklab,var(--warn)_13%,transparent)] text-warn"
+                          : "bg-field text-muted",
+                    )}
+                  >
+                    {stats.weightDiff !== 0 && (
+                      <Icon
+                        name={stats.weightDiff < 0 ? "arrowDown" : "arrowUp"}
+                        size={10}
+                        strokeWidth={2.2}
+                      />
+                    )}
+                    {fmt(Math.abs(stats.weightDiff), 1)} кг
+                  </span>
+                  <span className="text-[11px] font-normal text-muted">за тиждень</span>
                 </div>
               )}
             </div>
@@ -172,50 +174,46 @@ export default function ReportPage() {
 
           {/* Звички */}
           <Card>
-            <SectionLabel>Звички</SectionLabel>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div className="text-[20px] font-extrabold">💧 {fmt(stats.avgWater, 1)}</div>
-                <div className="text-[11px] font-bold text-muted">скл. / день</div>
-              </div>
-              <div>
-                <div className="text-[20px] font-extrabold">👟 {fmtThousands(stats.avgSteps)}</div>
-                <div className="text-[11px] font-bold text-muted">тис. кроків / день</div>
-              </div>
-              <div>
-                <div className="text-[20px] font-extrabold">🍽 {fmtInt(stats.avgKcal)}</div>
-                <div className="text-[11px] font-bold text-muted">ккал / день</div>
-              </div>
+            <SectionLabel icon="bolt">Звички</SectionLabel>
+            <div className="grid grid-cols-3 gap-2">
+              <HabitStat icon="droplet" value={fmt(stats.avgWater, 1)} label="скл. / день" />
+              <HabitStat
+                icon="activity"
+                value={fmtThousands(stats.avgSteps)}
+                label="тис. кроків / день"
+              />
+              <HabitStat icon="fork" value={fmtInt(stats.avgKcal)} label="ккал / день" />
             </div>
-            <div className="mt-3 border-t border-bg pt-2.5 text-center text-[12px] font-bold text-muted">
+            <div className="mt-3 border-t border-line pt-3 text-center text-[11.5px] font-medium text-muted">
               Щоденник заповнено {stats.daysLogged} / 7 днів
             </div>
           </Card>
 
           {/* Тренування */}
           <Card>
-            <SectionLabel>Тренування</SectionLabel>
+            <SectionLabel icon="dumbbell">Тренування</SectionLabel>
             {gym.sessions === 0 ? (
-              <div className="text-[13px] font-semibold text-muted">
-                Цього тижня сесій не було.
-              </div>
+              <div className="text-[13px] font-medium text-muted">Цього тижня сесій не було.</div>
             ) : (
               <div className="flex items-baseline gap-2">
-                <span className="text-[24px] font-extrabold">{gym.sessions}</span>
-                <span className="text-[13px] font-bold text-muted">
+                <span className="text-[24px] font-normal leading-[1.1] tracking-[-.01em]">
+                  {gym.sessions}
+                </span>
+                <span className="text-[12.5px] font-medium text-muted">
                   {plural(gym.sessions, "сесія", "сесії", "сесій")} · тоннаж {fmtInt(gym.tonnage)} кг
                 </span>
               </div>
             )}
             {weekRecords.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2 border-t border-bg pt-3">
-                <div className="text-[12px] font-extrabold text-primary">
-                  🏆 Нові рекорди тижня
+              <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+                <div className="flex items-center gap-[6px] text-[11px] font-semibold uppercase tracking-[.09em] text-accent">
+                  <Icon name="arrowUp" size={12} strokeWidth={2} />
+                  Нові рекорди тижня
                 </div>
                 {weekRecords.map((r) => (
                   <div key={r.exerciseId} className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate text-[13.5px] font-bold">{r.name}</span>
-                    <span className="shrink-0 text-[13.5px] font-extrabold">
+                    <span className="min-w-0 truncate text-[13.5px] font-medium">{r.name}</span>
+                    <span className="shrink-0 text-[13.5px] font-semibold">
                       {fmt(r.weight, 1)} кг × {r.reps}
                     </span>
                   </div>
@@ -226,29 +224,55 @@ export default function ReportPage() {
 
           {/* Цикл — лише для поточного тижня: порада про «сьогодні» в минулому тижні брехала б */}
           {offset === 0 && overlay.available && overlay.todayPhase && tip && (
-            <div
-              className="rounded-xl2 p-4"
-              style={{ background: PHASE_TINTS[overlay.todayPhase] }}
-            >
-              <div
-                className="mb-1 text-[12.5px] font-extrabold"
-                style={{ color: PHASE_COLORS[overlay.todayPhase] }}
+            <Card>
+              <SectionLabel
+                icon="cycle"
+                right={
+                  <span
+                    className="rounded-full px-[9px] py-[3px] text-[10.5px] font-semibold"
+                    style={{
+                      color: PHASE_COLORS[overlay.todayPhase],
+                      background: `color-mix(in oklab, ${PHASE_COLORS[overlay.todayPhase]} 14%, transparent)`,
+                    }}
+                  >
+                    {PHASE_LABELS[overlay.todayPhase]}
+                  </span>
+                }
               >
-                {PHASE_LABELS[overlay.todayPhase]}
-                {overlay.prediction && !overlay.prediction.rangeOnly && (
-                  <> · наступна менструація ~ {shortDate(overlay.prediction.nextStart)}</>
-                )}
-              </div>
-              <div className="text-[13.5px] font-extrabold text-ink">
-                {tip.emoji} {tip.title}
-              </div>
-              <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-ink/80">
-                {tip.text}
-              </p>
-            </div>
+                Цикл
+              </SectionLabel>
+              <div className="text-[13.5px] font-semibold text-ink">{tip.title}</div>
+              <p className="mt-1 text-[12.5px] font-normal leading-[1.6] text-muted">{tip.text}</p>
+              {overlay.prediction && !overlay.prediction.rangeOnly && (
+                <div className="mt-3 border-t border-line pt-3 text-[11.5px] font-medium text-muted">
+                  Наступна менструація ~ {shortDate(overlay.prediction.nextStart)}
+                </div>
+              )}
+            </Card>
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Одна звичка тижня: іконка в акцентній плитці, число й підпис. */
+function HabitStat({
+  icon,
+  value,
+  label,
+}: {
+  icon: "droplet" | "activity" | "fork";
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-[6px] rounded-[12px] border border-line bg-field px-2 py-3 text-center">
+      <span className="flex text-accent">
+        <Icon name={icon} size={15} strokeWidth={1.7} />
+      </span>
+      <span className="text-[20px] font-normal leading-[1.1] tracking-[-.01em]">{value}</span>
+      <span className="text-[10.5px] font-medium leading-[1.3] text-muted">{label}</span>
     </div>
   );
 }

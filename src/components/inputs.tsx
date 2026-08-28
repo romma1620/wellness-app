@@ -1,6 +1,7 @@
 "use client";
 
-import { FieldLabel, Input } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Chip, FieldLabel, Input } from "@/components/ui";
 import { cn, parseNum, splitTags } from "@/lib/utils";
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 
@@ -82,7 +83,7 @@ export function NumberField({
       <FieldLabel>{label}</FieldLabel>
       <Input placeholder={placeholder ?? "—"} error={outOfRange} suffix={suffix} {...inputProps} />
       {outOfRange && (
-        <div className="mt-1 text-[11px] font-bold text-neg">
+        <div className="mt-1 text-[11px] font-semibold text-neg">
           Допустимо {min}–{max}
         </div>
       )}
@@ -91,6 +92,7 @@ export function NumberField({
 }
 
 // ----------------------- WaterDrops -----------------------
+/** Вісім склянок як лінійні краплі: заповнені — акцент, порожні — лінія. */
 export function WaterDrops({
   value,
   onChange,
@@ -109,17 +111,89 @@ export function WaterDrops({
             key={n}
             type="button"
             aria-label={`${n} склянок`}
+            aria-pressed={active}
             onClick={() => onChange(count === n ? n - 1 : n)}
             className={cn(
-              "text-[26px] leading-none transition active:scale-90",
-              !active && "opacity-25 grayscale",
+              "flex h-[30px] w-[30px] items-center justify-center rounded-full transition active:scale-90",
+              active ? "bg-primary-light text-accent" : "border border-line text-muted",
             )}
           >
-            💧
+            <Icon name="droplet" size={15} strokeWidth={1.7} fill={active ? "currentColor" : "none"} />
           </button>
         );
       })}
     </div>
+  );
+}
+
+// ----------------------- Inline «Додати» -----------------------
+/**
+ * Чип «+ Додати», що розгортається в поле вводу. Поле живе лише доки його
+ * відкрили: Enter або «Додати» підтверджує, Esc чи порожній blur — згортає.
+ */
+function AddChip({
+  label,
+  placeholder,
+  onAdd,
+}: {
+  label: string;
+  placeholder: string;
+  onAdd: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const confirm = () => {
+    const t = draft.trim();
+    if (t) onAdd(t);
+    setDraft("");
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <Chip dashed icon="plus" onClick={() => setOpen(true)}>
+        {label}
+      </Chip>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-[6px] rounded-full border border-line bg-field pl-[14px] pr-1">
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            confirm();
+          } else if (e.key === "Escape") {
+            setDraft("");
+            setOpen(false);
+          }
+        }}
+        onBlur={() => {
+          if (!draft.trim()) setOpen(false);
+        }}
+        placeholder={placeholder}
+        className="w-[110px] bg-transparent py-2 text-[12.5px] font-medium text-ink outline-none placeholder:text-muted"
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={confirm}
+        aria-label="Додати"
+        className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-accent text-on-accent active:scale-90"
+      >
+        <Icon name="check" size={12} strokeWidth={2.2} />
+      </button>
+    </span>
   );
 }
 
@@ -128,15 +202,16 @@ export function PresetChips({
   presets,
   value,
   onChange,
+  addLabel = "Своє",
   addPlaceholder = "Своє…",
 }: {
   presets: readonly string[];
   value: string; // comma-separated
   onChange: (v: string) => void;
+  addLabel?: string;
   addPlaceholder?: string;
 }) {
   const selected = splitTags(value);
-  const [draft, setDraft] = useState("");
 
   const toggle = (tag: string) => {
     const exists = selected.some((s) => s.toLowerCase() === tag.toLowerCase());
@@ -146,13 +221,10 @@ export function PresetChips({
     onChange(next.join(", "));
   };
 
-  const addCustom = () => {
-    const t = draft.trim();
-    if (!t) return;
+  const addCustom = (t: string) => {
     if (!selected.some((s) => s.toLowerCase() === t.toLowerCase())) {
       onChange([...selected, t].join(", "));
     }
-    setDraft("");
   };
 
   // унікальні пресети + вже вибрані кастомні
@@ -161,40 +233,23 @@ export function PresetChips({
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
-        {presets.map((p) => (
-          <Chip key={p} active={selected.some((s) => s.toLowerCase() === p.toLowerCase())} onClick={() => toggle(p)}>
-            {p}
-          </Chip>
-        ))}
-        {custom.map((c) => (
-          <Chip key={c} active onClick={() => toggle(c)}>
-            {c} ✕
-          </Chip>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-          placeholder={addPlaceholder}
-          className="w-full rounded-full border-[1.5px] border-primary-light bg-bg px-4 py-2 text-[13px] font-semibold text-ink outline-none placeholder:text-muted"
-        />
-        <button
-          type="button"
-          onClick={addCustom}
-          className="shrink-0 rounded-full bg-primary-light px-4 py-2 text-[13px] font-extrabold text-primary"
+    <div className="flex flex-wrap gap-2">
+      {presets.map((p) => (
+        <Chip
+          key={p}
+          active={selected.some((s) => s.toLowerCase() === p.toLowerCase())}
+          onClick={() => toggle(p)}
         >
-          Додати
-        </button>
-      </div>
+          {p}
+        </Chip>
+      ))}
+      {custom.map((c) => (
+        <Chip key={c} active onClick={() => toggle(c)}>
+          {c}
+          <Icon name="x" size={11} strokeWidth={2} />
+        </Chip>
+      ))}
+      <AddChip label={addLabel} placeholder={addPlaceholder} onAdd={addCustom} />
     </div>
   );
 }
@@ -204,97 +259,64 @@ export function TagInput({
   value,
   onChange,
   placeholder = "Додати…",
+  addLabel = "Додати",
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  addLabel?: string;
 }) {
   const tags = splitTags(value);
-  const [draft, setDraft] = useState("");
 
-  const add = () => {
-    const t = draft.trim();
-    if (t && !tags.some((s) => s.toLowerCase() === t.toLowerCase())) {
+  const add = (t: string) => {
+    if (!tags.some((s) => s.toLowerCase() === t.toLowerCase())) {
       onChange([...tags, t].join(", "));
     }
-    setDraft("");
   };
   const remove = (tag: string) => onChange(tags.filter((t) => t !== tag).join(", "));
 
   return (
-    <div className="flex flex-col gap-3">
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {tags.map((t) => (
-            <Chip key={t} active onClick={() => remove(t)}>
-              {t} ✕
-            </Chip>
-          ))}
-        </div>
-      )}
-      <div className="flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder={placeholder}
-          className="w-full rounded-full border-[1.5px] border-primary-light bg-bg px-4 py-2 text-[13px] font-semibold text-ink outline-none placeholder:text-muted"
-        />
-        <button
-          type="button"
-          onClick={add}
-          className="shrink-0 rounded-full bg-primary-light px-4 py-2 text-[13px] font-extrabold text-primary"
-        >
-          Додати
-        </button>
-      </div>
+    <div className="flex flex-wrap gap-2">
+      {tags.map((t) => (
+        <Chip key={t} active onClick={() => remove(t)}>
+          {t}
+          <Icon name="x" size={11} strokeWidth={2} />
+        </Chip>
+      ))}
+      <AddChip label={addLabel} placeholder={placeholder} onAdd={add} />
     </div>
-  );
-}
-
-// невеличкий локальний Chip (щоб не тягти onClick-логіку з ui)
-function Chip({
-  active,
-  children,
-  onClick,
-}: {
-  active?: boolean;
-  children: ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-[13px] py-[8px] text-[13px] transition active:scale-95",
-        active
-          ? "bg-primary font-bold text-white"
-          : "border-[1.5px] border-primary-light bg-bg font-semibold text-muted",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
 // ----------------------- SaveIndicator -----------------------
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
+/** Статус автозбереження як пілюля; в idle тримає місце, щоб шапка не стрибала. */
 export function SaveIndicator({ state }: { state: SaveState }) {
-  const map: Record<SaveState, { text: string; cls: string }> = {
-    idle: { text: "", cls: "text-muted" },
-    saving: { text: "Збереження…", cls: "text-muted" },
-    saved: { text: "✓ Збережено", cls: "text-pos" },
-    error: { text: "Помилка збереження", cls: "text-neg" },
+  if (state === "idle") return <span className="h-[26px]" aria-hidden />;
+  const map: Record<Exclude<SaveState, "idle">, { text: string; cls: string; icon?: "check" }> = {
+    saving: { text: "Збереження…", cls: "bg-field text-muted" },
+    saved: {
+      text: "Збережено",
+      cls: "bg-[color:color-mix(in_oklab,var(--pos)_13%,transparent)] text-pos",
+      icon: "check",
+    },
+    error: {
+      text: "Не збережено",
+      cls: "bg-[color:color-mix(in_oklab,var(--neg)_13%,transparent)] text-neg",
+    },
   };
-  const { text, cls } = map[state];
-  if (!text) return <span className="text-[12px] font-bold text-transparent">·</span>;
-  return <span className={cn("text-[12px] font-bold", cls)}>{text}</span>;
+  const { text, cls, icon } = map[state];
+  return (
+    <span
+      role="status"
+      className={cn(
+        "flex h-[26px] items-center gap-[5px] rounded-full px-[10px] text-[10.5px] font-semibold",
+        cls,
+      )}
+    >
+      {icon && <Icon name={icon} size={11} strokeWidth={2.2} />}
+      {text}
+    </span>
+  );
 }
-

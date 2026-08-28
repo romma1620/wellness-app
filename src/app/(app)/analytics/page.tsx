@@ -11,7 +11,20 @@ import {
   usePhaseOverlay,
   WaterRetentionCard,
 } from "@/components/cycle/analytics";
-import { Card, EmptyState, ErrorBanner, FullLoader, Input, Segmented } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import {
+  Card,
+  EmptyState,
+  ErrorBanner,
+  FieldLabel,
+  FullLoader,
+  IconButton,
+  Input,
+  PageTitle,
+  Pill,
+  SectionLabel,
+  Segmented,
+} from "@/components/ui";
 import { buildCareColorMap, buildCareMatrix, type CareHistoryRow } from "@/lib/care";
 import { cycleDayFor } from "@/lib/cycle/derive";
 import type { DatedValue } from "@/lib/cycle/insights";
@@ -39,9 +52,7 @@ import {
   weekBuckets,
 } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 const WD = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
@@ -75,6 +86,16 @@ const METRICS: {
 
 /** «Свій» — довільний діапазон дат, не описується offset-ами periodRange. */
 type Mode = PeriodType | "custom";
+
+/**
+ * Людські назви періодів для типового порівняння «цей проти минулого».
+ * Коли зсуви нетипові (або «Свій») — падаємо на конкретні дати.
+ */
+const PERIOD_WORDS: Record<PeriodType, { current: string; against: string }> = {
+  week: { current: "Цей тиждень", against: "Проти минулого тижня" },
+  month: { current: "Цей місяць", against: "Проти минулого місяця" },
+  year: { current: "Цей рік", against: "Проти минулого року" },
+};
 
 export default function AnalyticsPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -330,23 +351,33 @@ export default function AnalyticsPage() {
   const hasAnyWeight = weightData.some((d) => d.weight != null);
   const hasAnyData = curLogs.length > 0;
 
+  // Типовий випадок «поточний проти попереднього» підписуємо словами, як у
+  // дизайні; будь-який інший зсув — датами, щоб не брехати про «минулий».
+  const typical = !isCustom && curOffset === 0 && cmpOffset === 1;
+  const words = isCustom ? null : PERIOD_WORDS[period];
+  const againstLabel = typical && words ? words.against : `Проти ${cmpLabel}`;
+
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center justify-between px-1 pt-1">
-        <h1 className="text-[22px] font-extrabold">Аналітика</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/activity" className="text-[13px] font-extrabold text-primary">
-            Активність
-          </Link>
-          <Link href="/report" className="text-[13px] font-extrabold text-primary">
-            Звіт
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle
+        right={
+          <>
+            <Pill href="/activity" icon="activity">
+              Активність
+            </Pill>
+            <Pill href="/report" icon="file">
+              Звіт
+            </Pill>
+          </>
+        }
+      >
+        Аналітика
+      </PageTitle>
 
       <Segmented<Mode>
         value={period}
         onChange={changePeriod}
+        variant="surface"
         options={[
           { value: "week", label: "Тиждень" },
           { value: "month", label: "Місяць" },
@@ -355,35 +386,39 @@ export default function AnalyticsPage() {
         ]}
       />
 
-      <Card className="!p-0">
+      <div className="rounded-[16px] bg-surface">
         <button
           type="button"
           onClick={() => setPickerOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-2 px-[14px] py-3 text-left"
+          aria-expanded={pickerOpen}
+          className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
         >
-          <span className="flex flex-col">
-            <span className="text-[11px] font-bold text-muted">Період · порівняння</span>
-            <span className="text-[13px] font-extrabold">
-              {curLabel}
-              <span className="text-muted"> · vs </span>
-              {cmpLabel}
+          <span className="flex flex-col gap-[2px]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[.09em] text-muted">
+              Період · порівняння
+            </span>
+            <span className="text-[13px] font-semibold">
+              {typical && words ? words.current : curLabel}
+              <span className="font-normal text-muted"> проти </span>
+              {typical ? "минулого" : cmpLabel}
             </span>
           </span>
-          <ChevronDown
-            size={20}
+          <span
             className={cn(
-              "shrink-0 text-primary transition-transform",
+              "flex shrink-0 text-muted transition-transform",
               pickerOpen && "rotate-180",
             )}
-          />
+          >
+            <Icon name="chevronDown" size={18} strokeWidth={1.8} />
+          </span>
         </button>
         {pickerOpen && (
-          <div className="flex flex-col gap-1 border-t border-bg px-[14px] pb-[14px] pt-2.5">
+          <div className="flex flex-col gap-1 border-t border-line px-4 pb-4 pt-3">
             {isCustom ? (
               <>
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2">
                   <label className="flex-1">
-                    <span className="mb-1 block text-[12px] font-bold text-muted">Від</span>
+                    <FieldLabel>Від</FieldLabel>
                     <Input
                       type="date"
                       value={customStart}
@@ -392,7 +427,7 @@ export default function AnalyticsPage() {
                     />
                   </label>
                   <label className="flex-1">
-                    <span className="mb-1 block text-[12px] font-bold text-muted">До</span>
+                    <FieldLabel>До</FieldLabel>
                     <Input
                       type="date"
                       value={customEnd}
@@ -401,7 +436,7 @@ export default function AnalyticsPage() {
                     />
                   </label>
                 </div>
-                <div className="mt-1 text-[12px] font-semibold text-muted">
+                <div className="mt-1 text-[11.5px] font-normal text-muted">
                   Порівнюється з попереднім відрізком тієї ж довжини: {cmpLabel}
                 </div>
               </>
@@ -414,7 +449,7 @@ export default function AnalyticsPage() {
                   onNewer={() => setCurOffset((o) => Math.max(0, o - 1))}
                   canNewer={curOffset > 0}
                 />
-                <div className="my-1 h-px bg-bg" />
+                <div className="my-1 border-t border-line" />
                 <PeriodStepper
                   label="Порівняти з"
                   value={cmpLabel}
@@ -426,7 +461,7 @@ export default function AnalyticsPage() {
             )}
           </div>
         )}
-      </Card>
+      </div>
 
       {loading ? (
         <FullLoader />
@@ -434,7 +469,7 @@ export default function AnalyticsPage() {
         <ErrorBanner>{error}</ErrorBanner>
       ) : !hasAnyData ? (
         <EmptyState
-          emoji="📊"
+          icon="bars"
           title="Ще немає даних"
           hint="Заповнюй щоденник на вкладці «Сьогодні» — і тут зʼявиться твоя динаміка."
         />
@@ -446,13 +481,17 @@ export default function AnalyticsPage() {
 
           {/* Графік ваги */}
           <Card>
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <div className="text-[13px] font-extrabold">Вага</div>
-              <div className="flex gap-3 text-[11px] font-bold">
-                <span className="text-primary">— вага</span>
-                <span className="text-accent">–&nbsp;–&nbsp;тренд</span>
-              </div>
-            </div>
+            <SectionLabel
+              className="mb-[10px]"
+              right={
+                <div className="flex gap-3 text-[11px] font-medium text-muted">
+                  <span className="text-accent">— вага</span>
+                  <span>–&nbsp;–&nbsp;тренд</span>
+                </div>
+              }
+            >
+              Вага
+            </SectionLabel>
             {hasAnyWeight ? (
               <>
                 <WeightChart
@@ -463,7 +502,7 @@ export default function AnalyticsPage() {
                 {bandsOn && <PhaseLegend />}
               </>
             ) : (
-              <div className="py-8 text-center text-[12px] font-semibold text-muted">
+              <div className="py-8 text-center text-[12px] font-medium text-muted">
                 Додай вагу у щоденнику, щоб побачити графік
               </div>
             )}
@@ -483,10 +522,10 @@ export default function AnalyticsPage() {
           )}
 
           {/* Порівняння */}
-          <div className="mx-1 -mb-1 text-[12.5px] font-bold text-muted">
-            {curLabel} · порівняно з {cmpLabel}
+          <div className="px-[2px] text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+            {againstLabel}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-[10px]">
             {METRICS.map((m, idx) => {
               const cur = metricAvg(curLogs, m.key);
               const prev = metricAvg(cmpLogs, m.key);
@@ -494,24 +533,48 @@ export default function AnalyticsPage() {
               const good =
                 dir === "flat" ? null : m.goodDown ? dir === "down" : dir === "up";
               const color =
-                pct === null ? "text-muted" : good ? "text-pos" : "text-neg";
-              const arrow = dir === "up" ? "↑" : dir === "down" ? "↓" : "→";
+                pct === null || good === null ? "text-muted" : good ? "text-pos" : "text-neg";
               return (
-                <Card
+                <div
                   key={m.key}
-                  className={cn("!p-[14px]", idx === METRICS.length - 1 && "col-span-2")}
+                  className={cn(
+                    "rounded-[18px] bg-surface p-[15px]",
+                    idx === METRICS.length - 1 && "col-span-2",
+                  )}
                 >
-                  <div className="text-[12px] font-bold text-muted">{m.label}</div>
-                  <div className="mt-1 text-[22px] font-extrabold">
+                  <div className="text-[11.5px] font-medium text-muted">{m.label}</div>
+                  <div className="mt-[6px] text-[23px] font-normal tracking-[-.01em]">
                     {m.render(cur)}
                     {m.unit && cur != null && (
-                      <span className="ml-1 text-[12px] font-bold text-muted">{m.unit}</span>
+                      <span className="ml-[5px] text-[11.5px] font-medium text-muted">
+                        {m.unit}
+                      </span>
                     )}
                   </div>
-                  <div className={cn("mt-0.5 text-[11.5px] font-extrabold", color)}>
-                    {pct === null ? "немає з чим порівняти" : `${arrow} ${fmt(Math.abs(pct), 1)}%`}
+                  <div
+                    className={cn(
+                      "mt-1 flex items-center gap-[3px] text-[11.5px] font-semibold",
+                      color,
+                    )}
+                  >
+                    {pct === null ? (
+                      "немає з чим порівняти"
+                    ) : (
+                      <>
+                        {dir !== "flat" && (
+                          <span className="flex">
+                            <Icon
+                              name={dir === "up" ? "arrowUp" : "arrowDown"}
+                              size={11}
+                              strokeWidth={2.2}
+                            />
+                          </span>
+                        )}
+                        {fmt(Math.abs(pct), 1)}%
+                      </>
+                    )}
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -520,12 +583,20 @@ export default function AnalyticsPage() {
           <NutritionCards logs={curLogs} />
 
           {/* Графік кроків */}
-          <Card className="!p-[14px]">
-            <div className="mb-2.5 text-[12px] font-bold text-muted">
+          <Card>
+            <SectionLabel
+              className="mb-[10px]"
+              right={
+                <span className="flex items-center gap-[6px] text-[11px] font-medium text-muted">
+                  <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-accent" />
+                  тис. кроків
+                </span>
+              }
+            >
               {weeklyAgg
                 ? "Кроки, середнє за тиждень"
                 : `Кроки, ${period === "week" ? "тиж." : "міс."}`}
-            </div>
+            </SectionLabel>
             <StepsBars data={stepsData} />
           </Card>
 
@@ -533,10 +604,10 @@ export default function AnalyticsPage() {
               вже завантажена, інакше графік на мить мигне тимчасовими кольорами.
               На тижневій агрегації точки днів не мають куди лягти — ховаємо. */}
           {!weeklyAgg && careHistory !== null && (
-            <Card className="!p-[14px]">
-              <div className="mb-2.5 text-[12px] font-bold text-muted">
+            <Card>
+              <SectionLabel>
                 Догляд за шкірою, {period === "week" ? "тиж." : "міс."}
-              </div>
+              </SectionLabel>
               <CareDotChart key={curStart} rows={careRows} dates={periodDates} />
             </Card>
           )}
@@ -561,43 +632,12 @@ function PeriodStepper({
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-[12px] font-bold text-muted">{label}</span>
-      <div className="flex items-center gap-0.5">
-        <StepBtn onClick={onOlder} label="Раніше">
-          <ChevronLeft size={18} />
-        </StepBtn>
-        <span className="min-w-[112px] text-center text-[13px] font-extrabold">{value}</span>
-        <StepBtn onClick={onNewer} disabled={!canNewer} label="Пізніше">
-          <ChevronRight size={18} />
-        </StepBtn>
+      <span className="text-[11.5px] font-medium text-muted">{label}</span>
+      <div className="flex items-center gap-1">
+        <IconButton icon="chevronLeft" label="Раніше" onClick={onOlder} />
+        <span className="min-w-[112px] text-center text-[13px] font-semibold">{value}</span>
+        <IconButton icon="chevronRight" label="Пізніше" onClick={onNewer} disabled={!canNewer} />
       </div>
     </div>
-  );
-}
-
-function StepBtn({
-  children,
-  onClick,
-  disabled,
-  label,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-full text-[20px] font-extrabold leading-none text-primary transition",
-        disabled ? "opacity-25" : "hover:bg-primary-light active:scale-90",
-      )}
-    >
-      {children}
-    </button>
   );
 }

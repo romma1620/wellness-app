@@ -22,21 +22,13 @@ export const FLOW_LABELS: Record<Flow, string> = {
 export const MOODS = ["great", "good", "neutral", "low", "bad"] as const;
 export type Mood = (typeof MOODS)[number];
 
-/** Словами — для експорту й скрінрідера, де емодзі нічого не пояснює. */
+/** Підписи настрою: ними ж підписані чипи в DaySheet, експорт і скрінрідер. */
 export const MOOD_LABELS: Record<Mood, string> = {
   great: "чудовий",
   good: "добрий",
   neutral: "нейтральний",
   low: "знижений",
   bad: "поганий",
-};
-
-export const MOOD_EMOJI: Record<Mood, string> = {
-  great: "😄",
-  good: "🙂",
-  neutral: "😐",
-  low: "🙁",
-  bad: "😞",
 };
 
 /** Ключі симптомів. Зберігаються в БД, тому перейменовувати не можна — лише додавати. */

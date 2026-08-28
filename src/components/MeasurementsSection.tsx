@@ -1,8 +1,9 @@
 "use client";
 
 import { MetricLine, Sparkline } from "@/components/charts";
+import { Icon } from "@/components/icons";
 import { NumberField } from "@/components/inputs";
-import { Button, Card, ErrorBanner, FullLoader, SectionLabel } from "@/components/ui";
+import { Button, Card, Chip, ErrorBanner, FullLoader, SectionLabel } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { MEASUREMENT_META, type Measurement, type MeasurementKey } from "@/lib/types";
@@ -96,19 +97,16 @@ export function MeasurementsSection() {
   if (loading) return <FullLoader />;
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="px-1 text-[12.5px] font-semibold text-muted">
+    <div className="flex flex-col gap-[14px]">
+      <div className="-mt-[6px] px-[2px] text-[12px] font-medium text-muted">
         {latest ? `оновлено ${shortDate(latest.date)}` : "ще не заповнено"}
       </div>
       {needReminder && (
-        <div className="flex items-center gap-3 rounded-[18px] bg-primary-light px-4 py-[15px]">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-primary">
-            <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M11 7v4l3 2" />
-            </svg>
+        <div className="flex items-center gap-3 rounded-xl2 bg-surface px-4 py-[15px]">
+          <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
+            <Icon name="clock" size={17} strokeWidth={1.8} />
           </div>
-          <div className="text-[13px] font-bold leading-snug text-primary">
+          <div className="text-[12.5px] font-medium leading-[1.5] text-ink">
             {latest
               ? "Час робити заміри — минуло понад 14 днів. Роби їх раз на 2 тижні зранку."
               : "Зроби перші заміри зранку — і зможеш стежити за динамікою."}
@@ -119,8 +117,8 @@ export function MeasurementsSection() {
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <Card as="form">
-        <SectionLabel>Нові заміри · {shortDate(todayISO())}</SectionLabel>
-        <div className="grid grid-cols-2 gap-3">
+        <SectionLabel icon="ruler">Нові заміри · {shortDate(todayISO())}</SectionLabel>
+        <div className="grid grid-cols-2 gap-[10px]">
           {MEASUREMENT_META.map((m) => (
             <NumberField
               key={m.key}
@@ -134,32 +132,48 @@ export function MeasurementsSection() {
           ))}
         </div>
         <div className="mt-4">
-          <Button type="button" onClick={save} loading={saving}>
-            {saved ? "✓ Збережено" : "Зберегти заміри"}
+          <Button type="button" onClick={save} loading={saving} className="text-[14.5px]">
+            {saved ? (
+              <>
+                <Icon name="check" size={15} strokeWidth={2.2} />
+                Збережено
+              </>
+            ) : (
+              "Зберегти заміри"
+            )}
           </Button>
         </div>
       </Card>
 
       {latest && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-[10px]">
           {MEASUREMENT_META.map((m, idx) => {
             const cur = latest[m.key];
             const before = prev?.[m.key] ?? null;
             const diff = cur != null && before != null ? cur - before : null;
             return (
               <Card key={m.key} className={cn("!p-[14px]", idx === MEASUREMENT_META.length - 1 && "col-span-2")}>
-                <div className="text-[12px] font-bold text-muted">{m.label}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+                  {m.label}
+                </div>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-[22px] font-extrabold">{fmt(cur, 1)}</span>
-                  <span className="text-[12px] font-bold text-muted">см</span>
+                  <span className="text-[22px] font-normal leading-[1.1] tracking-[-.01em]">
+                    {fmt(cur, 1)}
+                  </span>
+                  <span className="text-[11.5px] font-medium text-muted">см</span>
                   {diff != null && Math.abs(diff) >= 0.05 && (
-                    <span className={cn("ml-auto text-[11px] font-extrabold", diff < 0 ? "text-pos" : "text-neg")}>
-                      {diff < 0 ? "↓" : "↑"}
+                    <span
+                      className={cn(
+                        "ml-auto flex items-center gap-[2px] text-[11px] font-semibold",
+                        diff < 0 ? "text-pos" : "text-neg",
+                      )}
+                    >
+                      <Icon name={diff < 0 ? "arrowDown" : "arrowUp"} size={10} strokeWidth={2.2} />
                       {fmt(Math.abs(diff), 1)}
                     </span>
                   )}
                   {diff != null && Math.abs(diff) < 0.05 && (
-                    <span className="ml-auto text-[11px] font-extrabold text-muted">—</span>
+                    <span className="ml-auto text-[11px] font-semibold text-muted">—</span>
                   )}
                 </div>
                 <Sparkline values={seriesFor(m.key).map((s) => s.value)} />
@@ -171,22 +185,12 @@ export function MeasurementsSection() {
 
       {rows.length >= 1 && (
         <Card>
-          <SectionLabel>Динаміка</SectionLabel>
+          <SectionLabel icon="activity">Динаміка</SectionLabel>
           <div className="mb-3 flex flex-wrap gap-2">
             {MEASUREMENT_META.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => setSelected(m.key)}
-                className={cn(
-                  "rounded-full px-[13px] py-[7px] text-[12.5px] transition",
-                  selected === m.key
-                    ? "bg-primary font-bold text-white"
-                    : "border-[1.5px] border-primary-light bg-bg font-semibold text-muted",
-                )}
-              >
+              <Chip key={m.key} active={selected === m.key} onClick={() => setSelected(m.key)}>
                 {m.label}
-              </button>
+              </Chip>
             ))}
           </div>
           <MetricLine data={seriesFor(selected)} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { useDecimalBuffer } from "@/components/inputs";
 import { Input } from "@/components/ui";
 import type { DraftSet } from "@/lib/workouts";
@@ -20,7 +21,7 @@ export function SetRow({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex h-8 w-6 shrink-0 items-center justify-center text-[13px] font-extrabold text-muted">
+      <div className="flex w-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
         {index + 1}
       </div>
       <div className="flex-1">
@@ -33,11 +34,9 @@ export function SetRow({
         type="button"
         onClick={onRemove}
         aria-label="Прибрати підхід"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted active:scale-90"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90"
       >
-        <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <path d="M6 6l10 10M16 6L6 16" />
-        </svg>
+        <Icon name="x" size={14} strokeWidth={2} />
       </button>
     </div>
   );

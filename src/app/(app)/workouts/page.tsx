@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, EmptyState, ErrorBanner } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button, EmptyState, ErrorBanner, PageTitle, Pill } from "@/components/ui";
 import { UnfinishedWorkoutCard } from "@/components/workouts/UnfinishedWorkoutCard";
 import { WorkoutList } from "@/components/workouts/WorkoutList";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
@@ -16,7 +17,6 @@ import {
   loadWorkoutList,
 } from "@/lib/workouts-db";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -99,16 +99,20 @@ export default function WorkoutsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center justify-between px-1 pt-1">
-        <h1 className="text-[22px] font-extrabold">Тренування</h1>
-        <Link href="/workouts/routines" className="text-[13px] font-extrabold text-primary">
-          Шаблони
-        </Link>
-      </div>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle
+        right={
+          <Pill href="/workouts/routines" icon="grid">
+            Шаблони
+          </Pill>
+        }
+      >
+        Тренування
+      </PageTitle>
 
       <Button type="button" onClick={() => router.push("/workouts/new")}>
-        + Нове тренування
+        <Icon name="plus" size={16} strokeWidth={2.2} />
+        Нове тренування
       </Button>
 
       {/* поза гілкою `items.length === 0`: незакінчене показуємо й тоді,
@@ -129,7 +133,7 @@ export default function WorkoutsPage() {
         <WorkoutsSkeleton />
       ) : items.length === 0 && !error ? (
         <EmptyState
-          emoji="🏋️"
+          icon="dumbbell"
           title="Ще немає тренувань"
           hint="Додай першу сесію — вправи, вагу і підходи. Далі бачитимеш прогрес на графіках."
         />
@@ -137,7 +141,9 @@ export default function WorkoutsPage() {
         <>
           <WorkoutProgress exercises={exercises} loadSets={loadSets} />
 
-          <h2 className="px-1 pt-2 text-[17px] font-extrabold">Історія</h2>
+          <div className="px-[2px] pt-1 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+            Історія
+          </div>
 
           <WorkoutList
             items={items}

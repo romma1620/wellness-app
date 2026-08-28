@@ -1,6 +1,9 @@
 "use client";
 
-import { Button, ErrorBanner } from "@/components/ui";
+import { phaseTint } from "@/components/cycle/tint";
+import { Icon } from "@/components/icons";
+import { Button, ErrorBanner, PageTitle } from "@/components/ui";
+import { PHASE_COLORS } from "@/lib/cycle/types";
 import { plural } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
@@ -35,31 +38,25 @@ export function CycleDisabled({
   }
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <h1 className="px-1 pt-1 text-[22px] font-extrabold">Цикл</h1>
+    <div className="flex flex-col gap-[14px]">
+      <PageTitle>Цикл</PageTitle>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div
         className="flex flex-col items-center rounded-xl2 px-5 pb-6 pt-[22px] text-center"
-        style={{ background: "linear-gradient(135deg, var(--tint-rose-soft) 0%, var(--primary-light) 100%)" }}
+        style={{
+          background: `linear-gradient(140deg, ${phaseTint("menstrual")} 0%, var(--surface) 65%)`,
+        }}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--tint-tile)] text-[var(--tint-rose-fg)]">
-          <svg
-            width="30"
-            height="30"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.9}
-            strokeLinecap="round"
-          >
-            <path d="M18 11a7 7 0 1 1-2.6-5.4" />
-            <path d="M18.4 3.4v3.4H15" />
-          </svg>
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-[18px]"
+          style={{ background: phaseTint("menstrual"), color: PHASE_COLORS.menstrual }}
+        >
+          <Icon name="cycle" size={26} strokeWidth={1.6} />
         </div>
-        <div className="mt-3.5 text-[19px] font-extrabold">Трекінг циклу вимкнено</div>
-        <div className="mt-[7px] text-[13.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+        <div className="mt-3.5 text-[19px] font-bold text-ink">Трекінг циклу вимкнено</div>
+        <div className="mt-[7px] text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           {entryCount > 0
             ? `Твої записи на місці — ${entryCount} ${plural(entryCount, "день", "дні", "днів")}. Увімкни, щоб знову бачити фазу, прогноз і фази в аналітиці.`
             : "Увімкни, щоб знову бачити календар, фазу й прогноз."}
@@ -72,7 +69,7 @@ export function CycleDisabled({
 
       <Link
         href="/settings/cycle"
-        className="pb-2 text-center text-[13px] font-bold text-muted"
+        className="pb-2 text-center text-[13px] font-medium text-muted"
       >
         Налаштування й видалення даних
       </Link>

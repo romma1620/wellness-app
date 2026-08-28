@@ -3,6 +3,7 @@
 import { useUid } from "@/components/UserProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
+  DEFAULT_MODE,
   MODE_STORAGE_KEY,
   parseThemeMode,
   resolveMode,
@@ -47,7 +48,7 @@ function applyMode(mode: ThemeMode) {
 
 // Режим живе в localStorage (він прив'язаний до пристрою, не до акаунта),
 // тож сервер його не знає. Читаємо його як зовнішнє сховище: під час
-// гідратації React бере серверний знімок "light" і сам перечитує реальне
+// гідратації React бере серверний знімок DEFAULT_MODE і сам перечитує реальне
 // значення одразу після — без розбіжностей розмітки й setState в ефекті.
 const MODE_EVENT = "aura-mode-change";
 
@@ -60,7 +61,7 @@ function readMode(): ThemeMode {
   try {
     return parseThemeMode(localStorage.getItem(MODE_STORAGE_KEY));
   } catch {
-    return "light";
+    return DEFAULT_MODE;
   }
 }
 
@@ -89,7 +90,7 @@ export function ThemeProvider({
     }
   }, []);
 
-  const mode = useSyncExternalStore(subscribeMode, readMode, () => "light" as ThemeMode);
+  const mode = useSyncExternalStore(subscribeMode, readMode, () => DEFAULT_MODE);
 
   // Синхронізуємо тему з БД (джерело істини) лише при першому монтуванні:
   // подальші router.refresh() не повинні перетирати вибір користувача.

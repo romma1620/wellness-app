@@ -19,14 +19,15 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
 
   if (rows.length === 0) {
     return (
-      <div className="py-6 text-center text-[12px] font-semibold text-muted">
+      <div className="py-6 text-center text-[12px] font-medium text-muted">
         Ще немає доглядів за цей період
       </div>
     );
   }
 
   const weekMode = dates.length <= 7;
-  const dot = weekMode ? 10 : 6;
+  // 9px крапки з дизайну — для тижня; у місяці 30 колонок, тож дрібніші.
+  const dot = weekMode ? 9 : 6;
   const activeRow = active ? rows.find((r) => r.key === active.key) : null;
 
   return (
@@ -35,10 +36,10 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
         {rows.map((row) => (
           <span
             key={row.key}
-            className="flex items-center gap-1.5 text-[11px] font-bold text-muted"
+            className="flex items-center gap-[6px] text-[11px] font-medium text-muted"
           >
             <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              className="h-[9px] w-[9px] shrink-0 rounded-full"
               style={{ background: row.color }}
             />
             {row.label}
@@ -47,12 +48,12 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
       </div>
 
       <div
-        className="grid items-center"
-        style={{ gridTemplateColumns: `68px repeat(${dates.length}, minmax(0, 1fr)) 22px` }}
+        className="grid items-center gap-y-[2px]"
+        style={{ gridTemplateColumns: `64px repeat(${dates.length}, minmax(0, 1fr)) 22px` }}
       >
         {rows.map((row) => (
           <Fragment key={row.key}>
-            <div className="truncate pr-1.5 text-[11px] font-bold text-ink">{row.label}</div>
+            <div className="truncate pr-1.5 text-[11px] font-semibold text-ink">{row.label}</div>
             {dates.map((iso, i) => {
               const on = row.days[i] ?? false;
               const isActive = active?.key === row.key && active.iso === iso;
@@ -78,13 +79,15 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
               ) : (
                 <span key={iso} className="flex h-6 items-center justify-center">
                   <span
-                    className="rounded-full transition-transform"
-                    style={{ width: 3, height: 3, background: "var(--primary-light)" }}
+                    className="rounded-full bg-line"
+                    style={{ width: 3, height: 3 }}
                   />
                 </span>
               );
             })}
-            <div className="pl-1 text-right text-[10.5px] font-bold text-muted">{row.count}</div>
+            <div className="pl-1 text-right text-[10.5px] font-semibold text-muted">
+              {row.count}
+            </div>
           </Fragment>
         ))}
 
@@ -92,7 +95,7 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
         {dates.map((iso) => (
           <div
             key={iso}
-            className="pt-1 text-center text-[9.5px] font-bold leading-none text-muted"
+            className="pt-1 text-center text-[9.5px] font-semibold leading-none text-muted"
           >
             {axisLabel(iso, weekMode)}
           </div>
@@ -100,7 +103,7 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
         <div />
       </div>
 
-      <div className="mt-2 h-4 text-center text-[11px] font-bold text-muted">
+      <div className="mt-2 h-4 text-center text-[11px] font-medium text-muted">
         {active && activeRow ? `${shortDate(active.iso)} · ${activeRow.label}` : ""}
       </div>
     </div>

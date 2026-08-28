@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseThemeMode, resolveMode, THEME_MODES } from "./theme-mode";
+import { DEFAULT_MODE, parseThemeMode, resolveMode, THEME_MODES } from "./theme-mode";
 
 describe("parseThemeMode", () => {
   it("повертає кожне відоме значення як є", () => {
@@ -8,12 +8,13 @@ describe("parseThemeMode", () => {
     }
   });
 
-  it("незнайоме значення чи відсутній запис → light", () => {
+  it("незнайоме значення чи відсутній запис → режим за замовчуванням (dark)", () => {
     // localStorage повертає null, коли ключа нема, і будь-який рядок,
     // якщо туди щось писала стара версія — обидва не мають ламати завантаження.
-    expect(parseThemeMode(null)).toBe("light");
-    expect(parseThemeMode("")).toBe("light");
-    expect(parseThemeMode("dark-ish")).toBe("light");
+    expect(DEFAULT_MODE).toBe("dark");
+    expect(parseThemeMode(null)).toBe(DEFAULT_MODE);
+    expect(parseThemeMode("")).toBe(DEFAULT_MODE);
+    expect(parseThemeMode("dark-ish")).toBe(DEFAULT_MODE);
   });
 });
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { MetricLine } from "@/components/charts";
+import { Icon } from "@/components/icons";
 import { Button, Card, SectionLabel, Segmented, Spinner } from "@/components/ui";
 import { ExercisePicker } from "@/components/workouts/ExercisePicker";
+import { ProgressLine } from "@/components/workouts/ProgressLine";
 import { cn, fmt, shortDate } from "@/lib/utils";
 import {
   compareLastTwo,
@@ -89,22 +90,22 @@ export function WorkoutProgress({
 
   return (
     <Card>
-      <SectionLabel>Прогрес по вправі</SectionLabel>
+      <SectionLabel icon="activity">Прогрес по вправі</SectionLabel>
 
       <ExercisePicker exercises={exercises} value={exId} onChange={setExId} />
 
-      <div className="mt-3">
-        <Segmented options={METRIC_OPTS} value={metric} onChange={setMetric} />
+      <div className="mt-[10px]">
+        <Segmented variant="outline" options={METRIC_OPTS} value={metric} onChange={setMetric} />
       </div>
 
-      <div className="mt-3">
+      <div className="mt-[14px]">
         {loading ? (
           <div className="flex h-[150px] items-center justify-center">
-            <Spinner className="h-6 w-6 text-primary" />
+            <Spinner className="h-6 w-6 text-accent" />
           </div>
         ) : failed ? (
           <div className="flex flex-col items-center gap-3 py-6">
-            <div className="text-center text-[12px] font-semibold text-muted">
+            <div className="text-center text-[12px] font-medium text-muted">
               Не вдалося завантажити прогрес
             </div>
             <Button type="button" variant="outline" onClick={retry}>
@@ -112,7 +113,7 @@ export function WorkoutProgress({
             </Button>
           </div>
         ) : (
-          <MetricLine data={series.map((p) => ({ label: p.label, value: p.value }))} unit="кг" />
+          <ProgressLine data={series} unit="кг" />
         )}
       </div>
 
@@ -127,9 +128,9 @@ export function WorkoutProgress({
               better="up"
             />
           </div>
-          <div className="mt-2 text-center text-[11px] font-semibold text-muted">
+          <div className="mt-[10px] text-center text-[11px] font-medium text-muted">
             {shortDate(compare.current.date)}
-            {compare.previous ? ` vs ${shortDate(compare.previous.date)}` : " · перша сесія"}
+            {compare.previous ? ` проти ${shortDate(compare.previous.date)}` : " · перша сесія"}
           </div>
         </>
       )}
@@ -154,18 +155,23 @@ function CompareCard({
   const diff = current != null && previous != null ? current - previous : null;
   const good = diff == null ? null : better === "up" ? diff >= 0 : diff <= 0;
   return (
-    <div className="rounded-[14px] bg-bg p-[13px]">
-      <div className="text-[12px] font-bold text-muted">{title}</div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-[20px] font-extrabold">{f(current)}</span>
-        <span className="text-[11px] font-bold text-muted">{unit}</span>
+    <div className="rounded-[13px] border border-line bg-field p-[13px]">
+      <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">{title}</div>
+      <div className="mt-[6px] flex items-baseline gap-[5px]">
+        <span className="text-[22px] font-normal">{f(current)}</span>
+        <span className="text-[11.5px] font-medium text-muted">{unit}</span>
         {diff != null && Math.abs(diff) >= 0.05 ? (
-          <span className={cn("ml-auto text-[11px] font-extrabold", good ? "text-pos" : "text-neg")}>
-            {diff > 0 ? "↑" : "↓"}
+          <span
+            className={cn(
+              "ml-auto flex items-center gap-[3px] text-[11.5px] font-semibold",
+              good ? "text-pos" : "text-neg",
+            )}
+          >
+            <Icon name={diff > 0 ? "arrowUp" : "arrowDown"} size={11} strokeWidth={2} />
             {fmt(Math.abs(diff), 1)}
           </span>
         ) : (
-          <span className="ml-auto text-[11px] font-extrabold text-muted">—</span>
+          <span className="ml-auto text-[11.5px] font-semibold text-muted">—</span>
         )}
       </div>
     </div>

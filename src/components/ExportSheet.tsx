@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { ErrorBanner, Sheet, Spinner } from "@/components/ui";
 import {
   buildExportCsv,
@@ -70,7 +71,8 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
         </div>
       )}
       {empty && (
-        <div className="mb-3 rounded-[14px] bg-primary-light px-4 py-3 text-[13px] font-bold text-primary">
+        <div className="mb-3 flex items-center gap-2 rounded-[13px] bg-primary-light px-4 py-3 text-[13px] font-semibold text-accent">
+          <Icon name="info" size={15} strokeWidth={1.8} />
           Немає даних за цей період.
         </div>
       )}
@@ -82,14 +84,19 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
             type="button"
             disabled={busy !== null}
             onClick={() => run(o.value)}
-            className="flex items-center justify-between rounded-[15px] border-[1.5px] border-primary-light bg-surface px-4 py-[14px] text-left text-[15px] font-extrabold text-ink transition active:scale-[.99] disabled:opacity-60 disabled:active:scale-100"
+            className="flex items-center justify-between gap-3 rounded-[13px] border border-line bg-field px-4 py-[14px] text-left text-[14px] font-semibold text-ink transition active:scale-[.99] disabled:opacity-60 disabled:active:scale-100"
           >
-            {o.label}
+            <span className="flex items-center gap-[10px]">
+              <span className="flex text-accent">
+                <Icon name="file" size={16} strokeWidth={1.7} />
+              </span>
+              {o.label}
+            </span>
             {busy === o.value ? (
-              <Spinner className="h-4 w-4 text-primary" />
+              <Spinner className="h-4 w-4 text-accent" />
             ) : (
-              <span className="text-[18px] font-bold text-muted" aria-hidden>
-                ›
+              <span className="flex text-muted" aria-hidden>
+                <Icon name="chevronRight" size={16} strokeWidth={1.8} />
               </span>
             )}
           </button>

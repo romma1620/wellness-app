@@ -11,9 +11,12 @@ export const THEME_MODES: ThemeMode[] = ["light", "system", "dark"];
 
 export const MODE_STORAGE_KEY = "aura-mode";
 
-/** Значення з localStorage: усе, крім відомих режимів, — це "light". */
+/** Режим за замовчуванням — темний: редизайн намальований dark-first. */
+export const DEFAULT_MODE: ThemeMode = "dark";
+
+/** Значення з localStorage: усе, крім відомих режимів, — це DEFAULT_MODE. */
 export function parseThemeMode(raw: string | null): ThemeMode {
-  return THEME_MODES.includes(raw as ThemeMode) ? (raw as ThemeMode) : "light";
+  return THEME_MODES.includes(raw as ThemeMode) ? (raw as ThemeMode) : DEFAULT_MODE;
 }
 
 /** Що реально малюємо: "system" розгортається за prefers-color-scheme. */

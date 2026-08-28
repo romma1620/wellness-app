@@ -1,7 +1,10 @@
 "use client";
 
+import { BackLink } from "@/components/BackLink";
 import { CycleDisclaimer } from "@/components/cycle/PhaseTipCard";
-import { Card, EmptyState, ErrorBanner, FullLoader } from "@/components/ui";
+import { mixOnSurface } from "@/components/cycle/tint";
+import { Icon, type IconName } from "@/components/icons";
+import { Card, EmptyState, ErrorBanner, FullLoader, PageTitle, SectionLabel } from "@/components/ui";
 import { loadCycleEntries, loadCycleSettings } from "@/lib/cycle-db";
 import { completedCycles, deriveCycles } from "@/lib/cycle/derive";
 import {
@@ -20,10 +23,8 @@ import {
 } from "@/lib/cycle/types";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
-import { addDays, fmt, fmtInt, plural, todayISO } from "@/lib/utils";
+import { addDays, cn, fmt, fmtInt, plural, todayISO } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
 
 /** Інсайти показуємо лише коли завершених циклів достатньо, щоб щось порівнювати. */
@@ -136,16 +137,10 @@ export default function CycleInsightsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-[15px]">
-      <div className="flex items-center gap-3 pt-1">
-        <Link
-          href="/cycle"
-          aria-label="Назад до циклу"
-          className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-surface text-muted shadow-soft active:scale-95"
-        >
-          <ChevronLeft size={19} />
-        </Link>
-        <h1 className="text-[22px] font-extrabold">Інсайти</h1>
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex items-center gap-3">
+        <BackLink href="/cycle" label="Назад до циклу" />
+        <PageTitle className="flex-1">Інсайти</PageTitle>
       </div>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
@@ -154,7 +149,7 @@ export default function CycleInsightsPage() {
         <FullLoader />
       ) : completedCycles(cycles).length < MIN_CYCLES ? (
         <EmptyState
-          emoji="🌱"
+          icon="leaf"
           title="Ще збираємо дані"
           hint={`Інсайти зʼявляться після ${MIN_CYCLES} завершених циклів — тоді різницю між фазами вже можна відрізнити від випадковості. Завершених зараз: ${completedCycles(cycles).length}.`}
         />
@@ -164,10 +159,12 @@ export default function CycleInsightsPage() {
           <>
             <StatsCard prediction={prediction} />
             <LengthsCard cycles={cycles} />
-            <div className="mx-1 -mb-1 text-[12.5px] font-bold text-muted">
-              Що помітно в даних
+            <div>
+              <SectionLabel icon="bulb">Що помітно в даних</SectionLabel>
+              <div className="flex flex-col gap-[14px]">
+                <Correlations data={data} ranges={ranges} />
+              </div>
             </div>
-            <Correlations data={data} ranges={ranges} />
             <SymptomsCard entries={data.entries} cycles={cycles} />
             <CycleDisclaimer />
           </>
@@ -180,27 +177,32 @@ export default function CycleInsightsPage() {
 function StatsCard({ prediction }: { prediction: Prediction }) {
   const regular = prediction.sd <= 2;
   return (
-    <Card className="!px-4 !py-[18px]">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-[12.5px] font-bold text-muted">Твій цикл</span>
-        <span
-          className="rounded-full px-[11px] py-[5px] text-[11px] font-extrabold"
-          style={{
-            background: regular ? "var(--tint-green-badge)" : "var(--tint-amber)",
-            color: regular ? "var(--tint-green-badge-fg)" : "var(--tint-amber-badge-fg)",
-          }}
-        >
-          {regular ? "Регулярний" : "Нерівномірний"}
-        </span>
-      </div>
+    <Card>
+      <SectionLabel
+        icon="cycle"
+        right={
+          <span
+            className={cn(
+              "rounded-full px-[10px] py-[4px] text-[11px] font-semibold",
+              regular
+                ? "bg-[color:color-mix(in_oklab,var(--pos)_13%,transparent)] text-pos"
+                : "bg-[color:color-mix(in_oklab,var(--warn)_13%,transparent)] text-warn",
+            )}
+          >
+            {regular ? "Регулярний" : "Нерівномірний"}
+          </span>
+        }
+      >
+        Твій цикл
+      </SectionLabel>
       <div className="flex">
         <Stat value={String(Math.round(prediction.avgLength))} label="сер. цикл, дн." />
-        <div className="w-[1.5px] bg-bg" />
+        <div className="w-px bg-line" />
         <Stat
           value={String(Math.round(prediction.avgPeriodLength))}
           label="менструація, дн."
         />
-        <div className="w-[1.5px] bg-bg" />
+        <div className="w-px bg-line" />
         <Stat value={`±${fmt(prediction.sd, 1)}`} label="розкид, дн." />
       </div>
     </Card>
@@ -210,8 +212,10 @@ function StatsCard({ prediction }: { prediction: Prediction }) {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex-1 text-center">
-      <div className="text-[26px] font-extrabold leading-none">{value}</div>
-      <div className="mt-1 text-[11px] font-bold text-muted">{label}</div>
+      <div className="text-[26px] font-normal leading-none tracking-[-.01em] text-ink">{value}</div>
+      <div className="mt-1.5 text-[10px] font-medium uppercase tracking-[.05em] text-muted">
+        {label}
+      </div>
     </div>
   );
 }
@@ -228,15 +232,15 @@ function LengthsCard({ cycles }: { cycles: Cycle[] }) {
   const height = (v: number) => (max - min < 1 ? 70 : 40 + ((v - min) / (max - min)) * 44);
 
   return (
-    <Card className="!p-4">
-      <div className="mb-3 text-[12.5px] font-bold text-muted">Довжина циклів, днів</div>
+    <Card>
+      <SectionLabel icon="bars">Довжина циклів, днів</SectionLabel>
       <div className="flex items-end gap-2">
         {lengths.map((len, i) => {
           const last = i === lengths.length - 1;
           return (
             <div key={done[i].start} className="flex flex-1 flex-col items-center gap-1.5">
               <div
-                className="w-full rounded-[7px]"
+                className="w-full rounded-[6px]"
                 style={{
                   height: `${height(len)}px`,
                   background: PHASE_COLORS.menstrual,
@@ -244,8 +248,7 @@ function LengthsCard({ cycles }: { cycles: Cycle[] }) {
                 }}
               />
               <span
-                className="text-[9.5px] font-bold"
-                style={{ color: last ? "var(--tint-rose-fg)" : "var(--muted)" }}
+                className={cn("text-[10px]", last ? "font-semibold text-ink" : "font-medium text-muted")}
               >
                 {len}
               </span>
@@ -258,27 +261,28 @@ function LengthsCard({ cycles }: { cycles: Cycle[] }) {
 }
 
 function InsightCard({
-  tint,
+  hex,
   icon,
   title,
   text,
 }: {
-  tint: string;
-  icon: React.ReactNode;
+  /** Колір даних для плитки іконки — тінт 16% на поверхні, як у дизайні. */
+  hex: string;
+  icon: IconName;
   title: string;
   text: string;
 }) {
   return (
-    <Card className="flex items-start gap-[13px] !p-4">
+    <Card className="flex items-start gap-[13px]">
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: tint }}
+        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
+        style={{ background: mixOnSurface(hex, 16), color: hex }}
       >
-        {icon}
+        <Icon name={icon} size={17} strokeWidth={1.7} />
       </div>
       <div>
-        <div className="text-[14px] font-extrabold [text-wrap:pretty]">{title}</div>
-        <div className="mt-0.5 text-[12.5px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+        <div className="text-[13.5px] font-bold text-ink [text-wrap:pretty]">{title}</div>
+        <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           {text}
         </div>
       </div>
@@ -307,28 +311,14 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="steps"
-        tint="var(--tint-lavender)"
+        hex={PHASE_COLORS.luteal}
+        icon="activity"
         title={
           steps.diffPct < 0
             ? "Кроки падають у менструальні дні"
             : "Кроків у менструальні дні більше"
         }
         text={`У середньому на ${fmt(Math.abs(steps.diffPct), 0)}% ${steps.diffPct < 0 ? "менше" : "більше"}, ніж у фолікулярній фазі (${fmtInt(steps.value)} проти ${fmtInt(steps.base)}).`}
-        icon={
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="currentColor"
-            style={{ color: "var(--tint-lavender-fg)" }}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3.5 18.5h15M6 15v-3M11 15V7M16 15v-5" />
-          </svg>
-        }
       />,
     );
   }
@@ -337,27 +327,14 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="tonnage"
-        tint="var(--tint-green)"
+        hex={PHASE_COLORS.follicular}
+        icon="dumbbell"
         title={
           tonnage.diffPct > 0
             ? "Найсильніші тренування — у фолікулярній фазі"
             : "Обʼєм у залі вищий у другій половині циклу"
         }
         text={`Тоннаж у залі відрізняється на ${fmt(Math.abs(tonnage.diffPct), 0)}% порівняно з днями ПМС.`}
-        icon={
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 22 22"
-            fill="none"
-            stroke="currentColor"
-            style={{ color: "var(--tint-green-fg)" }}
-            strokeWidth={2}
-            strokeLinecap="round"
-          >
-            <path d="M4 8.5v5M18 8.5v5M6.5 7v8M15.5 7v8M6.5 11h9" />
-          </svg>
-        }
       />,
     );
   }
@@ -367,18 +344,18 @@ function Correlations({ data, ranges }: { data: Loaded; ranges: PhaseRange[] }) 
     cards.push(
       <InsightCard
         key="weight"
-        tint="var(--tint-rose)"
+        hex={PHASE_COLORS.menstrual}
+        icon="droplet"
         title={`Вага у ПМС ${delta > 0 ? "вища" : "нижча"} на ${fmt(Math.abs(delta), 1)} кг`}
         text="Це вода, а не жир: порівнювати вагу варто з тим самим днем минулого циклу."
-        icon={<span className="text-[17px]">💧</span>}
       />,
     );
   }
 
   if (cards.length === 0) {
     return (
-      <Card className="!p-4">
-        <div className="text-[13px] font-semibold leading-[1.5] text-muted [text-wrap:pretty]">
+      <Card>
+        <div className="text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           Помітних відмінностей між фазами поки немає — різниця в кроках, вазі й
           тренуваннях у межах звичного розкиду. Це нормальний результат, а не брак даних.
         </div>
@@ -394,15 +371,15 @@ function SymptomsCard({ entries, cycles }: { entries: CycleEntry[]; cycles: Cycl
   if (stats.length === 0) return null;
 
   return (
-    <Card className="!p-4">
-      <div className="mb-3 text-[12.5px] font-bold text-muted">Найчастіші симптоми</div>
+    <Card>
+      <SectionLabel icon="activity">Найчастіші симптоми</SectionLabel>
       <div className="flex flex-col gap-2.5">
         {stats.map((s) => (
           <div key={s.key} className="flex items-center gap-2.5">
-            <span className="w-24 shrink-0 truncate text-[12.5px] font-bold">
+            <span className="w-24 shrink-0 truncate text-[12.5px] font-medium text-ink">
               {symptomLabel(s.key)}
             </span>
-            <div className="h-2 flex-1 rounded-[4px] bg-bg">
+            <div className="h-[8px] flex-1 rounded-[4px] bg-field">
               <div
                 className="h-full rounded-[4px]"
                 style={{
@@ -412,7 +389,7 @@ function SymptomsCard({ entries, cycles }: { entries: CycleEntry[]; cycles: Cycl
                 }}
               />
             </div>
-            <span className="w-[54px] shrink-0 text-right text-[11px] font-bold text-muted">
+            <span className="w-[54px] shrink-0 text-right text-[11px] font-medium text-muted">
               {s.dayFrom !== null
                 ? s.dayFrom === s.dayTo
                   ? `день ${s.dayFrom}`
