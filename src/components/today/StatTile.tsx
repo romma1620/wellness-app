@@ -38,8 +38,11 @@ const TILE_CLS =
 
 /**
  * Плитка показника: кільце, значення, капітельний підпис і підказка.
- * З `onTap` — кнопка; без нього — блок (значення тоді може бути інпутом,
- * який усередині button жити не може).
+ * З `onTap` — кнопка; без нього — блок (значення тоді може бути інпутом
+ * або степером, які всередині button жити не можуть).
+ *
+ * Рядок значення має фіксовану висоту: у плитці води там стоять кнопки
+ * «−» і «+», і без неї сусідні плитки в сітці розʼїжджалися б по вертикалі.
  */
 export function StatTile({
   icon,
@@ -61,7 +64,9 @@ export function StatTile({
   const body = (
     <>
       <Ring frac={frac} icon={icon} />
-      <span className="text-[14.5px] font-semibold text-ink">{value}</span>
+      <span className="flex h-[28px] w-full items-center justify-center gap-1 text-[14.5px] font-semibold text-ink">
+        {value}
+      </span>
       <span className="flex flex-col items-center gap-[2px]">
         <span className="text-[9.5px] font-semibold uppercase tracking-[.08em] text-muted">
           {label}

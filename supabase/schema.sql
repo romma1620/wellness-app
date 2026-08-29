@@ -23,9 +23,19 @@ create table if not exists public.profiles (
   avatar_url    text,
   height        numeric,            -- см
   target_weight numeric,            -- кг
+  kcal_goal     integer,            -- ккал/день; null = ціль не задана
+  steps_goal    integer default 10000,
+  water_goal    integer default 8,  -- склянок/день
   theme         theme_name not null default 'peach',
   created_at    timestamptz not null default now()
 );
+
+-- Щоденні цілі для БД, створених до їх появи. Дефолти в alter заповнюють і
+-- наявні рядки, тож у тих, хто вже користувався застосунком, кроки й вода
+-- лишаються там, де були зашиті в коді (10 000 і 8), а калорії — без цілі.
+alter table public.profiles add column if not exists kcal_goal  integer;
+alter table public.profiles add column if not exists steps_goal integer default 10000;
+alter table public.profiles add column if not exists water_goal integer default 8;
 
 alter table public.profiles enable row level security;
 
@@ -72,7 +82,7 @@ create table if not exists public.daily_logs (
   protein  numeric,
   fat      numeric,
   carbs    numeric,
-  water    smallint check (water is null or (water >= 0 and water <= 8)),
+  water    smallint check (water is null or (water >= 0 and water <= 20)),
   steps    integer,
   sport    text,
   care     text,
@@ -86,6 +96,13 @@ alter table public.daily_logs enable row level security;
 drop policy if exists "daily_logs_all_own" on public.daily_logs;
 create policy "daily_logs_all_own" on public.daily_logs
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Стеля води більше не 8: ціль налаштовується, і випите понад неї має
+-- записуватись, а не впиратись у стару межу. Перевипускаємо перевірку явно —
+-- у БД, створених раніше, вона лишилася з `<= 8`.
+alter table public.daily_logs drop constraint if exists daily_logs_water_check;
+alter table public.daily_logs add constraint daily_logs_water_check
+  check (water is null or (water >= 0 and water <= 20));
 
 create index if not exists daily_logs_user_date_idx
   on public.daily_logs (user_id, date desc);

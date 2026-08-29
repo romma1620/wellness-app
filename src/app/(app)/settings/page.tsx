@@ -304,7 +304,7 @@ export default function SettingsPage() {
       <SettingsLink
         href="/goals"
         title="Цілі та винагороди"
-        subtitle="Сходинки ваги й подарунки за них"
+        subtitle="Щоденні цілі, сходинки ваги й подарунки"
         icon="target"
       />
       <SettingsLink

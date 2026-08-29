@@ -8,6 +8,10 @@ export interface Profile {
   avatar_url: string | null;
   height: number | null;
   target_weight: number | null;
+  /** Щоденні цілі; null — ціль не задана, кільце на «Сьогодні» лишається доріжкою. */
+  kcal_goal: number | null;
+  steps_goal: number | null;
+  water_goal: number | null;
   theme: ThemeName;
   created_at: string;
 }
@@ -21,7 +25,7 @@ export interface DailyLog {
   protein: number | null;
   fat: number | null;
   carbs: number | null;
-  water: number | null; // 0-8
+  water: number | null; // склянок, 0-20
   steps: number | null;
   sport: string | null;
   care: string | null;
