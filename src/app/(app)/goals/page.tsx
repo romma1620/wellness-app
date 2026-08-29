@@ -1,6 +1,7 @@
 "use client";
 
 import { ForecastCard } from "@/components/ForecastCard";
+import { DailyGoalsCard } from "@/components/goals/DailyGoalsCard";
 import { RewardLadder } from "@/components/goals/RewardLadder";
 import { Icon } from "@/components/icons";
 import { NumberField } from "@/components/inputs";
@@ -195,6 +196,8 @@ export default function GoalsPage() {
           )}
         </div>
       </Card>
+
+      <DailyGoalsCard />
 
       <ForecastCard />
 

@@ -24,6 +24,7 @@ export type IconName =
   | "leaf"
   | "pencil"
   | "plus"
+  | "minus"
   | "x"
   | "activity"
   | "file"
@@ -104,6 +105,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   plus: <path d="M11 5v12M5 11h12" />,
+  minus: <path d="M5 11h12" />,
   x: <path d="M6 6l10 10M16 6L6 16" />,
   activity: <path d="M3 11.5h3l2.5-6 4 11.5 2.5-5.5h4" />,
   file: (

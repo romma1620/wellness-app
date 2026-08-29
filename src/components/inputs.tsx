@@ -67,6 +67,7 @@ export function NumberField({
   placeholder,
   min,
   max,
+  inputMode,
 }: {
   label: ReactNode;
   value: number | null;
@@ -75,13 +76,21 @@ export function NumberField({
   placeholder?: string;
   min?: number;
   max?: number;
+  /** Для цілих полів («numeric») — інакше клавіатура пропонує кому. */
+  inputMode?: "decimal" | "numeric";
 }) {
   const { outOfRange, inputProps } = useDecimalBuffer(value, onChange, { min, max });
 
   return (
     <div>
       <FieldLabel>{label}</FieldLabel>
-      <Input placeholder={placeholder ?? "—"} error={outOfRange} suffix={suffix} {...inputProps} />
+      <Input
+        placeholder={placeholder ?? "—"}
+        error={outOfRange}
+        suffix={suffix}
+        {...inputProps}
+        inputMode={inputMode ?? inputProps.inputMode}
+      />
       {outOfRange && (
         <div className="mt-1 text-[11px] font-semibold text-neg">
           Допустимо {min}–{max}

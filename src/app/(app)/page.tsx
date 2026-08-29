@@ -15,8 +15,10 @@ import { CycleRow } from "@/components/today/CycleRow";
 import { MacroBar } from "@/components/today/MacroBar";
 import { Sparkline } from "@/components/today/Sparkline";
 import { StatTile } from "@/components/today/StatTile";
+import { WaterStepper } from "@/components/today/WaterStepper";
 import { WeekStrip } from "@/components/today/WeekStrip";
 import { CARE_PRESETS } from "@/lib/care";
+import { dailyGoals, goalFraction, goalSub } from "@/lib/goals";
 import {
   applySaved,
   diffDay,
@@ -27,7 +29,7 @@ import {
   type DailyPatch,
 } from "@/lib/daily-log";
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
-import { useRecentWeights } from "@/lib/queries";
+import { useProfile, useRecentWeights } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { cn, fmt, fmtInt, humanDate, isToday, todayISO } from "@/lib/utils";
@@ -35,9 +37,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SAVE_DEBOUNCE_MS = 700;
-/** Ціль кроків для кільця плитки; окремої налаштовуваної цілі в застосунку нема. */
-const STEPS_GOAL = 10_000;
-const WATER_GOAL = 8;
 /** Скільки останніх ваг іде в міні-графік. */
 const SPARK_POINTS = 14;
 
@@ -176,6 +175,12 @@ export default function TodayPage() {
     { min: 0, max: 100000 },
   );
 
+  // Щоденні цілі живуть у профілі; запит спільний із «Цілями» й прогнозом,
+  // тож окремої мережевої роботи плитки не додають. Поки профіль їде, цілі
+  // порожні — кільця показують доріжку, а не хибний прогрес.
+  const profileQ = useProfile();
+  const goals = dailyGoals(profileQ.data);
+
   // Міні-графік ваги: спільна вибірка з прогнозом і «Цілями», лише хвіст.
   const weightsQ = useRecentWeights();
   const sparkValues = useMemo(
@@ -187,8 +192,6 @@ export default function TodayPage() {
   // прокидає ref, тож інпут шукаємо всередині обгортки.
   const kcalWrap = useRef<HTMLDivElement>(null);
   const focusKcal = () => kcalWrap.current?.querySelector("input")?.focus();
-
-  const water = form.water ?? 0;
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -265,22 +268,22 @@ export default function TodayPage() {
             <CycleRow date={date} />
           </Card>
 
-          {/* Плитки: калорії, кроки, вода */}
+          {/* Плитки: калорії, кроки, вода. Цілі — з профілю; не задана ціль
+              лишає кільце доріжкою, але сам показник пишеться далі. */}
           <div className="grid grid-cols-3 gap-[10px]">
-            {/* Цілі калорій у застосунку нема — кільце лише доріжка. */}
             <StatTile
               icon="bolt"
-              frac={0}
+              frac={goalFraction(form.kcal, goals.kcal)}
               value={form.kcal != null ? fmtInt(form.kcal) : "—"}
               label="Калорії"
-              sub={form.kcal != null ? "за день" : "—"}
+              sub={goalSub(goals.kcal)}
               onTap={focusKcal}
               ariaLabel="Калорії — перейти до поля"
             />
             {/* Кроки редагуються прямо в плитці: окремого поля в дизайні нема. */}
             <StatTile
               icon="activity"
-              frac={(form.steps ?? 0) / STEPS_GOAL}
+              frac={goalFraction(form.steps, goals.steps)}
               value={
                 <input
                   {...stepsInput.inputProps}
@@ -294,16 +297,15 @@ export default function TodayPage() {
                 />
               }
               label="Кроки"
-              sub={`ціль ${fmtInt(STEPS_GOAL)}`}
+              sub={goalSub(goals.steps)}
             />
+            {/* Без onTap: степер усередині — це кнопки, а кнопка в кнопці не живе. */}
             <StatTile
               icon="droplet"
-              frac={water / WATER_GOAL}
-              value={`${water} / ${WATER_GOAL}`}
+              frac={goalFraction(form.water, goals.water)}
+              value={<WaterStepper value={form.water} onChange={(v) => set("water", v)} />}
               label="Вода"
-              sub="тап — додати"
-              onTap={() => set("water", (water + 1) % (WATER_GOAL + 1))}
-              ariaLabel={`Вода: ${water} з ${WATER_GOAL} склянок, тап додає склянку`}
+              sub={goalSub(goals.water)}
             />
           </div>
 
