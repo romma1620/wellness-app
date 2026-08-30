@@ -106,12 +106,15 @@ export function NumberField({
 
 // ----------------------- WaterDrops -----------------------
 /**
- * Склянки дня як ряд крапель: налита — залита акцентом, порожня — контур.
- * Тап по n-й ставить n, тап по останній налитій знімає її.
+ * Склянки дня як ряд крапель-емодзі: налита — кольорова 💧, порожня — та сама
+ * крапля, знебарвлена і приглушена. Тап по n-й ставить n, тап по останній
+ * налитій знімає її.
  *
- * Обводки навколо краплі нема — мішень це сама іконка, тож 30px зони тапу
- * тримає обгортка. Краплі діляться шириною картки: на цілі 8 виходить рівно
- * 30px, на більшій — стискаються, а не переносяться на другий рядок.
+ * Обводки навколо краплі нема — мішень це сам гліф, тож 30px зони тапу тримає
+ * обгортка. Краплі діляться шириною картки: на цілі 8 виходить рівно 30px, на
+ * більшій — стискаються, а не переносяться на другий рядок. Емодзі не тягнеться
+ * за боксом, як SVG, тож кегль рахуємо з тієї ж розкладки: ширина ряду це
+ * max-w-app мінус падінги екрана й картки, мінус проміжки між краплями.
  */
 export function WaterDrops({
   value,
@@ -123,6 +126,7 @@ export function WaterDrops({
   onChange: (v: number) => void;
 }) {
   const { slots, filled, over } = waterRow(value, goal);
+  const dropSize = `min(22px, calc((min(480px, 100vw) - ${72 + 6 * (slots - 1)}px) / ${slots} * 0.86))`;
   return (
     <div className="flex items-center justify-between gap-[6px]">
       {Array.from({ length: slots }).map((_, i) => {
@@ -137,15 +141,12 @@ export function WaterDrops({
             onClick={() => onChange(filled === n && over === 0 ? n - 1 : n)}
             className={cn(
               "flex aspect-square max-w-[30px] flex-1 items-center justify-center transition active:scale-90",
-              active ? "text-accent" : "text-muted opacity-45",
+              !active && "opacity-40 grayscale",
             )}
           >
-            <Icon
-              name="droplet"
-              strokeWidth={1.7}
-              fill={active ? "currentColor" : "none"}
-              className="h-[84%] w-[84%]"
-            />
+            <span aria-hidden className="leading-none" style={{ fontSize: dropSize }}>
+              💧
+            </span>
           </button>
         );
       })}
