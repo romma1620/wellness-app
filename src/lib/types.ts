@@ -13,6 +13,8 @@ export interface Profile {
   steps_goal: number | null;
   water_goal: number | null;
   theme: ThemeName;
+  /** Порядок карток на «Сьогодні»; null — юзер його не міняв. Ремонтує `normalizeOrder`. */
+  home_widgets: string[] | null;
   created_at: string;
 }
 

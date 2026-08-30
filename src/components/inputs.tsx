@@ -59,6 +59,9 @@ export function useDecimalBuffer(
   return { text, parsed, outOfRange, inputProps };
 }
 
+/** Те, що повертає `useDecimalBuffer` — щоб буфер можна було передати в картку. */
+export type DecimalBuffer = ReturnType<typeof useDecimalBuffer>;
+
 // ----------------------- NumberField -----------------------
 export function NumberField({
   label,

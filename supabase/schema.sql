@@ -27,6 +27,7 @@ create table if not exists public.profiles (
   steps_goal    integer default 10000,
   water_goal    integer default 8,  -- склянок/день
   theme         theme_name not null default 'peach',
+  home_widgets  text[],             -- порядок карток на «Сьогодні»; null = дефолтний
   created_at    timestamptz not null default now()
 );
 
@@ -36,6 +37,11 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists kcal_goal  integer;
 alter table public.profiles add column if not exists steps_goal integer default 10000;
 alter table public.profiles add column if not exists water_goal integer default 8;
+
+-- Порядок карток на «Сьогодні». Без дефолту: null означає «юзер не міняв
+-- порядок», і клієнт малює дефолтний. Невідомі/відсутні id клієнт ремонтує сам
+-- (src/lib/home-widgets.ts), тож констрейнт на вміст масиву не потрібен.
+alter table public.profiles add column if not exists home_widgets text[];
 
 alter table public.profiles enable row level security;
 

@@ -20,6 +20,7 @@ function profile(patch: Partial<Profile>): Profile {
     steps_goal: null,
     water_goal: null,
     theme: "peach",
+    home_widgets: null,
     created_at: "2026-01-01T00:00:00Z",
     ...patch,
   };

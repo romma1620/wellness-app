@@ -43,7 +43,8 @@ export type IconName =
   | "cycle"
   | "clock"
   | "trash"
-  | "search";
+  | "search"
+  | "grip";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   calendar: (
@@ -181,6 +182,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M14.5 14.5L18.5 18.5" />
     </>
   ),
+  grip: <path d="M5.5 8h11M5.5 14h11" />,
 };
 
 export function Icon({
