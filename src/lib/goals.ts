@@ -52,16 +52,40 @@ export function goalFraction(value: number | null, goal: number | null): number 
   return value / goal;
 }
 
-/** Підпис під плиткою: «ціль 10 000» або запрошення її задати. */
+/** Підпис цілі: «ціль 10 000» або запрошення її задати. */
 export function goalSub(goal: number | null): string {
   return goal === null ? "задай ціль" : `ціль ${fmtInt(goal)}`;
 }
 
+/** Скільки крапель у ряду, коли ціль води не задана. */
+export const WATER_DROPS_DEFAULT = 8;
+
+export interface WaterRow {
+  /** Скільки крапель малювати — рівно стільки, скільки склянок у цілі. */
+  slots: number;
+  /** Скільки з них налиті. */
+  filled: number;
+  /** Випите понад ціль: іде окремим «+N», а не зайвими крапельками. */
+  over: number;
+}
+
 /**
- * Наступне значення води після натискання «−» або «+».
- * Порожній день рахуємо за нуль, у стелю впираємось, нижче нуля не йдемо.
+ * Розкладка ряду крапель під поточне значення й ціль.
+ *
+ * Ціль керує КІЛЬКІСТЮ крапель, а не лише підписом: 8 склянок — вісім
+ * крапель, 10 — десять. Випите понад ціль ряд не подовжує (інакше він
+ * переносився б і стрибала б висота картки) — надлишок іде в `over`.
+ *
+ * `goal` сюди приходить уже нормалізованим із `dailyGoals`, але межі
+ * ставимо й тут: розкладка не має права повернути порожній ряд, навіть
+ * якщо колись у неї передадуть нуль напряму.
  */
-export function stepWater(current: number | null, delta: number): number {
-  const base = current ?? 0;
-  return Math.min(WATER_MAX, Math.max(0, base + delta));
+export function waterRow(value: number | null, goal: number | null): WaterRow {
+  const slots = Math.min(WATER_MAX, Math.max(1, Math.round(goal ?? WATER_DROPS_DEFAULT)));
+  const count = Math.min(WATER_MAX, Math.max(0, value ?? 0));
+  return {
+    slots,
+    filled: Math.min(count, slots),
+    over: Math.max(0, count - slots),
+  };
 }

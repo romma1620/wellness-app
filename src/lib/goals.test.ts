@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { dailyGoals, goalFraction, goalSub, stepWater, WATER_MAX } from "./goals";
+import {
+  dailyGoals,
+  goalFraction,
+  goalSub,
+  WATER_DROPS_DEFAULT,
+  WATER_MAX,
+  waterRow,
+} from "./goals";
 import type { Profile } from "./types";
 
 function profile(patch: Partial<Profile>): Profile {
@@ -63,23 +70,30 @@ describe("goalSub", () => {
   });
 });
 
-describe("stepWater", () => {
-  it("додає і віднімає склянку", () => {
-    expect(stepWater(5, 1)).toBe(6);
-    expect(stepWater(5, -1)).toBe(4);
+describe("waterRow", () => {
+  it("крапель стільки, скільки склянок у цілі", () => {
+    expect(waterRow(6, 8)).toEqual({ slots: 8, filled: 6, over: 0 });
+    expect(waterRow(6, 10)).toEqual({ slots: 10, filled: 6, over: 0 });
   });
 
-  it("порожній день рахується за нуль", () => {
-    expect(stepWater(null, 1)).toBe(1);
-    expect(stepWater(null, -1)).toBe(0);
+  it("без цілі — вісім крапель за замовчуванням", () => {
+    expect(waterRow(3, null)).toEqual({ slots: WATER_DROPS_DEFAULT, filled: 3, over: 0 });
   });
 
-  it("нижче нуля не йде — саме тут ламався старий цикл по колу", () => {
-    expect(stepWater(0, -1)).toBe(0);
+  it("порожній день — жодної налитої", () => {
+    expect(waterRow(null, 8)).toEqual({ slots: 8, filled: 0, over: 0 });
   });
 
-  it("вище стелі не йде, але ціль перевищувати можна", () => {
-    expect(stepWater(WATER_MAX, 1)).toBe(WATER_MAX);
-    expect(stepWater(8, 1)).toBe(9);
+  it("понад ціль ряд не подовжує — надлишок іде в over", () => {
+    expect(waterRow(10, 8)).toEqual({ slots: 8, filled: 8, over: 2 });
+  });
+
+  it("стеля склянок та сама, що в БД", () => {
+    expect(waterRow(999, 8)).toEqual({ slots: 8, filled: 8, over: WATER_MAX - 8 });
+    expect(waterRow(5, 999).slots).toBe(WATER_MAX);
+  });
+
+  it("ряд ніколи не порожній, навіть на нульовій цілі", () => {
+    expect(waterRow(0, 0).slots).toBe(1);
   });
 });

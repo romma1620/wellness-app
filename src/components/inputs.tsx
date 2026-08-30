@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/icons";
 import { Chip, FieldLabel, Input } from "@/components/ui";
+import { waterRow } from "@/lib/goals";
 import { cn, parseNum, splitTags } from "@/lib/utils";
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 
@@ -101,36 +102,51 @@ export function NumberField({
 }
 
 // ----------------------- WaterDrops -----------------------
-/** Вісім склянок як лінійні краплі: заповнені — акцент, порожні — лінія. */
+/**
+ * Склянки дня як ряд крапель: налита — залита акцентом, порожня — контур.
+ * Тап по n-й ставить n, тап по останній налитій знімає її.
+ *
+ * Обводки навколо краплі нема — мішень це сама іконка, тож 30px зони тапу
+ * тримає обгортка. Краплі діляться шириною картки: на цілі 8 виходить рівно
+ * 30px, на більшій — стискаються, а не переносяться на другий рядок.
+ */
 export function WaterDrops({
   value,
+  goal,
   onChange,
 }: {
   value: number | null;
+  goal: number | null;
   onChange: (v: number) => void;
 }) {
-  const count = value ?? 0;
+  const { slots, filled, over } = waterRow(value, goal);
   return (
-    <div className="flex justify-between">
-      {Array.from({ length: 8 }).map((_, i) => {
+    <div className="flex items-center justify-between gap-[6px]">
+      {Array.from({ length: slots }).map((_, i) => {
         const n = i + 1;
-        const active = n <= count;
+        const active = n <= filled;
         return (
           <button
             key={n}
             type="button"
             aria-label={`${n} склянок`}
             aria-pressed={active}
-            onClick={() => onChange(count === n ? n - 1 : n)}
+            onClick={() => onChange(filled === n && over === 0 ? n - 1 : n)}
             className={cn(
-              "flex h-[30px] w-[30px] items-center justify-center rounded-full transition active:scale-90",
-              active ? "bg-primary-light text-accent" : "border border-line text-muted",
+              "flex aspect-square max-w-[30px] flex-1 items-center justify-center transition active:scale-90",
+              active ? "text-accent" : "text-muted opacity-45",
             )}
           >
-            <Icon name="droplet" size={15} strokeWidth={1.7} fill={active ? "currentColor" : "none"} />
+            <Icon
+              name="droplet"
+              strokeWidth={1.7}
+              fill={active ? "currentColor" : "none"}
+              className="h-[84%] w-[84%]"
+            />
           </button>
         );
       })}
+      {over > 0 && <span className="shrink-0 pl-1 text-[12px] font-bold text-accent">+{over}</span>}
     </div>
   );
 }
@@ -237,9 +253,7 @@ export function PresetChips({
   };
 
   // унікальні пресети + вже вибрані кастомні
-  const custom = selected.filter(
-    (s) => !presets.some((p) => p.toLowerCase() === s.toLowerCase()),
-  );
+  const custom = selected.filter((s) => !presets.some((p) => p.toLowerCase() === s.toLowerCase()));
 
   return (
     <div className="flex flex-wrap gap-2">

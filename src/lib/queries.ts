@@ -76,3 +76,33 @@ export function useRecentWeights() {
     },
   });
 }
+
+export interface DatedSteps {
+  date: string;
+  steps: number;
+}
+
+/**
+ * Хвіст кроків для міні-графіка в картці «Кроки» — окремий запит, а не
+ * колонка в `useRecentWeights`: там серверний фільтр викидає дні без ваги,
+ * а кроки в такі дні є, і графік вийшов би діряним.
+ */
+export function useRecentSteps() {
+  const supabase = useMemo(() => createClient(), []);
+  const uid = useUid();
+  const today = todayISO();
+  return useQuery({
+    queryKey: ["diary", uid, "recent-steps", today],
+    queryFn: async (): Promise<DatedSteps[]> => {
+      const { data, error } = await supabase
+        .from("daily_logs")
+        .select("date, steps")
+        .eq("user_id", uid)
+        .gte("date", addDays(today, -RECENT_WEIGHTS_DAYS))
+        .not("steps", "is", null)
+        .order("date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as DatedSteps[];
+    },
+  });
+}

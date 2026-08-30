@@ -6,19 +6,19 @@ import {
   SaveIndicator,
   TagInput,
   useDecimalBuffer,
+  WaterDrops,
   type SaveState,
 } from "@/components/inputs";
 import { Icon } from "@/components/icons";
 import { Card, DateField, ErrorBanner, PageTitle, SectionLabel, Textarea } from "@/components/ui";
 import { DaySkeleton } from "@/components/DaySkeleton";
 import { CycleRow } from "@/components/today/CycleRow";
+import { GoalBadge } from "@/components/today/GoalBadge";
 import { MacroBar } from "@/components/today/MacroBar";
 import { Sparkline } from "@/components/today/Sparkline";
-import { StatTile } from "@/components/today/StatTile";
-import { WaterStepper } from "@/components/today/WaterStepper";
 import { WeekStrip } from "@/components/today/WeekStrip";
 import { CARE_PRESETS } from "@/lib/care";
-import { dailyGoals, goalFraction, goalSub } from "@/lib/goals";
+import { dailyGoals, waterRow } from "@/lib/goals";
 import {
   applySaved,
   diffDay,
@@ -29,10 +29,10 @@ import {
   type DailyPatch,
 } from "@/lib/daily-log";
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
-import { useProfile, useRecentWeights } from "@/lib/queries";
+import { useProfile, useRecentSteps, useRecentWeights } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
-import { cn, fmt, fmtInt, humanDate, isToday, todayISO } from "@/lib/utils";
+import { cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -176,22 +176,28 @@ export default function TodayPage() {
   );
 
   // Щоденні цілі живуть у профілі; запит спільний із «Цілями» й прогнозом,
-  // тож окремої мережевої роботи плитки не додають. Поки профіль їде, цілі
-  // порожні — кільця показують доріжку, а не хибний прогрес.
+  // тож окремої мережевої роботи картки не додають. Поки профіль їде, цілі
+  // порожні — бейдж показує доріжку, а не хибний прогрес.
   const profileQ = useProfile();
   const goals = dailyGoals(profileQ.data);
 
   // Міні-графік ваги: спільна вибірка з прогнозом і «Цілями», лише хвіст.
   const weightsQ = useRecentWeights();
-  const sparkValues = useMemo(
+  const sparkWeights = useMemo(
     () => (weightsQ.data ?? []).slice(-SPARK_POINTS).map((w) => w.weight),
     [weightsQ.data],
   );
 
-  // Тап по плитці ставить курсор у відповідне поле; NumberField не
-  // прокидає ref, тож інпут шукаємо всередині обгортки.
-  const kcalWrap = useRef<HTMLDivElement>(null);
-  const focusKcal = () => kcalWrap.current?.querySelector("input")?.focus();
+  // Те саме для кроків — картка «Кроки» дзеркалить вагу, разом із графіком.
+  const stepsQ = useRecentSteps();
+  const sparkSteps = useMemo(
+    () => (stepsQ.data ?? []).slice(-SPARK_POINTS).map((s) => s.steps),
+    [stepsQ.data],
+  );
+
+  // Ряд крапель і лічильник над ним рахуються з однієї розкладки, щоб
+  // «6 / 8» і кількість налитих крапель не могли розійтися.
+  const water = waterRow(form.water, goals.water);
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -263,71 +269,88 @@ export default function TodayPage() {
                   <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 30–200</div>
                 )}
               </div>
-              <Sparkline values={sparkValues} />
+              <Sparkline values={sparkWeights} />
             </div>
             <CycleRow date={date} />
           </Card>
 
-          {/* Плитки: калорії, кроки, вода. Цілі — з профілю; не задана ціль
-              лишає кільце доріжкою, але сам показник пишеться далі. */}
-          <div className="grid grid-cols-3 gap-[10px]">
-            <StatTile
-              icon="bolt"
-              frac={goalFraction(form.kcal, goals.kcal)}
-              value={form.kcal != null ? fmtInt(form.kcal) : "—"}
-              label="Калорії"
-              sub={goalSub(goals.kcal)}
-              onTap={focusKcal}
-              ariaLabel="Калорії — перейти до поля"
-            />
-            {/* Кроки редагуються прямо в плитці: окремого поля в дизайні нема. */}
-            <StatTile
+          {/* Кроки — та сама картка, що й вага: велике число редагується прямо
+              тут, праворуч у шапці замість тижневої дельти стоїть ціль. */}
+          <Card>
+            <SectionLabel
               icon="activity"
-              frac={goalFraction(form.steps, goals.steps)}
-              value={
-                <input
-                  {...stepsInput.inputProps}
-                  inputMode="numeric"
-                  placeholder="—"
-                  aria-label="Кроки"
-                  className={cn(
-                    "w-full bg-transparent p-0 text-center text-[14.5px] font-semibold outline-none placeholder:text-muted",
-                    stepsInput.outOfRange ? "text-neg" : "text-ink",
-                  )}
-                />
-              }
-              label="Кроки"
-              sub={goalSub(goals.steps)}
-            />
-            {/* Без onTap: степер усередині — це кнопки, а кнопка в кнопці не живе. */}
-            <StatTile
+              className="mb-0"
+              right={<GoalBadge value={form.steps} goal={goals.steps} />}
+            >
+              Кроки
+            </SectionLabel>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <input
+                    {...stepsInput.inputProps}
+                    inputMode="numeric"
+                    placeholder="—"
+                    aria-label="Кроки"
+                    className={cn(
+                      "w-full min-w-0 bg-transparent p-0 text-[44px] font-normal leading-none tracking-[-.01em] outline-none placeholder:text-muted",
+                      stepsInput.outOfRange ? "text-neg" : "text-ink",
+                    )}
+                  />
+                  <span className="shrink-0 text-[14px] font-medium text-muted">кроків</span>
+                </div>
+                {stepsInput.outOfRange && (
+                  <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 0–100 000</div>
+                )}
+              </div>
+              <Sparkline values={sparkSteps} />
+            </div>
+          </Card>
+
+          {/* Вода: тап по n-й краплі ставить n, тап по останній налитій знімає її. */}
+          <Card>
+            <SectionLabel
               icon="droplet"
-              frac={goalFraction(form.water, goals.water)}
-              value={<WaterStepper value={form.water} onChange={(v) => set("water", v)} />}
-              label="Вода"
-              sub={goalSub(goals.water)}
-            />
-          </div>
+              className="mb-[14px]"
+              right={
+                <span
+                  className={cn(
+                    "flex items-center gap-[5px] text-[13px] font-bold",
+                    water.filled >= water.slots ? "text-pos" : "text-accent",
+                  )}
+                >
+                  {water.filled >= water.slots && <Icon name="check" size={12} strokeWidth={2.4} />}
+                  {water.filled + water.over} / {water.slots} склянок
+                </span>
+              }
+            >
+              Вода
+            </SectionLabel>
+            <WaterDrops value={form.water} goal={goals.water} onChange={(v) => set("water", v)} />
+          </Card>
 
           {/* Харчування */}
           <Card>
             <SectionLabel icon="fork">Харчування</SectionLabel>
             <div className="grid grid-cols-2 gap-[10px]">
-              <div ref={kcalWrap}>
-                <NumberField
-                  label="Калорії"
-                  suffix="ккал"
-                  value={form.kcal}
-                  onChange={(v) => set("kcal", v)}
-                />
-              </div>
+              <NumberField
+                label="Калорії"
+                suffix="ккал"
+                value={form.kcal}
+                onChange={(v) => set("kcal", v)}
+              />
               <NumberField
                 label="Білки"
                 suffix="г"
                 value={form.protein}
                 onChange={(v) => set("protein", v)}
               />
-              <NumberField label="Жири" suffix="г" value={form.fat} onChange={(v) => set("fat", v)} />
+              <NumberField
+                label="Жири"
+                suffix="г"
+                value={form.fat}
+                onChange={(v) => set("fat", v)}
+              />
               <NumberField
                 label="Вуглеводи"
                 suffix="г"

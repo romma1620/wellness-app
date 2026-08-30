@@ -32,22 +32,30 @@ export function DaySkeleton() {
         </div>
       </Card>
 
-      {/* Плитки: 14 + кільце 52 + 7 + значення 18 + 7 + підписи 26.5 + 12 = 136.5 */}
-      <div className="grid grid-cols-3 gap-[10px]">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center gap-[7px] rounded-[18px] bg-surface px-2 pb-3 pt-[14px]"
-          >
-            <Skeleton className="h-[52px] w-[52px] rounded-full" />
-            <Skeleton className="h-[18px] w-[48px]" />
-            <div className="flex flex-col items-center gap-[2px]">
-              <Skeleton className="h-[12px] w-[40px]" />
-              <Skeleton className="h-[12.5px] w-[52px]" />
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Кроки: та сама геометрія, що й вага, лише без рядка циклу */}
+      <Card>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-[15px] w-[62px]" />
+          <Skeleton className="h-[22px] w-[112px] rounded-full" />
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <Skeleton className="h-[44px] w-[150px]" />
+          <Skeleton className="h-[40px] w-[110px] rounded-[10px]" />
+        </div>
+      </Card>
+
+      {/* Вода: рядок підпису 15 + 14 + ряд крапель 30 */}
+      <Card>
+        <div className="mb-[14px] flex items-center justify-between">
+          <Skeleton className="h-[15px] w-[52px]" />
+          <Skeleton className="h-[16px] w-[92px]" />
+        </div>
+        <div className="flex justify-between gap-[6px]">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-[30px] w-[30px] rounded-full" />
+          ))}
+        </div>
+      </Card>
 
       {/* Харчування: заголовок 15 + 12, далі сітка 2×2 полів по 66.5
           (підпис 14 + 6 + Input 46.5) з gap 10 = 143 */}
