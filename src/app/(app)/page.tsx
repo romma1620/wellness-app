@@ -1,24 +1,21 @@
 "use client";
 
-import {
-  NumberField,
-  PresetChips,
-  SaveIndicator,
-  TagInput,
-  useDecimalBuffer,
-  WaterDrops,
-  type SaveState,
-} from "@/components/inputs";
+import { SaveIndicator, useDecimalBuffer, type SaveState } from "@/components/inputs";
 import { Icon } from "@/components/icons";
-import { Card, DateField, ErrorBanner, PageTitle, SectionLabel, Textarea } from "@/components/ui";
+import { DateField, ErrorBanner, PageTitle } from "@/components/ui";
 import { DaySkeleton } from "@/components/DaySkeleton";
-import { CycleRow } from "@/components/today/CycleRow";
-import { GoalBadge } from "@/components/today/GoalBadge";
-import { MacroBar } from "@/components/today/MacroBar";
-import { Sparkline } from "@/components/today/Sparkline";
+import { SortableWidget } from "@/components/today/SortableWidget";
+import {
+  ActivityCard,
+  NoteCard,
+  NutritionCard,
+  StepsCard,
+  WaterCard,
+  WeightCard,
+} from "@/components/today/TodayCards";
 import { WeekStrip } from "@/components/today/WeekStrip";
-import { CARE_PRESETS } from "@/lib/care";
-import { dailyGoals, waterRow } from "@/lib/goals";
+import { dailyGoals } from "@/lib/goals";
+import { normalizeOrder, reorder, sameOrder, type WidgetId } from "@/lib/home-widgets";
 import {
   applySaved,
   diffDay,
@@ -31,14 +28,43 @@ import {
 import { loadDayWindow, saveDayPatch } from "@/lib/daily-log-db";
 import { useProfile, useRecentSteps, useRecentWeights } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
+import type { Profile } from "@/lib/types";
 import { useUid } from "@/components/UserProvider";
-import { cn, fmt, humanDate, isToday, todayISO } from "@/lib/utils";
+import { humanDate, isToday, todayISO } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 const SAVE_DEBOUNCE_MS = 700;
 /** Скільки останніх ваг іде в міні-графік. */
 const SPARK_POINTS = 14;
+
+/** Назви карток для скрінрідера — і в ручці, і в оголошеннях перетягування. */
+const WIDGET_TITLES: Record<WidgetId, string> = {
+  weight: "Вага",
+  steps: "Кроки",
+  water: "Вода",
+  nutrition: "Харчування",
+  activity: "Спорт і догляд",
+  note: "Нотатка дня",
+};
+
+const widgetTitle = (id: string | number) => WIDGET_TITLES[id as WidgetId] ?? String(id);
 
 /**
  * Форма зберігається разом із датою, якій вона належить: збереження бере дату
@@ -58,6 +84,8 @@ export default function TodayPage() {
   const [date, setDate] = useState(todayISO());
   const [day, setDay] = useState<DayState | null>(null);
   const [save, setSave] = useState<SaveState>("idle");
+  const [editing, setEditing] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<{ date: string; patch: DailyPatch } | null>(null);
@@ -119,7 +147,6 @@ export default function TodayPage() {
     });
   }, [dayQ.data, date]);
 
-  const loading = dayQ.isPending;
   const baselineWeight = dayQ.data?.baselineWeight ?? null;
   const loadError = dayQ.isError ? "Не вдалося завантажити день. Перевір зʼєднання." : null;
 
@@ -175,11 +202,14 @@ export default function TodayPage() {
     { min: 0, max: 100000 },
   );
 
-  // Щоденні цілі живуть у профілі; запит спільний із «Цілями» й прогнозом,
-  // тож окремої мережевої роботи картки не додають. Поки профіль їде, цілі
-  // порожні — бейдж показує доріжку, а не хибний прогрес.
+  // Щоденні цілі й порядок карток живуть у профілі; запит спільний із
+  // «Цілями» та прогнозом, тож окремої мережевої роботи екран не додає.
   const profileQ = useProfile();
   const goals = dailyGoals(profileQ.data);
+
+  // Скелетон тримається, поки їде профіль: порядок карток теж лежить у ньому,
+  // і без цього екран перетасувався б у юзера на очах через мить після появи.
+  const loading = dayQ.isPending || profileQ.isPending;
 
   // Міні-графік ваги: спільна вибірка з прогнозом і «Цілями», лише хвіст.
   const weightsQ = useRecentWeights();
@@ -195,208 +225,147 @@ export default function TodayPage() {
     [stepsQ.data],
   );
 
-  // Ряд крапель і лічильник над ним рахуються з однієї розкладки, щоб
-  // «6 / 8» і кількість налитих крапель не могли розійтися.
-  const water = waterRow(form.water, goals.water);
+  // ---------------------- Порядок карток ----------------------
+
+  const savedOrder = profileQ.data?.home_widgets;
+  const order = useMemo(() => normalizeOrder(savedOrder), [savedOrder]);
+
+  // Профіль — єдине джерело правди про порядок, тож перетягування пише прямо
+  // в його кеш і одразу відправляє рядок у БД. Помилка мережі повертає
+  // попередній порядок: краще картка стрибне назад, ніж екран показуватиме
+  // те, чого в базі нема.
+  const persistOrder = useCallback(
+    async (next: WidgetId[]) => {
+      const key = ["profile", uid];
+      const prev = queryClient.getQueryData<Profile | null>(key);
+      queryClient.setQueryData<Profile | null>(key, (p) => (p ? { ...p, home_widgets: next } : p));
+      setOrderError(null);
+      const { error } = await supabase.from("profiles").update({ home_widgets: next }).eq("id", uid);
+      if (error) {
+        queryClient.setQueryData(key, prev);
+        setOrderError("Не вдалося зберегти порядок карток. Перевір зʼєднання.");
+      }
+    },
+    [queryClient, supabase, uid],
+  );
+
+  const sensors = useSensors(
+    // 4 px відступу: тап по ручці не має рахуватися перетягуванням.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = useCallback(
+    ({ active, over }: DragEndEvent) => {
+      if (!over) return;
+      const next = reorder(order, String(active.id), String(over.id));
+      if (sameOrder(next, order)) return;
+      void persistOrder(next);
+    },
+    [order, persistOrder],
+  );
+
+  const announcements = useMemo<Announcements>(
+    () => ({
+      onDragStart: ({ active }) => `Взято картку «${widgetTitle(active.id)}».`,
+      onDragOver: ({ active, over }) =>
+        over ? `Картка «${widgetTitle(active.id)}» над «${widgetTitle(over.id)}».` : undefined,
+      onDragEnd: ({ active, over }) =>
+        over
+          ? `Картку «${widgetTitle(active.id)}» поставлено на місце «${widgetTitle(over.id)}».`
+          : `Картку «${widgetTitle(active.id)}» повернуто на місце.`,
+      onDragCancel: ({ active }) => `Переміщення картки «${widgetTitle(active.id)}» скасовано.`,
+    }),
+    [],
+  );
+
+  const widgets: Record<WidgetId, ReactNode> = {
+    weight: (
+      <WeightCard input={weightInput} weekDelta={weekDelta} spark={sparkWeights} date={date} />
+    ),
+    steps: <StepsCard input={stepsInput} value={form.steps} goal={goals.steps} spark={sparkSteps} />,
+    water: <WaterCard value={form.water} goal={goals.water} onChange={(v) => set("water", v)} />,
+    nutrition: <NutritionCard form={form} set={set} />,
+    activity: <ActivityCard form={form} set={set} />,
+    note: <NoteCard value={form.comment} onChange={(v) => set("comment", v)} />,
+  };
+
+  // Порядок нема куди зберігати, поки профіль не приїхав — кнопку не даємо.
+  const canEdit = !loading && !!profileQ.data;
 
   return (
     <div className="flex flex-col gap-[14px]">
       <PageTitle
-        subtitle={humanDate(date)}
+        subtitle={editing ? "Перетягни картки за ручку" : humanDate(date)}
         right={
-          <>
-            <SaveIndicator state={dirty ? "saving" : save} />
-            <DateField
-              value={date}
-              onChange={setDate}
-              max={todayISO()}
-              label="Обрати дату"
-              className="!w-auto shrink-0"
+          editing ? (
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="flex h-[34px] items-center gap-[6px] rounded-full bg-accent px-[14px] text-[13px] font-semibold text-on-accent transition active:scale-95"
             >
-              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95">
-                <Icon name="calendar" size={15} strokeWidth={1.7} />
-              </span>
-            </DateField>
-          </>
+              <Icon name="check" size={13} strokeWidth={2.2} />
+              Готово
+            </button>
+          ) : (
+            <>
+              <SaveIndicator state={dirty ? "saving" : save} />
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  aria-label="Змінити порядок карток"
+                  className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95"
+                >
+                  <Icon name="grid" size={15} strokeWidth={1.7} />
+                </button>
+              )}
+              <DateField
+                value={date}
+                onChange={setDate}
+                max={todayISO()}
+                label="Обрати дату"
+                className="!w-auto shrink-0"
+              >
+                <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95">
+                  <Icon name="calendar" size={15} strokeWidth={1.7} />
+                </span>
+              </DateField>
+            </>
+          )
         }
       >
-        {isToday(date) ? "Сьогодні" : "День"}
+        {editing ? "Порядок" : isToday(date) ? "Сьогодні" : "День"}
       </PageTitle>
 
-      <WeekStrip date={date} onSelect={setDate} />
+      {!editing && <WeekStrip date={date} onSelect={setDate} />}
 
       {loadError && <ErrorBanner>{loadError}</ErrorBanner>}
+      {orderError && <ErrorBanner>{orderError}</ErrorBanner>}
 
       {loading ? (
         <DaySkeleton />
       ) : (
-        <>
-          {/* Вага */}
-          <Card>
-            <SectionLabel
-              icon="scale"
-              className="mb-0"
-              right={
-                weekDelta != null && Math.abs(weekDelta) >= 0.05 ? (
-                  <span
-                    className={cn(
-                      "flex items-center gap-1 rounded-full px-[10px] py-1 text-[11.5px] font-semibold",
-                      weekDelta < 0
-                        ? "bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] text-pos"
-                        : "bg-[color:color-mix(in_oklab,var(--warn)_14%,transparent)] text-warn",
-                    )}
-                  >
-                    <Icon name={weekDelta < 0 ? "arrowDown" : "arrowUp"} size={11} strokeWidth={2} />
-                    {fmt(Math.abs(weekDelta), 1)} кг за тиждень
-                  </span>
-                ) : undefined
-              }
-            >
-              Вага
-            </SectionLabel>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <input
-                    {...weightInput.inputProps}
-                    placeholder="—"
-                    aria-label="Вага, кг"
-                    className="w-full min-w-0 bg-transparent p-0 text-[44px] font-normal leading-none tracking-[-.01em] text-ink outline-none placeholder:text-muted"
-                  />
-                  <span className="shrink-0 text-[14px] font-medium text-muted">кг</span>
-                </div>
-                {weightInput.outOfRange && (
-                  <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 30–200</div>
-                )}
-              </div>
-              <Sparkline values={sparkWeights} />
+        <DndContext
+          // Явний id: без нього dnd-kit нумерує службові aria-describedby
+          // модульним лічильником, і SSR-розмітка розходиться з клієнтською.
+          id="today-widgets"
+          sensors={sensors}
+          accessibility={{ announcements }}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={order} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-[14px]">
+              {order.map((id) => (
+                <SortableWidget key={id} id={id} title={WIDGET_TITLES[id]} editing={editing}>
+                  {widgets[id]}
+                </SortableWidget>
+              ))}
             </div>
-            <CycleRow date={date} />
-          </Card>
-
-          {/* Кроки — та сама картка, що й вага: велике число редагується прямо
-              тут, праворуч у шапці замість тижневої дельти стоїть ціль. */}
-          <Card>
-            <SectionLabel
-              icon="activity"
-              className="mb-0"
-              right={<GoalBadge value={form.steps} goal={goals.steps} />}
-            >
-              Кроки
-            </SectionLabel>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <input
-                    {...stepsInput.inputProps}
-                    inputMode="numeric"
-                    placeholder="—"
-                    aria-label="Кроки"
-                    className={cn(
-                      "w-full min-w-0 bg-transparent p-0 text-[44px] font-normal leading-none tracking-[-.01em] outline-none placeholder:text-muted",
-                      stepsInput.outOfRange ? "text-neg" : "text-ink",
-                    )}
-                  />
-                  <span className="shrink-0 text-[14px] font-medium text-muted">кроків</span>
-                </div>
-                {stepsInput.outOfRange && (
-                  <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 0–100 000</div>
-                )}
-              </div>
-              <Sparkline values={sparkSteps} />
-            </div>
-          </Card>
-
-          {/* Вода: тап по n-й краплі ставить n, тап по останній налитій знімає її. */}
-          <Card>
-            <SectionLabel
-              icon="droplet"
-              className="mb-[14px]"
-              right={
-                <span
-                  className={cn(
-                    "flex items-center gap-[5px] text-[13px] font-bold",
-                    water.filled >= water.slots ? "text-pos" : "text-accent",
-                  )}
-                >
-                  {water.filled >= water.slots && <Icon name="check" size={12} strokeWidth={2.4} />}
-                  {water.filled + water.over} / {water.slots} склянок
-                </span>
-              }
-            >
-              Вода
-            </SectionLabel>
-            <WaterDrops value={form.water} goal={goals.water} onChange={(v) => set("water", v)} />
-          </Card>
-
-          {/* Харчування */}
-          <Card>
-            <SectionLabel icon="fork">Харчування</SectionLabel>
-            <div className="grid grid-cols-2 gap-[10px]">
-              <NumberField
-                label="Калорії"
-                suffix="ккал"
-                value={form.kcal}
-                onChange={(v) => set("kcal", v)}
-              />
-              <NumberField
-                label="Білки"
-                suffix="г"
-                value={form.protein}
-                onChange={(v) => set("protein", v)}
-              />
-              <NumberField
-                label="Жири"
-                suffix="г"
-                value={form.fat}
-                onChange={(v) => set("fat", v)}
-              />
-              <NumberField
-                label="Вуглеводи"
-                suffix="г"
-                value={form.carbs}
-                onChange={(v) => set("carbs", v)}
-              />
-            </div>
-            <MacroBar protein={form.protein} fat={form.fat} carbs={form.carbs} />
-          </Card>
-
-          {/* Спорт + догляд */}
-          <Card className="flex flex-col gap-[14px]">
-            <div>
-              <SectionLabel icon="dumbbell" className="mb-[10px]">
-                Спорт
-              </SectionLabel>
-              <TagInput
-                value={form.sport}
-                onChange={(v) => set("sport", v)}
-                placeholder="зал, пілатес…"
-              />
-            </div>
-            <div className="border-t border-line pt-[14px]">
-              <SectionLabel icon="leaf" className="mb-[10px]">
-                Догляд за шкірою
-              </SectionLabel>
-              <PresetChips
-                presets={CARE_PRESETS}
-                value={form.care}
-                onChange={(v) => set("care", v)}
-                addLabel="Своє"
-              />
-            </div>
-          </Card>
-
-          {/* Нотатка */}
-          <Card>
-            <SectionLabel icon="pencil">Нотатка дня</SectionLabel>
-            <Textarea
-              rows={3}
-              placeholder="Як минув день, самопочуття, настрій…"
-              value={form.comment}
-              onChange={(e) => set("comment", e.target.value)}
-            />
-          </Card>
-        </>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
