@@ -155,7 +155,7 @@ function CompareCard({
   const diff = current != null && previous != null ? current - previous : null;
   const good = diff == null ? null : better === "up" ? diff >= 0 : diff <= 0;
   return (
-    <div className="rounded-[13px] border border-line bg-field p-[13px]">
+    <div className="rounded-[13px] bg-field p-[13px]">
       <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">{title}</div>
       <div className="mt-[6px] flex items-baseline gap-[5px]">
         <span className="text-[22px] font-normal">{f(current)}</span>

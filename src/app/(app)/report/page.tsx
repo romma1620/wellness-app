@@ -267,7 +267,7 @@ function HabitStat({
   label: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-[6px] rounded-[12px] border border-line bg-field px-2 py-3 text-center">
+    <div className="flex flex-col items-center gap-[6px] rounded-[12px] bg-field px-2 py-3 text-center">
       <span className="flex text-accent">
         <Icon name={icon} size={15} strokeWidth={1.7} />
       </span>
