@@ -18,7 +18,7 @@ export function UnfinishedWorkoutCard({
 }) {
   return (
     // не Card: «Відкинути» йде окремим рядком впритул до країв, а Card має відступ
-    <div className="overflow-hidden rounded-xl2 border border-line bg-surface">
+    <div className="overflow-hidden rounded-xl2 bg-surface">
       <Link
         href="/workouts/new"
         className="flex items-center gap-3 px-[18px] py-[13px] text-ink transition active:bg-field"

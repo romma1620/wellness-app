@@ -91,7 +91,7 @@ function forecastText(p: Prediction, today: string): string {
 
 function Tile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex-1 rounded-[12px] border border-line bg-field p-[10px] text-center">
+    <div className="flex-1 rounded-[12px] bg-field p-[10px] text-center">
       <div className="text-[14px] font-semibold leading-[1.25] text-ink">{value}</div>
       <div className="mt-[2px] text-[10px] font-medium uppercase tracking-[.05em] text-muted">
         {label}

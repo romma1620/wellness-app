@@ -177,7 +177,7 @@ export default function ActivityPage() {
           </div>
 
           {selected && (
-            <div className="mt-3 rounded-[12px] border border-line bg-field px-3 py-2 text-[12.5px] font-semibold text-ink">
+            <div className="mt-3 rounded-[12px] bg-field px-3 py-2 text-[12.5px] font-semibold text-ink">
               {humanDate(selected)}
               <span className="ml-1.5 font-normal text-muted">{detailText(selected)}</span>
             </div>

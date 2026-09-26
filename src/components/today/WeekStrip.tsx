@@ -47,12 +47,12 @@ export function WeekStrip({ date, onSelect }: { date: string; onSelect: (iso: st
             aria-label={humanDate(d)}
             aria-pressed={selected}
             className={cn(
-              "flex flex-1 flex-col items-center gap-[2px] rounded-[13px] border pb-[7px] pt-2 transition active:scale-95 disabled:active:scale-100",
+              "flex flex-1 flex-col items-center gap-[2px] rounded-[13px] pb-2 pt-[9px] transition active:scale-95 disabled:active:scale-100",
               selected
-                ? "border-accent bg-accent text-on-accent"
+                ? "bg-accent text-on-accent"
                 : future
-                  ? "border-transparent bg-field text-muted opacity-55"
-                  : "border-line bg-surface text-ink",
+                  ? "bg-field text-muted opacity-55"
+                  : "bg-surface text-ink",
             )}
           >
             <span className="text-[10px] font-medium uppercase tracking-[.05em] opacity-75">
