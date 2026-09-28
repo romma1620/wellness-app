@@ -218,6 +218,11 @@ create table if not exists public.routines (
   created_at timestamptz not null default now()
 );
 
+-- Шаблон, за яким уже є сесії, не видаляється, а архівується: інакше
+-- `workouts.routine_id` обнулився б (on delete set null) і статистика
+-- «займаюсь за цим шаблоном з …» зникла б разом із ним.
+alter table public.routines add column if not exists archived_at timestamptz;
+
 alter table public.routines enable row level security;
 
 drop policy if exists "routines_all_own" on public.routines;
@@ -368,6 +373,35 @@ as $$
     and (p_exclude_workout is null or w.id <> p_exclude_workout)
   order by s.exercise_id, s.weight desc, s.reps desc, w.date desc;
 $$;
+
+-- Підсумок по кожному шаблону, за яким є хоча б одна сесія, — разом з
+-- архівними. «Почав займатися» не зберігається окремо, а виводиться тут як
+-- дата першої сесії: немає другої копії правди, що розійшлася б із сесіями.
+create or replace function public.routine_stats()
+returns table (
+  routine_id  uuid,
+  name        text,
+  archived    boolean,
+  first_date  date,
+  last_date   date,
+  sessions    integer
+)
+language sql
+stable
+security invoker
+as $$
+  select r.id, r.name, r.archived_at is not null,
+         min(w.date), max(w.date), count(*)::integer
+  from public.routines r
+  join public.workouts w on w.routine_id = r.id
+  where r.user_id = auth.uid()
+  group by r.id, r.name, r.archived_at
+  order by max(w.date) desc;
+$$;
+
+-- Під routine_stats() і вибірку сесій одного шаблону на екрані статистики.
+create index if not exists workouts_routine_idx
+  on public.workouts (routine_id);
 
 -- Порядок першої появи кожного тега догляду за всю історію.
 -- Живить стабільні кольори тегів в аналітиці: раніше клієнт тягнув усі рядки
