@@ -87,6 +87,7 @@ export interface Routine {
   user_id: string;
   name: string;
   created_at: string;
+  archived_at: string | null; // не null — шаблон «видалено», але його сесії лишились
 }
 
 export interface RoutineExercise {

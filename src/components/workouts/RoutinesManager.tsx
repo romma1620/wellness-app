@@ -17,18 +17,21 @@ import {
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
+import { durationLabel, isActiveRoutine, spanLabel, type RoutineStat } from "@/lib/routine-stats";
 import type { Exercise, MuscleGroup, Routine } from "@/lib/types";
 import {
   deleteRoutine,
   loadExercises,
   loadRoutineExercises,
+  loadRoutineStats,
   loadRoutines,
   resolveExerciseIds,
   saveRoutine,
 } from "@/lib/workouts-db";
-import { cn, plural } from "@/lib/utils";
+import { cn, plural, todayISO } from "@/lib/utils";
 import type { DraftExercise } from "@/lib/workouts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 interface Row {
@@ -62,16 +65,30 @@ export function RoutinesManager() {
   const dataQ = useQuery({
     queryKey: ["workouts", uid, "routines"],
     queryFn: async () => {
-      const [rt, ex] = await Promise.all([loadRoutines(supabase, uid), loadExercises(supabase, uid)]);
+      const [rt, ex, st] = await Promise.all([
+        loadRoutines(supabase, uid),
+        loadExercises(supabase, uid),
+        loadRoutineStats(supabase),
+      ]);
       const entries = await Promise.all(
         rt.map(async (r) => [r.id, (await loadRoutineExercises(supabase, r.id)).length] as const),
       );
-      return { routines: rt, exercises: ex, counts: Object.fromEntries(entries) };
+      return {
+        routines: rt,
+        exercises: ex,
+        counts: Object.fromEntries(entries),
+        stats: new Map<string, RoutineStat>(st.map((s) => [s.routineId, s])),
+        archived: st.filter((s) => s.archived),
+      };
     },
   });
   const routines = dataQ.data?.routines ?? [];
   const exercises = dataQ.data?.exercises ?? [];
   const counts = dataQ.data?.counts ?? {};
+  const stats = dataQ.data?.stats;
+  const archived = dataQ.data?.archived ?? [];
+  const today = todayISO();
+  const editorStat = editor?.id ? stats?.get(editor.id) : undefined;
   const loading = dataQ.isPending;
   const error = actionError ?? (dataQ.isError ? "Не вдалося завантажити шаблони." : null);
 
@@ -95,6 +112,18 @@ export function RoutinesManager() {
         };
       }),
     });
+  }
+
+  /**
+   * Нова програма зазвичай — видозмінена стара («Ноги 2» з «Ноги»). Копія, а
+   * не правка на місці: склад шаблону з сесіями краще не міняти заднім числом,
+   * інакше його статистика описуватиме вже не ті вправи.
+   */
+  function duplicate() {
+    setEditor((e) =>
+      e ? { id: null, name: `${e.name.trim()} (копія)`, rows: e.rows.map((r) => ({ ...r, key: rowKey() })) } : e,
+    );
+    setActionError(null);
   }
 
   // Чіпи групи — лише для справді нової назви: наявну вправу збереження
@@ -188,7 +217,25 @@ export function RoutinesManager() {
 
       {editor && (
         <Card>
-          <SectionLabel icon="grid">{editor.id ? "Редагувати шаблон" : "Новий шаблон"}</SectionLabel>
+          <SectionLabel
+            icon="grid"
+            right={
+              editorStat ? (
+                <Link href={`/workouts/routines/${editor.id}`} className="text-[12px] font-semibold text-accent">
+                  Статистика
+                </Link>
+              ) : undefined
+            }
+          >
+            {editor.id ? "Редагувати шаблон" : "Новий шаблон"}
+          </SectionLabel>
+          {editorStat && (
+            <div className="mb-3 rounded-[13px] bg-field px-[13px] py-[11px] text-[12px] font-medium leading-[1.5] text-muted">
+              За цим шаблоном уже {editorStat.sessions}{" "}
+              {plural(editorStat.sessions, "сесія", "сесії", "сесій")} {spanLabel(editorStat, today)}. Зміна
+              складу вплине на його статистику — для нової програми краще дублюй шаблон.
+            </div>
+          )}
           <Input
             placeholder="Назва (напр., Ноги)"
             value={editor.name}
@@ -259,10 +306,21 @@ export function RoutinesManager() {
             <Button type="button" variant="outline" onClick={() => { setEditor(null); setActionError(null); }}>Скасувати</Button>
           </div>
           {editor.id && (
+            <Button type="button" variant="ghost" className="mt-3" onClick={duplicate}>
+              <Icon name="plus" size={14} strokeWidth={1.8} />
+              Дублювати
+            </Button>
+          )}
+          {editor.id && (
             <Button type="button" variant="danger" className="mt-3" onClick={() => remove(editor.id!)}>
               <Icon name="trash" size={14} strokeWidth={1.8} />
               Видалити шаблон
             </Button>
+          )}
+          {editorStat && (
+            <div className="mt-2 text-center text-[11.5px] font-medium text-muted">
+              Сесії й статистика шаблону збережуться в архіві.
+            </div>
           )}
         </Card>
       )}
@@ -273,29 +331,75 @@ export function RoutinesManager() {
 
       {routines.length > 0 && (
         <div className="overflow-hidden rounded-xl2 bg-surface">
-          {routines.map((r, i) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => openEditor(r)}
-              className={cn(
-                "flex w-full items-center gap-3 px-[18px] py-[13px] text-left transition active:bg-field",
-                i > 0 && "border-t border-line",
-              )}
+          {routines.map((r, i) => {
+            const st = stats?.get(r.id);
+            const active = st ? isActiveRoutine(st, today) : false;
+            return (
+              <div key={r.id} className={cn("flex items-center", i > 0 && "border-t border-line")}>
+                <button
+                  type="button"
+                  onClick={() => openEditor(r)}
+                  className="flex min-w-0 flex-1 items-center gap-3 py-[13px] pl-[18px] pr-2 text-left transition active:bg-field"
+                >
+                  <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
+                    <Icon name="dumbbell" size={17} strokeWidth={1.7} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-semibold text-ink">{r.name}</span>
+                    <span className="mt-[2px] block truncate text-[11.5px] font-normal text-muted">
+                      {counts[r.id] ?? 0} {plural(counts[r.id] ?? 0, "вправа", "вправи", "вправ")}
+                      {st && (
+                        <>
+                          {" · "}
+                          <span className={cn(active && "font-medium text-accent")}>
+                            {active ? `активний ${spanLabel(st, today)}` : spanLabel(st, today)}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                </button>
+                {st ? (
+                  <Link
+                    href={`/workouts/routines/${r.id}`}
+                    aria-label={`Статистика: ${r.name}`}
+                    className="mr-[10px] flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] text-accent transition active:bg-field"
+                  >
+                    <Icon name="bars" size={17} strokeWidth={1.8} />
+                  </Link>
+                ) : (
+                  <span aria-hidden className="mr-[18px] shrink-0 text-muted">
+                    <Icon name="chevronRight" size={16} strokeWidth={1.8} />
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {archived.length > 0 && !editor && (
+        <div className="overflow-hidden rounded-xl2 bg-surface">
+          <div className="px-[18px] pb-[10px] pt-4 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+            Архів
+          </div>
+          {archived.map((st) => (
+            <Link
+              key={st.routineId}
+              href={`/workouts/routines/${st.routineId}`}
+              className="flex items-center gap-3 border-t border-line px-[18px] py-3 text-ink transition active:bg-field"
             >
-              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
-                <Icon name="dumbbell" size={17} strokeWidth={1.7} />
-              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13.5px] font-semibold text-ink">{r.name}</span>
-                <span className="mt-[2px] block text-[11.5px] font-normal text-muted">
-                  {counts[r.id] ?? 0} {plural(counts[r.id] ?? 0, "вправа", "вправи", "вправ")}
+                <span className="block truncate text-[13.5px] font-semibold">{st.name}</span>
+                <span className="mt-[2px] block truncate text-[11.5px] font-normal text-muted">
+                  {spanLabel(st, today)} · {durationLabel(st.firstDate, st.lastDate)} · {st.sessions}{" "}
+                  {plural(st.sessions, "сесія", "сесії", "сесій")}
                 </span>
               </span>
               <span aria-hidden className="shrink-0 text-muted">
                 <Icon name="chevronRight" size={16} strokeWidth={1.8} />
               </span>
-            </button>
+            </Link>
           ))}
         </div>
       )}

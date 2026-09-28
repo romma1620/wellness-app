@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RoutineStat } from "@/lib/routine-stats";
 import type { Exercise, MuscleGroup, Routine, RoutineExercise } from "@/lib/types";
 import {
   exerciseCount,
@@ -7,6 +8,7 @@ import {
   type DraftWorkout,
   type ExerciseMax,
   type ExerciseSet,
+  type LoadedWorkout,
   type MonthTotal,
   type UsedExercise,
   type WorkoutListItem,
@@ -24,14 +26,76 @@ export async function loadExercises(sb: SB, uid: string): Promise<Exercise[]> {
   return (data ?? []) as Exercise[];
 }
 
+/** Шаблони для вибору й редагування — без архівних. */
 export async function loadRoutines(sb: SB, uid: string): Promise<Routine[]> {
   const { data, error } = await sb
     .from("routines")
     .select("*")
     .eq("user_id", uid)
+    .is("archived_at", null)
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as Routine[];
+}
+
+/** Один шаблон, зокрема архівний: статистика архівного шаблону лишається доступною. */
+export async function loadRoutine(sb: SB, uid: string, routineId: string): Promise<Routine | null> {
+  const { data, error } = await sb
+    .from("routines")
+    .select("*")
+    .eq("user_id", uid)
+    .eq("id", routineId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as Routine | null;
+}
+
+/** Підсумки всіх шаблонів, за якими є сесії, — разом з архівними. */
+export async function loadRoutineStats(sb: SB): Promise<RoutineStat[]> {
+  const { data, error } = await sb.rpc("routine_stats");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    routineId: r.routine_id as string,
+    name: r.name as string,
+    archived: Boolean(r.archived),
+    firstDate: r.first_date as string,
+    lastDate: r.last_date as string,
+    sessions: Number(r.sessions),
+  }));
+}
+
+/**
+ * Усі сесії одного шаблону з підходами — джерело екрана статистики шаблону.
+ * Рядків верхнього рівня тут стільки, скільки сесій (десятки, не тисячі),
+ * тож ліміт PostgREST на рядки не загрожує.
+ */
+export async function loadRoutineWorkouts(
+  sb: SB,
+  uid: string,
+  routineId: string,
+): Promise<LoadedWorkout[]> {
+  const { data, error } = await sb
+    .from("workouts")
+    .select("id, date, name, routine_id, workout_sets(exercise_id, set_number, weight, reps)")
+    .eq("user_id", uid)
+    .eq("routine_id", routineId)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((w: any) => ({
+    id: w.id as string,
+    date: w.date as string,
+    name: (w.name ?? null) as string | null,
+    routine_id: w.routine_id as string,
+    // порядок підходів — за set_number, як у loadWorkoutDraft: від нього
+    // залежить «перша поява» вправи, а отже й порядок рядків прогресу
+    sets: [...(w.workout_sets ?? [])]
+      .sort((a: any, b: any) => a.set_number - b.set_number)
+      .map((s: any) => ({
+        exercise_id: s.exercise_id as string,
+        weight: s.weight == null ? null : Number(s.weight),
+        reps: Number(s.reps),
+      })),
+  }));
 }
 
 export async function loadRoutineExercises(sb: SB, routineId: string): Promise<RoutineExercise[]> {
@@ -351,9 +415,27 @@ export async function saveRoutine(
   return id;
 }
 
-export async function deleteRoutine(sb: SB, routineId: string): Promise<void> {
+/**
+ * Шаблон без сесій видаляється, а з сесіями — архівується: справжнє видалення
+ * обнулило б `workouts.routine_id` і стерло б статистику шаблону.
+ */
+export async function deleteRoutine(sb: SB, routineId: string): Promise<"deleted" | "archived"> {
+  const { count, error: cErr } = await sb
+    .from("workouts")
+    .select("id", { count: "exact", head: true })
+    .eq("routine_id", routineId);
+  if (cErr) throw cErr;
+  if ((count ?? 0) > 0) {
+    const { error } = await sb
+      .from("routines")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", routineId);
+    if (error) throw error;
+    return "archived";
+  }
   const { error } = await sb.from("routines").delete().eq("id", routineId);
   if (error) throw error;
+  return "deleted";
 }
 
 export async function deleteWorkout(sb: SB, workoutId: string): Promise<void> {

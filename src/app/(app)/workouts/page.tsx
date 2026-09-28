@@ -2,17 +2,20 @@
 
 import { Icon } from "@/components/icons";
 import { Button, EmptyState, ErrorBanner, PageTitle, Pill } from "@/components/ui";
+import { ActiveRoutines } from "@/components/workouts/ActiveRoutines";
 import { UnfinishedWorkoutCard } from "@/components/workouts/UnfinishedWorkoutCard";
 import { WorkoutList } from "@/components/workouts/WorkoutList";
 import { WorkoutProgress } from "@/components/workouts/WorkoutProgress";
 import { WorkoutsSkeleton } from "@/components/workouts/WorkoutsSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
+import { todayISO } from "@/lib/utils";
 import { clearDraft, readDraft, type StoredDraft } from "@/lib/workout-draft";
 import { pickMonthPage, remainingSessions, type WorkoutListItem } from "@/lib/workouts";
 import {
   loadExerciseSets,
   loadMonthTotals,
+  loadRoutineStats,
   loadUsedExercises,
   loadWorkoutList,
 } from "@/lib/workouts-db";
@@ -42,13 +45,14 @@ export default function WorkoutsPage() {
   const bundleQ = useQuery({
     queryKey: ["workouts", uid, "bundle"],
     queryFn: async () => {
-      const [ts, ex] = await Promise.all([
+      const [ts, ex, rs] = await Promise.all([
         loadMonthTotals(supabase),
         loadUsedExercises(supabase),
+        loadRoutineStats(supabase),
       ]);
       const page = pickMonthPage(ts, 0);
       const first = page ? await loadWorkoutList(supabase, uid, page.from, page.to) : [];
-      return { totals: ts, exercises: ex, first, months: page?.months ?? 0 };
+      return { totals: ts, exercises: ex, routineStats: rs, first, months: page?.months ?? 0 };
     },
   });
 
@@ -56,6 +60,7 @@ export default function WorkoutsPage() {
   const error = bundleQ.isError ? "Не вдалося завантажити тренування." : null;
   const totals = bundleQ.data?.totals ?? [];
   const exercises = bundleQ.data?.exercises ?? [];
+  const routineStats = bundleQ.data?.routineStats ?? [];
   const extraValid = extra.base !== null && extra.base === bundleQ.data;
   const items = [...(bundleQ.data?.first ?? []), ...(extraValid ? extra.items : [])];
   const loadedMonths = (bundleQ.data?.months ?? 0) + (extraValid ? extra.months : 0);
@@ -139,6 +144,8 @@ export default function WorkoutsPage() {
         />
       ) : (
         <>
+          <ActiveRoutines stats={routineStats} today={todayISO()} />
+
           <WorkoutProgress exercises={exercises} loadSets={loadSets} />
 
           <div className="px-[2px] pt-1 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
