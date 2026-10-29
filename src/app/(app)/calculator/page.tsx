@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Chip,
-  ErrorBanner,
   FieldLabel,
   IconButton,
   Input,
@@ -23,7 +22,7 @@ const GROUPS: { group: FoodGroup; label: string }[] = [
   { group: "other", label: "Інше" },
 ];
 
-const START_PORTIONS = 3;
+const START_PORTIONS = 2;
 
 /** Пропси для поля ваги: лише цифри, кома, крапка — як у `useDecimalBuffer`. */
 function grams(value: string, set: (v: string) => void) {
@@ -40,8 +39,6 @@ function grams(value: string, set: (v: string) => void) {
 export default function FoodCalculatorPage() {
   const [presetId, setPresetId] = useState(FOOD_PRESETS[0].id);
   const [raw, setRaw] = useState("");
-  const [cookedTotal, setCookedTotal] = useState("");
-  const [tare, setTare] = useState("");
   const nextId = useRef(START_PORTIONS);
   const [portions, setPortions] = useState(() =>
     Array.from({ length: START_PORTIONS }, (_, id) => ({ id, value: "" })),
@@ -52,8 +49,6 @@ export default function FoodCalculatorPage() {
 
   const result = calcFood({
     raw: parseNum(raw),
-    cookedTotal: parseNum(cookedTotal),
-    tare: parseNum(tare),
     portions: portions.map((p) => parseNum(p.value)),
     presetRatio: preset.ratio,
   });
@@ -74,8 +69,6 @@ export default function FoodCalculatorPage() {
 
   function reset() {
     setRaw("");
-    setCookedTotal("");
-    setTare("");
     setPortions(
       Array.from({ length: START_PORTIONS }, () => ({ id: nextId.current++, value: "" })),
     );
@@ -110,29 +103,8 @@ export default function FoodCalculatorPage() {
 
       <Card>
         <SectionLabel icon="scale">Зважування</SectionLabel>
-        <div className="flex flex-col gap-3">
-          <div>
-            <FieldLabel>{grain ? "Суха вага (до варіння)" : "Сира вага"}</FieldLabel>
-            <Input placeholder={grain ? "300" : "800"} {...grams(raw, setRaw)} />
-          </div>
-          <div className="grid grid-cols-2 gap-[10px]">
-            <div>
-              <FieldLabel>Уся готова вага</FieldLabel>
-              <Input
-                placeholder={ok && !cookedTotal ? fmtInt(ok.portionsCooked) : "—"}
-                {...grams(cookedTotal, setCookedTotal)}
-              />
-            </div>
-            <div>
-              <FieldLabel>Мінус посуд</FieldLabel>
-              <Input placeholder="—" {...grams(tare, setTare)} />
-            </div>
-          </div>
-          <p className="text-[11px] font-normal leading-[1.5] text-muted">
-            Готову вагу заповнюй, якщо частина страви лишилась у каструлі. Порожньо — уся
-            страва розкладена на порції нижче.
-          </p>
-        </div>
+        <FieldLabel>{grain ? "Суха вага (до варіння)" : "Сира вага"}</FieldLabel>
+        <Input placeholder={grain ? "300" : "800"} {...grams(raw, setRaw)} />
       </Card>
 
       <Card>
@@ -186,8 +158,6 @@ export default function FoodCalculatorPage() {
         </div>
       </Card>
 
-      {result.status === "error" && <ErrorBanner>{result.message}</ErrorBanner>}
-
       {ok && (
         <Card>
           <SectionLabel icon="info">Підсумок</SectionLabel>
@@ -205,18 +175,10 @@ export default function FoodCalculatorPage() {
                 value={`${ok.ratio >= 1 ? "+" : "−"}${fmtInt(Math.abs(ok.ratio - 1) * 100)}%`}
               />
             )}
-            {ok.portions.length > 0 && (
-              <Row
-                label={`Разом у порціях (${ok.portions.length})`}
-                value={`${fmtInt(ok.portionsCooked)} г → ${fmtInt(ok.portionsRaw)} г ${grain ? "сухої" : "сирої"}`}
-              />
-            )}
-            {ok.leftoverCooked > 0.5 && (
-              <Row
-                label="Лишилось"
-                value={`${fmtInt(ok.leftoverCooked)} г → ${fmtInt(ok.leftoverRaw)} г ${grain ? "сухої" : "сирої"}`}
-              />
-            )}
+            <Row
+              label={`Разом у порціях (${ok.portions.length})`}
+              value={`${fmtInt(ok.portionsCooked)} г → ${fmtInt(ok.portionsRaw)} г ${grain ? "сухої" : "сирої"}`}
+            />
           </dl>
         </Card>
       )}

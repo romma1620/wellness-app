@@ -43,13 +43,9 @@ export interface FoodCalcInput {
   /** Сира (суха) вага всього продукту, г. */
   raw: number | null;
   /**
-   * Вся готова вага, г. Порожня — уся страва розкладена на порції, і тоді
-   * це просто їхня сума.
+   * Готові порції, г. Уся страва розкладена на них, тож їхня сума — це вся
+   * готова вага. Порожні поля пропускаються.
    */
-  cookedTotal: number | null;
-  /** Вага посуду, у якому зважили `cookedTotal`, г — віднімається. */
-  tare: number | null;
-  /** Готові порції, г. Порожні поля пропускаються. */
   portions: (number | null)[];
   /** Типовий коефіцієнт продукту — запасний варіант, якщо `raw` нема. */
   presetRatio: number | null;
@@ -64,20 +60,15 @@ export interface PortionResult {
 
 export type FoodCalcResult =
   | { status: "empty" }
-  | { status: "error"; message: string }
   | {
       status: "ok";
       /** true — рахували за типовим коефіцієнтом, а не за зважуванням. */
       estimated: boolean;
       /** Коефіцієнт «готове / сире». */
       ratio: number;
-      cookedTotal: number;
       portions: PortionResult[];
       portionsCooked: number;
       portionsRaw: number;
-      /** Готова вага, що лишилась нерозкладеною (≥ 0). */
-      leftoverCooked: number;
-      leftoverRaw: number;
     };
 
 const pos = (n: number | null): n is number => n !== null && Number.isFinite(n) && n > 0;
@@ -87,28 +78,13 @@ export function calcFood(input: FoodCalcInput): FoodCalcResult {
   input.portions.forEach((p, index) => {
     if (pos(p)) portions.push({ index, cooked: p });
   });
+  if (portions.length === 0) return { status: "empty" };
   const portionsCooked = portions.reduce((s, p) => s + p.cooked, 0);
-
-  const tare = pos(input.tare) ? input.tare : 0;
-  const hasTotal = pos(input.cookedTotal);
-  const cookedTotal = hasTotal ? input.cookedTotal! - tare : portionsCooked;
-
-  if (portions.length === 0 && !(hasTotal && pos(input.raw))) return { status: "empty" };
-
-  if (hasTotal && cookedTotal <= 0) {
-    return { status: "error", message: "Вага посуду більша за готову вагу." };
-  }
-  if (hasTotal && portionsCooked > cookedTotal + 0.5) {
-    return {
-      status: "error",
-      message: "Порції важать більше, ніж уся готова страва. Перевір готову вагу.",
-    };
-  }
 
   let ratio: number;
   let estimated = false;
   if (pos(input.raw)) {
-    ratio = cookedTotal / input.raw;
+    ratio = portionsCooked / input.raw;
   } else if (pos(input.presetRatio)) {
     ratio = input.presetRatio;
     estimated = true;
@@ -116,18 +92,12 @@ export function calcFood(input: FoodCalcInput): FoodCalcResult {
     return { status: "empty" };
   }
 
-  const results = portions.map((p) => ({ ...p, raw: p.cooked / ratio }));
-  const leftoverCooked = Math.max(0, cookedTotal - portionsCooked);
-
   return {
     status: "ok",
     estimated,
     ratio,
-    cookedTotal,
-    portions: results,
+    portions: portions.map((p) => ({ ...p, raw: p.cooked / ratio })),
     portionsCooked,
     portionsRaw: portionsCooked / ratio,
-    leftoverCooked,
-    leftoverRaw: leftoverCooked / ratio,
   };
 }
