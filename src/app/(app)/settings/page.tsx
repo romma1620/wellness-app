@@ -313,6 +313,12 @@ export default function SettingsPage() {
         subtitle="Календар, симптоми та прогнози"
         icon="cycle"
       />
+      <SettingsLink
+        href="/calculator"
+        title="Калькулятор їжі"
+        subtitle="Скільки сирого продукту в готовій порції"
+        icon="scale"
+      />
 
       {/* Логаут */}
       <Button type="button" variant="danger" onClick={logout}>
