@@ -52,6 +52,11 @@ export function goalFraction(value: number | null, goal: number | null): number 
   return value / goal;
 }
 
+/** Ціль задана й добрана — бейдж зеленіє, Орі святкує. */
+export function goalReached(value: number | null, goal: number | null): boolean {
+  return goal !== null && goalFraction(value, goal) >= 1;
+}
+
 /** Підпис цілі: «ціль 10 000» або запрошення її задати. */
 export function goalSub(goal: number | null): string {
   return goal === null ? "задай ціль" : `ціль ${fmtInt(goal)}`;

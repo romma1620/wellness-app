@@ -10,6 +10,7 @@ import {
   pickMonthPage,
   prState,
   remainingSessions,
+  workoutCheer,
   routineSeries,
   setTonnage,
   workoutTonnage,
@@ -322,5 +323,23 @@ describe("prState", () => {
 
   it("порожній масив підходів — показує рекорд", () => {
     expect(prState(MAX, [])).toEqual({ kind: "record", max: MAX });
+  });
+});
+
+describe("workoutCheer", () => {
+  const today = "2026-11-01";
+
+  it("сьогодні вже було тренування", () => {
+    expect(workoutCheer(["2026-11-01", "2026-10-29"], today).title).toBe("Сьогодні тренування є");
+  });
+
+  it("останнє тренування нещодавно — тримаємо ритм", () => {
+    expect(workoutCheer(["2026-10-25", "2026-10-29"], today).title).toBe("Гарний ритм");
+    expect(workoutCheer(["2026-10-25"], today).title).toBe("Гарний ритм"); // рівно 7 днів
+  });
+
+  it("перерва понад тиждень або архів порожній — мʼяко кличемо назад", () => {
+    expect(workoutCheer(["2026-10-24"], today).title).toBe("Давно не бачились");
+    expect(workoutCheer([], today).title).toBe("Давно не бачились");
   });
 });

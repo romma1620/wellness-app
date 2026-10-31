@@ -4,6 +4,7 @@ import { SaveIndicator, useDecimalBuffer, type SaveState } from "@/components/in
 import { Icon } from "@/components/icons";
 import { DateField, ErrorBanner, PageTitle } from "@/components/ui";
 import { DaySkeleton } from "@/components/DaySkeleton";
+import { Greeting } from "@/components/today/Greeting";
 import { SortableWidget } from "@/components/today/SortableWidget";
 import {
   ActivityCard,
@@ -295,6 +296,8 @@ export default function TodayPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
+      {!editing && <Greeting />}
+
       <PageTitle
         subtitle={editing ? "Перетягни картки за ручку" : humanDate(date)}
         right={

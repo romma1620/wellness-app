@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="376" height="334" viewBox="0 0 376 334">
+  <title>character_gym</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path id="Arm_L_outline" data-name="Arm L outline" d="M120 210 C81.333 179.333 77.333 135.333 108 78" fill="none" stroke="#632521" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="Arm_R_outline" data-name="Arm R outline" d="M256 210 C294.667 179.333 298.667 135.333 268 78" fill="none" stroke="#632521" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="Arm_L" data-name="Arm L" d="M120 210 C81.333 179.333 77.333 135.333 108 78" fill="none" stroke="#fcdea2" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="Arm_R" data-name="Arm R" d="M256 210 C294.667 179.333 298.667 135.333 268 78" fill="none" stroke="#fcdea2" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M191.61 114.1 C205.25 114 220.63 119.5 231.98 126.77 C239.17 131.38 247.28 139.37 251.96 146.52 C256.29 153.14 259.84 161.62 262.56 169.03 C265.41 176.81 267.67 184.81 271.11 192.35 C273.46 197.48 275.96 202.53 278.61 207.51 C281.1 212.19 283.84 216.73 286.29 221.42 C286.44 221.71 286.58 222 286.73 222.29 C291.77 232.6 294.42 244.11 293.58 255.58 C292.9 264.92 288.12 275.43 282.33 282.73 C265.5 303.91 235.72 314 209.61 317.33 C201.59 318.36 192.72 318.99 184.74 319.02 C171.19 319.08 157.04 317.72 143.9 314.47 C131.63 311.44 120.64 307.42 109.91 300.84 C97.63 293.31 87.59 281.49 83.82 267.41 C82.38 262.03 82 256.41 82.16 250.84 C82.46 241.03 85.5 230.32 90.2 221.72 C94.13 214.55 98.64 207.67 102.1 200.26 C107.65 188.37 112.88 176.34 118.37 164.42 C128.26 142.96 145.3 125.49 167.7 118.04 C174.84 115.67 184.11 114.15 191.61 114.1 Z" fill="#fcdea2"/>
+    <path d="M216.24 127.49 C218.7 127.48 221.01 128.12 223.29 129.02 C228.75 131.16 238.77 138.14 235.98 145.24 C234.34 149.41 229.93 150.32 225.94 150.34 C222.73 150.36 219.91 149.8 217.06 148.27 C212.06 145.59 206.39 141.67 206.37 135.42 C206.35 130.52 211.86 127.52 216.24 127.49 Z" fill="#fafaf4"/>
+    <path d="M139.05 195.49 C142.58 195.47 146.23 195.84 149.59 197.02 C153.17 198.28 157 202.57 154.41 206.41 C151.35 210.94 143.84 212.21 138.81 212.22 C134.3 212.23 129.05 211.37 125.43 208.48 C123.43 206.88 121.93 204.05 123.15 201.5 C125.24 197.17 134.81 195.51 139.05 195.49 Z" fill="#f28872"/>
+    <path d="M228.55 195.47 C230.71 195.46 232.72 195.64 234.82 196.12 C238.83 197.02 247.53 200.31 244.55 205.98 C242 210.84 233.91 212.24 229.02 212.23 C207.39 212.21 207.51 195.59 228.55 195.47 Z" fill="#f28872"/>
+    <line id="Bar" x1="18" y1="74" x2="358" y2="74" fill="none" stroke="#632521" stroke-width="7" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="Plate_L_outer" data-name="Plate L outer" d="M35 40 L39 40 C41.761 40 44 42.239 44 45 L44 103 C44 105.761 41.761 108 39 108 L35 108 C32.239 108 30 105.761 30 103 L30 45 C30 42.239 32.239 40 35 40 Z" fill="#632521"/>
+    <path id="Plate_L_inner" data-name="Plate L inner" d="M50 50 L53 50 C55.209 50 57 51.791 57 54 L57 94 C57 96.209 55.209 98 53 98 L50 98 C47.791 98 46 96.209 46 94 L46 54 C46 51.791 47.791 50 50 50 Z" fill="#632521"/>
+    <path id="Plate_R_outer" data-name="Plate R outer" d="M337 40 L341 40 C343.761 40 346 42.239 346 45 L346 103 C346 105.761 343.761 108 341 108 L337 108 C334.239 108 332 105.761 332 103 L332 45 C332 42.239 334.239 40 337 40 Z" fill="#632521"/>
+    <path id="Plate_R_inner" data-name="Plate R inner" d="M323 50 L326 50 C328.209 50 330 51.791 330 54 L330 94 C330 96.209 328.209 98 326 98 L323 98 C320.791 98 319 96.209 319 94 L319 54 C319 51.791 320.791 50 323 50 Z" fill="#632521"/>
+    <circle id="Hand_L" data-name="Hand L" cx="108" cy="74" r="11" fill="#fcdea2" stroke="#632521" stroke-width="5" stroke-miterlimit="10"/>
+    <circle id="Hand_R" data-name="Hand R" cx="268" cy="74" r="11" fill="#fcdea2" stroke="#632521" stroke-width="5" stroke-miterlimit="10"/>
+    <polyline id="Eye_L" data-name="Eye L" points="146,177 162,186 146,195" fill="none" stroke="#632521" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline id="Eye_R" data-name="Eye R" points="220,177 204,186 220,195" fill="none" stroke="#632521" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse id="Mouth" cx="183" cy="206.5" rx="7" ry="5.5" fill="#632521"/>
+    <path id="Sweat_L" data-name="Sweat L" d="M112 126 C117.5 133 120 138 120 143 C120 147.5 116.5 151 112 151 C107.5 151 104 147.5 104 143 C104 138 106.5 133 112 126 Z" fill="#cadff0" stroke="#632521" stroke-width="3.5" stroke-linejoin="round"/>
+    <path id="Sweat_R" data-name="Sweat R" d="M264 126 C269.5 133 272 138 272 143 C272 147.5 268.5 151 264 151 C259.5 151 256 147.5 256 143 C256 138 258.5 133 264 126 Z" fill="#cadff0" stroke="#632521" stroke-width="3.5" stroke-linejoin="round"/>
+    <line id="Shake_L1" data-name="Shake L1" x1="20" y1="22" x2="26" y2="32" fill="none" stroke="#632521" stroke-width="4" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="Shake_L2" data-name="Shake L2" x1="37" y1="16" x2="38" y2="27" fill="none" stroke="#632521" stroke-width="4" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="Shake_R1" data-name="Shake R1" x1="356" y1="22" x2="350" y2="32" fill="none" stroke="#632521" stroke-width="4" stroke-linecap="round" stroke-miterlimit="10"/>
+    <line id="Shake_R2" data-name="Shake R2" x1="339" y1="16" x2="338" y2="27" fill="none" stroke="#632521" stroke-width="4" stroke-linecap="round" stroke-miterlimit="10"/>
+    <path id="Headband" d="M123.451 154.795 C167.872 152.324 212.292 152.404 256.713 155.035 C258.959 159.658 260.912 164.54 262.56 169.03 C262.606 169.155 262.651 169.279 262.697 169.404 C213.855 166.26 165.014 166.2 116.173 169.223 C116.902 167.621 117.633 166.019 118.37 164.42 C119.896 161.109 121.592 157.894 123.451 154.795 Z" fill="#f28872"/>
+  </g>
+</svg>

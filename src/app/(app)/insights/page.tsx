@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PairInsightCard, type PairCopy } from "@/components/insights/PairInsightCard";
+import { OriMessage } from "@/components/Ori";
+import { insightSummary } from "@/lib/insight-summary";
 import { Collapsible, EmptyState, ErrorBanner, FullLoader, PageTitle } from "@/components/ui";
 import {
   ANALYSIS_WEEKS,
@@ -175,13 +177,17 @@ export default function InsightsPage() {
         <ErrorBanner>{error}</ErrorBanner>
       ) : isEmpty ? (
         <EmptyState
-          icon="search"
+          mascot="wave"
           title="Ще немає даних"
           hint="Заповнюй щоденник на вкладці «Сьогодні» — і тут зʼявляться висновки про те, що працює саме для тебе."
         />
       ) : (
         analyses && (
           <>
+            <OriMessage
+              {...insightSummary([analyses.kcal.state, analyses.steps.state, analyses.protein.state])}
+              className="px-[2px]"
+            />
             <PairInsightCard analysis={analyses.kcal} copy={KCAL_COPY} />
             <PairInsightCard analysis={analyses.steps} copy={STEPS_COPY} />
             <PairInsightCard analysis={analyses.protein} copy={PROTEIN_COPY} />

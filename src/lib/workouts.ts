@@ -1,5 +1,22 @@
-import { monthEnd, shortDate } from "@/lib/utils";
+import { daysBetween, monthEnd, shortDate } from "@/lib/utils";
 import type { MuscleGroup } from "@/lib/types";
+
+// ----------------------- Орі над списком -----------------------
+
+/** Скільки днів перерви ще вважаємо «ритмом», а не паузою. */
+const RHYTHM_DAYS = 7;
+
+/** Репліка Орі над тренуваннями — за давністю останньої сесії. */
+export function workoutCheer(dates: string[], today: string): { title: string; text: string } {
+  const last = dates.reduce<string | null>((m, d) => (m === null || d > m ? d : m), null);
+  if (last === today) {
+    return { title: "Сьогодні тренування є", text: "Тепер — час відновитись" };
+  }
+  if (last !== null && daysBetween(last, today) <= RHYTHM_DAYS) {
+    return { title: "Гарний ритм", text: "Орі вже розминається до наступного" };
+  }
+  return { title: "Давно не бачились", text: "Почнімо з легкого тренування" };
+}
 
 // ----------------------- Draft (editor) -----------------------
 export interface DraftSet {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dailyGoals,
   goalFraction,
+  goalReached,
   goalSub,
   WATER_DROPS_DEFAULT,
   WATER_MAX,
@@ -58,6 +59,22 @@ describe("goalFraction", () => {
 
   it("понад ціль не обрізається — обрізає кільце", () => {
     expect(goalFraction(11, 8)).toBeCloseTo(1.375, 5);
+  });
+});
+
+describe("goalReached", () => {
+  it("рівно ціль і понад неї — досягнуто", () => {
+    expect(goalReached(10000, 10000)).toBe(true);
+    expect(goalReached(12000, 10000)).toBe(true);
+  });
+
+  it("менше цілі — ні", () => {
+    expect(goalReached(9999, 10000)).toBe(false);
+  });
+
+  it("без цілі чи без показника святкувати нічого", () => {
+    expect(goalReached(12000, null)).toBe(false);
+    expect(goalReached(null, 10000)).toBe(false);
   });
 });
 
