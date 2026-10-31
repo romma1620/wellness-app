@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/icons";
+import { OriMessage } from "@/components/Ori";
 import {
   NumberField,
   PresetChips,
@@ -15,7 +16,8 @@ import { Sparkline } from "@/components/today/Sparkline";
 import { Card, SectionLabel, Textarea } from "@/components/ui";
 import { CARE_PRESETS } from "@/lib/care";
 import type { DailyForm } from "@/lib/daily-log";
-import { waterRow } from "@/lib/goals";
+import { goalReached, waterRow } from "@/lib/goals";
+import type { OriPose } from "@/lib/mascot";
 import { cn, fmt } from "@/lib/utils";
 
 /**
@@ -29,6 +31,19 @@ import { cn, fmt } from "@/lib/utils";
 
 /** Сеттер одного поля форми дня; типізований так само, як на сторінці. */
 export type FieldSetter = <K extends keyof DailyForm>(key: K, value: DailyForm[K]) => void;
+
+/** Рядок-похвала внизу картки, коли денну ціль добрано. */
+function GoalCheer({ pose, title, text }: { pose: OriPose; title: string; text: string }) {
+  return (
+    <OriMessage
+      pose={pose}
+      title={title}
+      text={text}
+      size="sm"
+      className="aura-fade mt-[14px] border-t border-line pt-[12px]"
+    />
+  );
+}
 
 export function WeightCard({
   input,
@@ -128,6 +143,9 @@ export function StepsCard({
         </div>
         <Sparkline values={spark} />
       </div>
+      {goalReached(value, goal) && (
+        <GoalCheer pose="steps" title="Ціль кроків досягнуто" text="Гарна прогулянка вийшла" />
+      )}
     </Card>
   );
 }
@@ -165,6 +183,9 @@ export function WaterCard({
         Вода
       </SectionLabel>
       <WaterDrops value={value} goal={goal} onChange={onChange} />
+      {water.filled >= water.slots && (
+        <GoalCheer pose="water" title="Норму води виконано" text="Тіло каже дякую" />
+      )}
     </Card>
   );
 }

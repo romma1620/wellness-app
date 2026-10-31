@@ -1,5 +1,5 @@
 import { Icon } from "@/components/icons";
-import { goalFraction, goalSub } from "@/lib/goals";
+import { goalFraction, goalReached, goalSub } from "@/lib/goals";
 
 /**
  * Бейдж цілі в шапці картки показника — на тому ж місці, де у ваги стоїть
@@ -13,9 +13,7 @@ import { goalFraction, goalSub } from "@/lib/goals";
 export function GoalBadge({ value, goal }: { value: number | null; goal: number | null }) {
   const label = goalSub(goal);
   const frac = goalFraction(value, goal);
-  const done = goal !== null && frac >= 1;
-
-  if (done) {
+  if (goalReached(value, goal)) {
     return (
       <span className="flex items-center gap-1 rounded-full bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] px-[10px] py-1 text-[11.5px] font-semibold text-pos">
         <Icon name="check" size={11} strokeWidth={2.4} />

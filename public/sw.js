@@ -1,6 +1,6 @@
 // Мінімальний service worker для встановлення як PWA + базове офлайн-кешування.
-const CACHE = "aura-v2";
-const ASSETS = ["/", "/login", "/manifest.webmanifest", "/favicon.svg"];
+const CACHE = "aura-v3";
+const ASSETS = ["/", "/login", "/manifest.webmanifest", "/icons/icon-32.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -1,6 +1,8 @@
 "use client";
 
 import { Icon, type IconName } from "@/components/icons";
+import { Ori } from "@/components/Ori";
+import type { OriPose } from "@/lib/mascot";
 import { cn, monthLabel, parseISODate, todayISO, toISODate, weekdayHead } from "@/lib/utils";
 import { keyboardInset } from "@/lib/viewport";
 import Link from "next/link";
@@ -560,18 +562,25 @@ export function Skeleton({ className }: { className?: string }) {
 // ----------------------- Empty state -----------------------
 export function EmptyState({
   icon = "leaf",
+  mascot,
   title,
   hint,
 }: {
   icon?: IconName;
+  /** Поза Орі замість плитки з іконкою. */
+  mascot?: OriPose;
   title: string;
   hint?: string;
 }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl2 bg-surface px-6 py-10 text-center">
-      <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary-light text-accent">
-        <Icon name={icon} size={20} />
-      </div>
+      {mascot ? (
+        <Ori pose={mascot} size={88} />
+      ) : (
+        <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary-light text-accent">
+          <Icon name={icon} size={20} />
+        </div>
+      )}
       <div className="text-[14.5px] font-bold text-ink">{title}</div>
       {hint && (
         <div className="max-w-[260px] text-[12.5px] font-normal leading-[1.55] text-muted">

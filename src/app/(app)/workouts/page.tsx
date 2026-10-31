@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/icons";
+import { OriMessage } from "@/components/Ori";
 import { Button, EmptyState, ErrorBanner, PageTitle, Pill } from "@/components/ui";
 import { ActiveRoutines } from "@/components/workouts/ActiveRoutines";
 import { UnfinishedWorkoutCard } from "@/components/workouts/UnfinishedWorkoutCard";
@@ -11,7 +12,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useUid } from "@/components/UserProvider";
 import { todayISO } from "@/lib/utils";
 import { clearDraft, readDraft, type StoredDraft } from "@/lib/workout-draft";
-import { pickMonthPage, remainingSessions, type WorkoutListItem } from "@/lib/workouts";
+import {
+  pickMonthPage,
+  remainingSessions,
+  workoutCheer,
+  type WorkoutListItem,
+} from "@/lib/workouts";
 import {
   loadExerciseSets,
   loadMonthTotals,
@@ -115,6 +121,18 @@ export default function WorkoutsPage() {
         Тренування
       </PageTitle>
 
+      {/* лише коли архів не порожній: для порожнього Орі стоїть в EmptyState */}
+      {!loading && items.length > 0 && (
+        <OriMessage
+          pose="gym"
+          {...workoutCheer(
+            items.map((i) => i.date),
+            todayISO(),
+          )}
+          className="px-[2px]"
+        />
+      )}
+
       <Button type="button" onClick={() => router.push("/workouts/new")}>
         <Icon name="plus" size={16} strokeWidth={2.2} />
         Нове тренування
@@ -138,7 +156,7 @@ export default function WorkoutsPage() {
         <WorkoutsSkeleton />
       ) : items.length === 0 && !error ? (
         <EmptyState
-          icon="dumbbell"
+          mascot="gym"
           title="Ще немає тренувань"
           hint="Додай першу сесію — вправи, вагу і підходи. Далі бачитимеш прогрес на графіках."
         />
