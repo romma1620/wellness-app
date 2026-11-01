@@ -2,8 +2,9 @@ import type { Exercise } from "@/lib/types";
 import { newDraftExercise, type DraftExercise } from "@/lib/workouts";
 
 /**
- * Парсер тренування, вставленого текстом — по вправі на рядок, як його
- * пишуть у нотатках чи месенджері:
+ * Парсер тренування, вставленого текстом цілком — як його пишуть у нотатках
+ * чи месенджері. Зазвичай вправа на рядок, але й злиті в один рядок вправи
+ * розділяються (див. splitExercises):
  *
  *   Румунська тяга 60 кг 4 х 10
  *   Підтягування 3 х 6 ( максимально швидко догори )
@@ -110,15 +111,47 @@ export function parseWorkoutLine(line: string): ParsedExercise | null {
   return { name, weight, reps, note: notes.length ? notes.join("; ") : null };
 }
 
+const SETS_REPS_ALL = new RegExp(SETS_REPS.source, "giu");
+
+/**
+ * Ділить рядок, у якому кілька вправ підряд (тренування, скопійоване з
+ * месенджера без переносів): кожна вправа закінчується своїм «підходи ×
+ * повтори» і коментарем у дужках одразу за ним. Дужки маскуються, щоб
+ * «35 кг 3 х 8» всередині коментаря не рахувалось окремою вправою.
+ */
+export function splitExercises(line: string): string[] {
+  const masked = line.replace(/\([^()]*\)?/gu, (m) => " ".repeat(m.length));
+  const cuts: number[] = [];
+  for (const m of masked.matchAll(SETS_REPS_ALL)) {
+    let end = m.index + m[0].length;
+    const paren = /^\s*\([^()]*\)?/u.exec(line.slice(end));
+    if (paren) end += paren[0].length;
+    cuts.push(end);
+  }
+  if (cuts.length < 2) return [line];
+  // хвіст після останньої вправи лишається при ній (коментар, «по 60 кг»)
+  cuts[cuts.length - 1] = line.length;
+  const parts: string[] = [];
+  let start = 0;
+  for (const cut of cuts) {
+    const part = line.slice(start, cut).trim();
+    if (part) parts.push(part);
+    start = cut;
+  }
+  return parts;
+}
+
 export function parseWorkoutText(text: string): ParseResult {
   const exercises: ParsedExercise[] = [];
   const skipped: string[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
-    const parsed = parseWorkoutLine(line);
-    if (parsed) exercises.push(parsed);
-    else skipped.push(line);
+    for (const part of splitExercises(line)) {
+      const parsed = parseWorkoutLine(part);
+      if (parsed) exercises.push(parsed);
+      else skipped.push(part);
+    }
   }
   return { exercises, skipped };
 }

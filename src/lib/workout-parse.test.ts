@@ -6,6 +6,7 @@ import {
   parsedToDrafts,
   parseWorkoutLine,
   parseWorkoutText,
+  splitExercises,
 } from "./workout-parse";
 
 const SAMPLE = `Румунська тяга 60  кг 4 х 10
@@ -182,5 +183,25 @@ describe("parsedNotes / parsedSummary", () => {
       "7,5 кг · 3 × 12/10/8",
     );
     expect(parsedSummary({ name: "", weight: null, reps: rep(3, 6), note: null })).toBe("3 × 6");
+  });
+});
+
+describe("тренування одним рядком", () => {
+  it("приклад без переносів розбирається на ті самі сім вправ", () => {
+    const oneLine = SAMPLE.replace(/\s*\n\s*/g, " ");
+    expect(parseWorkoutText(oneLine)).toEqual(parseWorkoutText(SAMPLE));
+  });
+
+  it("роздільники між вправами не потрапляють у назви", () => {
+    const r = parseWorkoutText("Жим 40 кг 3 х 10; Випади 7 кг 3х12, Планка 3 х 1");
+    expect(r.exercises.map((e) => e.name)).toEqual(["Жим", "Випади", "Планка"]);
+  });
+
+  it("числа в дужках не ділять рядок", () => {
+    expect(splitExercises("Жим 40 кг 3 х 10 (минулого разу 35 кг 3 х 8)")).toHaveLength(1);
+  });
+
+  it("одна вправа — рядок як є", () => {
+    expect(splitExercises("Жим 40 кг 3 х 10 по 60 кг")).toEqual(["Жим 40 кг 3 х 10 по 60 кг"]);
   });
 });
