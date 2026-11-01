@@ -6,6 +6,7 @@ import { DraftResumeSheet } from "@/components/workouts/DraftResumeSheet";
 import { ExerciseAutocomplete } from "@/components/workouts/ExerciseAutocomplete";
 import { ExerciseMaxLine } from "@/components/workouts/ExerciseMaxLine";
 import { MuscleGroupChips } from "@/components/workouts/MuscleGroupChips";
+import { PasteWorkoutSheet } from "@/components/workouts/PasteWorkoutSheet";
 import { SetRow } from "@/components/workouts/SetRow";
 import { SaveIndicator, type SaveState } from "@/components/inputs";
 import {
@@ -38,6 +39,7 @@ import {
   saveWorkout,
 } from "@/lib/workouts-db";
 import { humanDate, todayISO } from "@/lib/utils";
+import { parsedNotes, parsedToDrafts, type ParsedExercise } from "@/lib/workout-parse";
 import {
   clearDraft,
   isDraftMeaningful,
@@ -74,6 +76,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   const [draft, setDraft] = useState<DraftWorkout>(EMPTY_DRAFT);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
   // чернетка, знайдена в сховищі: поки вона тут, над редактором висить шіт
   const [stored, setStored] = useState<StoredDraft | null>(null);
   // "pending" — рішення про чернетку ще не ухвалене, автозбереження мовчить,
@@ -212,6 +215,25 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
     } catch {
       setActionError("Не вдалося підтягнути шаблон.");
     }
+  }
+
+  /**
+   * Вправи з тексту — у кінець списку. Порожні картки (без назви й без
+   * жодного введеного підходу) прибираємо: інакше стартова порожня картка
+   * висіла б над вставленими. Коментарі з дужок дописуємо в нотатку.
+   */
+  function applyParsed(parsed: ParsedExercise[]) {
+    const added = parsedToDrafts(parsed, exercises);
+    const notes = parsedNotes(parsed);
+    setDraft((d) => {
+      const kept = d.exercises.filter(
+        (e) => e.name.trim() || e.sets.some((s) => s.weight != null || s.reps != null),
+      );
+      const note = notes ? (d.note.trim() ? `${d.note.trimEnd()}\n${notes}` : notes) : d.note;
+      return { ...d, note, exercises: [...kept, ...added] };
+    });
+    setActionError(null);
+    setPasteOpen(false);
   }
 
   async function onSave() {
@@ -407,14 +429,24 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         </Card>
       ))}
 
-      <button
-        type="button"
-        onClick={() => setDraft((d) => ({ ...d, exercises: [...d.exercises, newDraftExercise()] }))}
-        className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
-      >
-        <Icon name="plus" size={14} strokeWidth={2.2} />
-        Додати вправу
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setDraft((d) => ({ ...d, exercises: [...d.exercises, newDraftExercise()] }))}
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
+        >
+          <Icon name="plus" size={14} strokeWidth={2.2} />
+          Додати вправу
+        </button>
+        <button
+          type="button"
+          onClick={() => setPasteOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
+        >
+          <Icon name="file" size={14} strokeWidth={2} />
+          Вставити текстом
+        </button>
+      </div>
 
       {/* Нотатка */}
       <Card>
@@ -436,6 +468,14 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
           <Icon name="trash" size={14} strokeWidth={1.8} />
           Видалити тренування
         </Button>
+      )}
+
+      {pasteOpen && (
+        <PasteWorkoutSheet
+          exercises={exercises}
+          onApply={applyParsed}
+          onClose={() => setPasteOpen(false)}
+        />
       )}
 
       {stored && (
