@@ -78,7 +78,7 @@ type DayState = {
   form: DailyForm;
 };
 
-export default function TodayPage() {
+export default function DiaryPage() {
   const supabase = useMemo(() => createClient(), []);
   const uid = useUid();
   const queryClient = useQueryClient();
@@ -299,7 +299,13 @@ export default function TodayPage() {
       {!editing && <Greeting />}
 
       <PageTitle
-        subtitle={editing ? "Перетягни картки за ручку" : humanDate(date)}
+        subtitle={
+          editing
+            ? "Перетягни картки за ручку"
+            : isToday(date)
+              ? `Сьогодні, ${humanDate(date)}`
+              : humanDate(date)
+        }
         right={
           editing ? (
             <button
@@ -338,7 +344,7 @@ export default function TodayPage() {
           )
         }
       >
-        {editing ? "Порядок" : isToday(date) ? "Сьогодні" : "День"}
+        {editing ? "Порядок" : "Щоденник"}
       </PageTitle>
 
       {!editing && <WeekStrip date={date} onSelect={setDate} />}

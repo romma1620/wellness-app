@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS: { href: string; label: string; icon: IconName }[] = [
-  { href: "/", label: "Сьогодні", icon: "calendar" },
+  { href: "/", label: "Щоденник", icon: "calendar" },
   { href: "/analytics", label: "Аналітика", icon: "bars" },
   { href: "/workouts", label: "Тренування", icon: "dumbbell" },
   { href: "/insights", label: "Інсайти", icon: "bulb" },

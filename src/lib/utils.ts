@@ -224,6 +224,11 @@ export function weekBuckets(startIso: string, endIso: string): WeekBucket[] {
 }
 
 /** "2026-08-01" → "Серпень 2026". Приймає будь-який день місяця. */
+/** "Листопад" — назва місяця дати в називному відмінку. */
+export function monthName(iso: string): string {
+  return MONTHS_NOM[parseISODate(iso).getMonth()];
+}
+
 export function monthLabel(isoMonth: string): string {
   const d = parseISODate(isoMonth);
   return `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`;
