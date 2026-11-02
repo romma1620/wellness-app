@@ -23,7 +23,7 @@ const readClock = () => {
 // Сервер не знає годину юзера — рендеримо порожнє місце тієї ж висоти.
 const serverClock = () => -1;
 
-/** Шапка «Сьогодні»: Орі й привітання за локальним часом юзера. */
+/** Шапка «Щоденника»: Орі й привітання за локальним часом юзера. */
 export function Greeting() {
   const clock = useSyncExternalStore(subscribeClock, readClock, serverClock);
 

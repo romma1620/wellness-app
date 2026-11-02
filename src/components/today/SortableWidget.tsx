@@ -7,7 +7,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
- * Обгортка картки «Сьогодні» в режимі редагування.
+ * Обгортка картки «Щоденника» в режимі редагування.
  *
  * Тягнути можна лише за ручку, а не за всю картку: інакше `touch-action: none`,
  * якого вимагає pointer-drag, зʼїв би вертикальний скрол — а екран довший за

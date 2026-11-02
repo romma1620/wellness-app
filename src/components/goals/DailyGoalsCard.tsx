@@ -73,7 +73,7 @@ export function DailyGoalsCard() {
         })
         .eq("id", uid);
       if (err) throw err;
-      // цілі читають плитки «Сьогодні» — вони під ключем профілю
+      // цілі читають плитки «Щоденника» — вони під ключем профілю
       void queryClient.invalidateQueries({ queryKey: ["profile", uid] });
       setSavedMsg(true);
       setTimeout(() => setSavedMsg(false), 2500);
@@ -138,7 +138,7 @@ export function DailyGoalsCard() {
       </Button>
 
       <p className="mt-[10px] text-[11px] font-normal leading-[1.5] text-muted">
-        Порожнє поле — кільце на «Сьогодні» лишається без цілі, але показник пишеться далі.
+        Порожнє поле — кільце в «Щоденнику» лишається без цілі, але показник пишеться далі.
       </p>
     </Card>
   );

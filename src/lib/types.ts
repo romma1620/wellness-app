@@ -8,12 +8,12 @@ export interface Profile {
   avatar_url: string | null;
   height: number | null;
   target_weight: number | null;
-  /** Щоденні цілі; null — ціль не задана, кільце на «Сьогодні» лишається доріжкою. */
+  /** Щоденні цілі; null — ціль не задана, кільце в «Щоденнику» лишається доріжкою. */
   kcal_goal: number | null;
   steps_goal: number | null;
   water_goal: number | null;
   theme: ThemeName;
-  /** Порядок карток на «Сьогодні»; null — юзер його не міняв. Ремонтує `normalizeOrder`. */
+  /** Порядок карток у «Щоденнику»; null — юзер його не міняв. Ремонтує `normalizeOrder`. */
   home_widgets: string[] | null;
   created_at: string;
 }
