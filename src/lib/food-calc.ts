@@ -101,3 +101,89 @@ export function calcFood(input: FoodCalcInput): FoodCalcResult {
     portionsRaw: portionsCooked / ratio,
   };
 }
+
+// ----------------------- Складна страва -----------------------
+/*
+ * Страва з кількох інгредієнтів (курка в кисло-солодкому): зважуєш кожен
+ * інгредієнт сирим, потім готові порції. Кожна порція — частка всієї готової
+ * страви, тож і кожного інгредієнта в ній рівно стільки ж відсотків.
+ */
+
+export interface DishIngredientInput {
+  name: string;
+  /** Сира (суха) вага інгредієнта, г. */
+  raw: number | null;
+}
+
+export interface DishCalcInput {
+  ingredients: DishIngredientInput[];
+  /** Готові порції, г. Порожні поля пропускаються. */
+  portions: (number | null)[];
+}
+
+export interface DishIngredient {
+  /** Індекс у вхідному масиві. */
+  index: number;
+  /** Назва; якщо не вписана — «Інгредієнт N». */
+  name: string;
+  raw: number;
+}
+
+export interface DishPortion {
+  index: number;
+  cooked: number;
+  /** Частка порції в усій готовій страві, 0…1. */
+  share: number;
+  /** Сира вага всіх інгредієнтів у порції. */
+  raw: number;
+  /** Скільки кожного інгредієнта в порції — у порядку `ingredients`. */
+  items: { index: number; name: string; raw: number }[];
+}
+
+export type DishCalcResult =
+  | { status: "empty" }
+  | {
+      status: "ok";
+      ingredients: DishIngredient[];
+      portions: DishPortion[];
+      /** Сума сирих інгредієнтів. */
+      totalRaw: number;
+      /** Уся готова страва — сума порцій. */
+      totalCooked: number;
+      /** Коефіцієнт «готове / сире» для всієї страви. */
+      ratio: number;
+    };
+
+export function calcDish(input: DishCalcInput): DishCalcResult {
+  const ingredients: DishIngredient[] = [];
+  input.ingredients.forEach((ing, index) => {
+    if (pos(ing.raw)) {
+      ingredients.push({ index, name: ing.name.trim() || `Інгредієнт ${index + 1}`, raw: ing.raw });
+    }
+  });
+  const portions: { index: number; cooked: number }[] = [];
+  input.portions.forEach((p, index) => {
+    if (pos(p)) portions.push({ index, cooked: p });
+  });
+  if (ingredients.length === 0 || portions.length === 0) return { status: "empty" };
+
+  const totalRaw = ingredients.reduce((s, i) => s + i.raw, 0);
+  const totalCooked = portions.reduce((s, p) => s + p.cooked, 0);
+
+  return {
+    status: "ok",
+    ingredients,
+    totalRaw,
+    totalCooked,
+    ratio: totalCooked / totalRaw,
+    portions: portions.map((p) => {
+      const share = p.cooked / totalCooked;
+      return {
+        ...p,
+        share,
+        raw: totalRaw * share,
+        items: ingredients.map((i) => ({ index: i.index, name: i.name, raw: i.raw * share })),
+      };
+    }),
+  };
+}

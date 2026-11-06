@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcFood, type FoodCalcInput } from "./food-calc";
+import { calcDish, calcFood, type FoodCalcInput } from "./food-calc";
 
 function input(patch: Partial<FoodCalcInput>): FoodCalcInput {
   return { raw: null, portions: [], presetRatio: null, ...patch };
@@ -41,5 +41,50 @@ describe("calcFood", () => {
     expect(calcFood(input({ portions: [140] })).status).toBe("empty");
     expect(calcFood(input({ raw: 500 })).status).toBe("empty");
     expect(calcFood(input({ raw: 500, portions: [null, null] })).status).toBe("empty");
+  });
+});
+
+describe("calcDish", () => {
+  it("розкладає кожен інгредієнт на порції пропорційно готовій вазі", () => {
+    // курка в кисло-солодкому: 700 г готової страви → 400 + 300
+    const r = calcDish({
+      ingredients: [
+        { name: "Курка", raw: 500 },
+        { name: "Перець", raw: 140 },
+        { name: "Соус", raw: 70 },
+      ],
+      portions: [400, 300],
+    });
+    if (r.status !== "ok") throw new Error(r.status);
+    expect(r.totalRaw).toBe(710);
+    expect(r.totalCooked).toBe(700);
+    expect(r.portions.map((p) => p.share)).toEqual([4 / 7, 3 / 7]);
+    expect(r.portions[0].items.map((i) => Math.round(i.raw))).toEqual([286, 80, 40]);
+    expect(r.portions[1].items.map((i) => Math.round(i.raw))).toEqual([214, 60, 30]);
+    expect(r.portions[0].raw + r.portions[1].raw).toBeCloseTo(710);
+  });
+
+  it("пропускає порожні інгредієнти й порції, підставляє назву", () => {
+    const r = calcDish({
+      ingredients: [
+        { name: " ", raw: 200 },
+        { name: "Цибуля", raw: null },
+        { name: "Рис", raw: 100 },
+      ],
+      portions: [null, 150, 150],
+    });
+    if (r.status !== "ok") throw new Error(r.status);
+    expect(r.ingredients.map((i) => [i.index, i.name])).toEqual([
+      [0, "Інгредієнт 1"],
+      [2, "Рис"],
+    ]);
+    expect(r.portions.map((p) => p.index)).toEqual([1, 2]);
+    expect(r.portions[0].items.map((i) => i.raw)).toEqual([100, 50]);
+  });
+
+  it("порожньо без інгредієнтів або без порцій", () => {
+    expect(calcDish({ ingredients: [], portions: [300] }).status).toBe("empty");
+    expect(calcDish({ ingredients: [{ name: "Курка", raw: 0 }], portions: [300] }).status).toBe("empty");
+    expect(calcDish({ ingredients: [{ name: "Курка", raw: 500 }], portions: [null] }).status).toBe("empty");
   });
 });

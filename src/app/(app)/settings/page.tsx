@@ -316,7 +316,7 @@ export default function SettingsPage() {
       <SettingsLink
         href="/calculator"
         title="Калькулятор їжі"
-        subtitle="Скільки сирого продукту в готовій порції"
+        subtitle="Сира вага в готових порціях — продукт чи страва"
         icon="scale"
       />
 
