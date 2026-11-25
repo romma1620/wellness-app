@@ -65,14 +65,14 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
       onClick={() => onPick(day.date)}
       // Майбутнє відкриваємо теж: логувати там нічого, але подивитись, що
       // застосунок прогнозує на цей день, — законне бажання.
-      className="flex flex-col items-center gap-[3px] py-px active:scale-95"
+      className="flex flex-col items-center gap-[4px] py-px active:scale-95"
       aria-label={day.date}
     >
       <span
         style={style}
         className={cn(
           "box-border flex h-[34px] w-[34px] items-center justify-center rounded-full text-[13px] transition-none",
-          day.today ? "font-bold" : plain ? "font-medium" : "font-semibold",
+          day.today ? "font-medium" : plain ? "font-medium" : "font-medium",
           day.outside && "opacity-30",
           day.outside && plain && "text-muted",
         )}
@@ -91,7 +91,7 @@ function DayCell({ day, onPick }: { day: CalendarDay; onPick: (iso: string) => v
 
 function LegendDot({ style, label }: { style: React.CSSProperties; label: string }) {
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center gap-2">
       <span className="box-border h-[10px] w-[10px] shrink-0 rounded-full" style={style} />
       <span className="text-[11px] font-medium text-muted">{label}</span>
     </span>
@@ -115,7 +115,7 @@ export function CycleCalendar({
   canGoForward: boolean;
 }) {
   return (
-    <div className="rounded-xl2 bg-surface px-[14px] pb-[14px] pt-4">
+    <div className="rounded-xl2 bg-surface px-[16px] pb-[16px] pt-4">
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
@@ -123,9 +123,9 @@ export function CycleCalendar({
           aria-label="Попередній місяць"
           className={NAV_BTN}
         >
-          <Icon name="chevronLeft" size={15} strokeWidth={1.8} />
+          <Icon name="chevronLeft" size={16} />
         </button>
-        <div className="text-[14px] font-bold text-ink">{monthLabel(monthStart)}</div>
+        <div className="text-[14px] font-medium text-ink">{monthLabel(monthStart)}</div>
         <button
           type="button"
           onClick={() => canGoForward && onMonth(1)}
@@ -133,29 +133,29 @@ export function CycleCalendar({
           aria-label="Наступний місяць"
           className={NAV_BTN}
         >
-          <Icon name="chevronRight" size={15} strokeWidth={1.8} />
+          <Icon name="chevronRight" size={16} />
         </button>
       </div>
 
-      <div className="mb-1.5 grid grid-cols-7">
+      <div className="mb-2 grid grid-cols-7">
         {WEEKDAY_HEADS.map((w) => (
           <div
             key={w}
-            className="text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted"
+            className="text-center text-[11px] font-medium text-muted"
           >
             {w}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-y-[5px]">
+      <div className="grid grid-cols-7 gap-y-[4px]">
         {days.map((d) => (
           <DayCell key={d.date} day={d} onPick={onPick} />
         ))}
       </div>
 
-      <div className="mt-3.5 border-t border-line pt-3">
-        <div className="flex flex-wrap gap-x-3.5 gap-y-2.5">
+      <div className="mt-4 border-t border-line pt-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-3">
           <LegendDot style={{ background: PHASE_COLORS.menstrual }} label="менструація" />
           <LegendDot
             style={{ border: `1.6px dashed ${PHASE_COLORS.menstrual}` }}
@@ -169,7 +169,7 @@ export function CycleCalendar({
             style={{ background: mixOnSurface(PHASE_COLORS.ovulation, 30) }}
             label="фертильні дні"
           />
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-2">
             <span className="h-1 w-1 shrink-0 rounded-full bg-muted" />
             <span className="text-[11px] font-medium text-muted">є запис</span>
           </span>

@@ -66,13 +66,13 @@ export function ExercisePicker({
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="flex w-full items-center justify-between gap-2 rounded-[13px] border border-line bg-field px-[14px] py-3 text-left transition active:scale-[.99]"
+        className="flex w-full items-center justify-between gap-2 rounded-[12px] border border-line bg-field px-[16px] py-3 text-left transition active:scale-[.99]"
       >
-        <span className="truncate text-[14px] font-semibold text-ink">
+        <span className="truncate text-[14px] font-medium text-ink">
           {selected?.name ?? "Вибери вправу"}
         </span>
         <span aria-hidden className="shrink-0 text-muted">
-          <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+          <Icon name="chevronDown" size={16} />
         </span>
       </button>
 
@@ -83,7 +83,7 @@ export function ExercisePicker({
             value={query}
             placeholder="Пошук вправи"
             onChange={(e) => setQuery(e.target.value)}
-            suffix={<Icon name="search" size={14} strokeWidth={1.8} />}
+            suffix={<Icon name="search" size={16} />}
           />
         </div>
         {/* висоту обмежує Sheet — він єдиний знає, де закінчується видима
@@ -102,7 +102,7 @@ export function ExercisePicker({
           ) : (
             sections.map((section) => (
               <div key={section.title}>
-                <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+                <div className="px-3 pb-1 pt-3 text-[13px] font-medium text-muted">
                   {section.title}
                 </div>
                 {section.items.map((e) => (
@@ -131,14 +131,14 @@ function ExerciseRow({
       type="button"
       onClick={() => onPick(exercise.id)}
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-[11px] px-3 py-[11px] text-left text-[14px] active:bg-field",
-        active ? "bg-primary-light font-semibold text-accent" : "font-medium text-ink",
+        "flex w-full items-center justify-between gap-2 rounded-[12px] px-3 py-[12px] text-left text-[14px] active:bg-field",
+        active ? "bg-primary-light font-medium text-accent" : "font-medium text-ink",
       )}
     >
       <span className="truncate">{exercise.name}</span>
       {active && (
         <span aria-hidden className="shrink-0">
-          <Icon name="check" size={13} strokeWidth={2.2} />
+          <Icon name="check" size={16} strokeWidth={2.2} />
         </span>
       )}
     </button>

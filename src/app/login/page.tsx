@@ -139,13 +139,13 @@ export default function LoginPage() {
   }[step];
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-app flex-col items-center bg-bg px-[30px] pb-10 pt-[22vh] text-ink">
+    <div className="mx-auto flex min-h-dvh max-w-app flex-col items-center bg-bg px-[32px] pb-10 pt-[22vh] text-ink">
       {/* Вордмарк як у шапці застосунку, лише більший: назва + акцентна крапка */}
-      <h1 className="flex items-center gap-[10px]">
+      <h1 className="flex items-center gap-[12px]">
         <span className="text-[26px] font-bold uppercase tracking-[.3em]">aura</span>
         <span className="h-[8px] w-[8px] rounded-full bg-accent" />
       </h1>
-      <p className="mt-3 whitespace-pre-line text-center text-[13.5px] font-normal leading-[1.55] text-muted">
+      <p className="mt-3 whitespace-pre-line text-center text-[14px] font-normal leading-[1.55] text-muted">
         {subtitle}
       </p>
 
@@ -167,7 +167,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <form onSubmit={handleAuthSubmit} className="mt-6 flex w-full flex-col gap-[14px]">
+          <form onSubmit={handleAuthSubmit} className="mt-6 flex w-full flex-col gap-[16px]">
             <div>
               <FieldLabel>Email</FieldLabel>
               <Input
@@ -191,7 +191,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShow((s) => !s)}
-                    className="text-[12px] font-semibold text-accent"
+                    className="text-[12px] font-medium text-accent"
                   >
                     {show ? "Сховати" : "Показати"}
                   </button>
@@ -214,7 +214,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => switchStep("forgot")}
-                className="py-1 text-center text-[13px] font-semibold text-accent"
+                className="py-1 text-center text-[13px] font-medium text-accent"
               >
                 Забув пароль?
               </button>
@@ -247,8 +247,8 @@ export default function LoginPage() {
       )}
 
       {step === "forgot" && (
-        <form onSubmit={handleForgotSubmit} className="mt-9 flex w-full flex-col gap-[14px]">
-          <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
+        <form onSubmit={handleForgotSubmit} className="mt-9 flex w-full flex-col gap-[16px]">
+          <p className="text-center text-[14px] font-normal leading-[1.55] text-muted">
             Введи свій email — надішлемо код
             <br />
             для зміни пароля
@@ -275,7 +275,7 @@ export default function LoginPage() {
             onClick={() => switchStep("auth")}
             className="flex items-center justify-center gap-1 py-1 text-center text-[13px] font-medium text-muted"
           >
-            <Icon name="chevronLeft" size={13} strokeWidth={1.8} />
+            <Icon name="chevronLeft" size={16} />
             Назад до входу
           </button>
         </form>
@@ -309,8 +309,8 @@ export default function LoginPage() {
       )}
 
       {step === "new-password" && (
-        <form onSubmit={handleNewPasswordSubmit} className="mt-9 flex w-full flex-col gap-[14px]">
-          <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
+        <form onSubmit={handleNewPasswordSubmit} className="mt-9 flex w-full flex-col gap-[16px]">
+          <p className="text-center text-[14px] font-normal leading-[1.55] text-muted">
             Код прийнято. Задай новий пароль
             <br />
             для свого акаунта
@@ -327,7 +327,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShow((s) => !s)}
-                  className="text-[12px] font-semibold text-accent"
+                  className="text-[12px] font-medium text-accent"
                 >
                   {show ? "Сховати" : "Показати"}
                 </button>

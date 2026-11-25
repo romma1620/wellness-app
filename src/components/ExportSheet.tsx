@@ -71,8 +71,8 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
         </div>
       )}
       {empty && (
-        <div className="mb-3 flex items-center gap-2 rounded-[13px] bg-primary-light px-4 py-3 text-[13px] font-semibold text-accent">
-          <Icon name="info" size={15} strokeWidth={1.8} />
+        <div className="mb-3 flex items-center gap-2 rounded-[12px] bg-primary-light px-4 py-3 text-[13px] font-medium text-accent">
+          <Icon name="info" size={16} />
           Немає даних за цей період.
         </div>
       )}
@@ -84,11 +84,11 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
             type="button"
             disabled={busy !== null}
             onClick={() => run(o.value)}
-            className="flex items-center justify-between gap-3 rounded-[13px] border border-line bg-field px-4 py-[14px] text-left text-[14px] font-semibold text-ink transition active:scale-[.99] disabled:opacity-60 disabled:active:scale-100"
+            className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-field px-4 py-[16px] text-left text-[14px] font-medium text-ink transition active:scale-[.99] disabled:opacity-60 disabled:active:scale-100"
           >
-            <span className="flex items-center gap-[10px]">
+            <span className="flex items-center gap-[12px]">
               <span className="flex text-accent">
-                <Icon name="file" size={16} strokeWidth={1.7} />
+                <Icon name="file" size={16} />
               </span>
               {o.label}
             </span>
@@ -96,7 +96,7 @@ export function ExportSheet({ open, onClose }: { open: boolean; onClose: () => v
               <Spinner className="h-4 w-4 text-accent" />
             ) : (
               <span className="flex text-muted" aria-hidden>
-                <Icon name="chevronRight" size={16} strokeWidth={1.8} />
+                <Icon name="chevronRight" size={16} />
               </span>
             )}
           </button>

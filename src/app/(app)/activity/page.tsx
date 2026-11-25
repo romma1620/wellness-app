@@ -113,7 +113,7 @@ export default function ActivityPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle right={<BackLink href="/analytics" />}>Активність за рік</PageTitle>
 
       <Segmented<MetricKey>
@@ -135,13 +135,13 @@ export default function ActivityPage() {
           <SectionLabel
             icon="grid"
             right={
-              <span className="flex items-center gap-[3px] text-[10.5px] font-medium text-muted">
+              <span className="flex items-center gap-[4px] text-[11px] font-medium text-muted">
                 менше
                 {LEVEL_OPACITY.map((o, lvl) => (
                   <span
                     key={lvl}
                     className={cn(
-                      "inline-block h-[10px] w-[10px] rounded-[3px]",
+                      "inline-block h-[10px] w-[10px] rounded-[4px]",
                       lvl === 0 ? "bg-field" : "bg-accent",
                     )}
                     style={{ opacity: lvl === 0 ? 1 : o }}
@@ -154,12 +154,12 @@ export default function ActivityPage() {
             {activeDays} {plural(activeDays, "день", "дні", "днів")} з даними
           </SectionLabel>
 
-          <div className="mx-auto grid w-full max-w-[340px] grid-cols-[32px_repeat(7,1fr)] gap-[3px]">
+          <div className="mx-auto grid w-full max-w-[340px] grid-cols-[32px_repeat(7,1fr)] gap-[4px]">
             <span />
             {COL_DAYS.map((jsDay) => (
               <span
                 key={jsDay}
-                className="pb-0.5 text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted"
+                className="pb-0.5 text-center text-[11px] font-medium text-muted"
               >
                 {weekdayHead(jsDay)}
               </span>
@@ -177,9 +177,9 @@ export default function ActivityPage() {
           </div>
 
           {selected && (
-            <div className="mt-3 rounded-[12px] bg-field px-3 py-2 text-[12.5px] font-semibold text-ink">
+            <div className="mt-3 rounded-[12px] bg-field px-3 py-2 text-[13px] font-medium text-ink">
               {humanDate(selected)}
-              <span className="ml-1.5 font-normal text-muted">{detailText(selected)}</span>
+              <span className="ml-2 font-normal text-muted">{detailText(selected)}</span>
             </div>
           )}
         </Card>
@@ -203,7 +203,7 @@ function FragmentRow({
 }) {
   return (
     <>
-      <span className="flex items-center text-[10px] font-medium text-muted">
+      <span className="flex items-center text-[11px] font-medium text-muted">
         {row.monthLabel}
       </span>
       {row.days.map((d, i) => {
@@ -216,13 +216,13 @@ function FragmentRow({
             aria-label={humanDate(d)}
             onClick={() => onSelect(d)}
             className={cn(
-              "h-[18px] rounded-[5px] transition",
+              "h-[18px] rounded-[4px] transition",
               selected === d && "ring-2 ring-accent",
             )}
           >
             <span
               className={cn(
-                "block h-full w-full rounded-[5px]",
+                "block h-full w-full rounded-[4px]",
                 lvl === 0 ? "bg-field" : "bg-accent",
               )}
               style={{ opacity: lvl === 0 ? 1 : LEVEL_OPACITY[lvl] }}

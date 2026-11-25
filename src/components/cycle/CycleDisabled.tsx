@@ -38,25 +38,25 @@ export function CycleDisabled({
   }
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle>Цикл</PageTitle>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div
-        className="flex flex-col items-center rounded-xl2 px-5 pb-6 pt-[22px] text-center"
+        className="flex flex-col items-center rounded-xl2 px-5 pb-6 pt-[24px] text-center"
         style={{
           background: `linear-gradient(140deg, ${phaseTint("menstrual")} 0%, var(--surface) 65%)`,
         }}
       >
         <div
-          className="flex h-14 w-14 items-center justify-center rounded-[18px]"
+          className="flex h-14 w-14 items-center justify-center rounded-[20px]"
           style={{ background: phaseTint("menstrual"), color: PHASE_COLORS.menstrual }}
         >
-          <Icon name="cycle" size={26} strokeWidth={1.6} />
+          <Icon name="cycle" size={26} />
         </div>
-        <div className="mt-3.5 text-[19px] font-bold text-ink">Трекінг циклу вимкнено</div>
-        <div className="mt-[7px] text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
+        <div className="mt-4 text-[20px] font-medium text-ink">Трекінг циклу вимкнено</div>
+        <div className="mt-[8px] text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           {entryCount > 0
             ? `Твої записи на місці — ${entryCount} ${plural(entryCount, "день", "дні", "днів")}. Увімкни, щоб знову бачити фазу, прогноз і фази в аналітиці.`
             : "Увімкни, щоб знову бачити календар, фазу й прогноз."}

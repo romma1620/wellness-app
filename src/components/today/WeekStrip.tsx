@@ -110,16 +110,16 @@ export function WeekStrip({ date, onSelect }: { date: string; onSelect: (iso: st
   const awayFromToday = date !== today || visibleWeek !== currentWeek;
 
   return (
-    <div className="flex flex-col gap-[6px]">
+    <div className="flex flex-col gap-[8px]">
       <div className="flex h-[22px] items-center justify-between px-[2px]">
-        <span className="text-[12px] font-semibold text-muted" aria-live="polite">
+        <span className="text-[12px] font-medium text-muted" aria-live="polite">
           {weekSpanLabel(visibleWeek)}
         </span>
         {awayFromToday && (
           <button
             type="button"
             onClick={() => (date === today ? scrollToWeek(currentWeek, true) : onSelect(today))}
-            className="rounded-full bg-primary-light px-[10px] py-[3px] text-[11px] font-bold text-accent transition active:scale-95"
+            className="rounded-full bg-primary-light px-[12px] py-[4px] text-[11px] font-medium text-accent transition active:scale-95"
           >
             Сьогодні
           </button>
@@ -134,7 +134,7 @@ export function WeekStrip({ date, onSelect }: { date: string; onSelect: (iso: st
         aria-label="Дні, гортай убік для інших тижнів"
       >
         {weeks.map((start) => (
-          <div key={start} className="flex w-full shrink-0 snap-start snap-always gap-[6px]">
+          <div key={start} className="flex w-full shrink-0 snap-start snap-always gap-[8px]">
             {Array.from({ length: 7 }, (_, k) => {
               const d = addDays(start, k);
               const selected = d === date;
@@ -149,7 +149,7 @@ export function WeekStrip({ date, onSelect }: { date: string; onSelect: (iso: st
                   aria-label={humanDate(d)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex flex-1 flex-col items-center gap-[2px] rounded-[13px] pb-2 pt-[9px] transition active:scale-95 disabled:active:scale-100",
+                    "flex flex-1 flex-col items-center gap-[2px] rounded-[12px] pb-2 pt-[8px] transition active:scale-95 disabled:active:scale-100",
                     selected
                       ? "bg-accent text-on-accent"
                       : future
@@ -157,12 +157,12 @@ export function WeekStrip({ date, onSelect }: { date: string; onSelect: (iso: st
                         : "bg-surface text-ink",
                   )}
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-[.05em] opacity-75">
+                  <span className="text-[11px] font-medium opacity-75">
                     {weekdayHead(parseISODate(d).getDay())}
                   </span>
                   <span
                     className={cn(
-                      "text-[14px] font-semibold",
+                      "text-[14px] font-medium",
                       !selected && d === today && "text-accent",
                     )}
                   >

@@ -48,7 +48,7 @@ export function ExerciseAutocomplete({
         }}
       />
       {open && (matches.length > 0 || (q && !exactExists)) && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[13px] border border-line bg-surface p-1">
+        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[12px] border border-line bg-surface p-1">
           {matches.map((e) => (
             <button
               key={e.id}
@@ -58,7 +58,7 @@ export function ExerciseAutocomplete({
                 onPick({ name: e.name, exerciseId: e.id, muscleGroup: e.muscle_group });
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-[13.5px] font-medium text-ink active:bg-field"
+              className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-[14px] font-medium text-ink active:bg-field"
             >
               <span className="truncate">{e.name}</span>
               {e.muscle_group && (
@@ -69,11 +69,11 @@ export function ExerciseAutocomplete({
           {q && !exactExists && (
             <div
               className={cn(
-                "flex items-center gap-[6px] px-3 py-2 text-[12px] font-semibold text-accent",
+                "flex items-center gap-[8px] px-3 py-2 text-[12px] font-medium text-accent",
                 matches.length > 0 && "border-t border-line",
               )}
             >
-              <Icon name="plus" size={11} strokeWidth={2.2} />
+              <Icon name="plus" size={12} strokeWidth={2.2} />
               <span className="truncate">додасться нова вправа «{value.trim()}»</span>
             </div>
           )}

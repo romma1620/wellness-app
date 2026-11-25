@@ -35,14 +35,14 @@ function FlowSelector({
   onChange: (v: Flow | null) => void;
 }) {
   const cell =
-    "box-border flex flex-1 flex-col items-center justify-end gap-[5px] rounded-[13px] border px-1 py-[10px] transition active:scale-95";
+    "box-border flex flex-1 flex-col items-center justify-end gap-[4px] rounded-[12px] border px-1 py-[12px] transition active:scale-95";
   const idle = "border-line bg-field";
   // Активний осередок — акцентний тінт без заливки: крапля лишається
   // кольору виділень, і шкала не втрачає свій градієнт на вибраному дні.
   const on = "border-transparent bg-primary-light";
 
   return (
-    <div className="flex gap-[7px]">
+    <div className="flex gap-[8px]">
       <button
         type="button"
         onClick={() => onChange(null)}
@@ -51,7 +51,7 @@ function FlowSelector({
       >
         <span
           className={cn(
-            "text-[15px] font-semibold leading-[17px]",
+            "text-[15px] font-medium leading-[17px]",
             value === null ? "text-accent" : "text-muted",
           )}
         >
@@ -59,8 +59,8 @@ function FlowSelector({
         </span>
         <span
           className={cn(
-            "text-[10.5px]",
-            value === null ? "font-semibold text-accent" : "font-medium text-muted",
+            "text-[11px]",
+            value === null ? "font-medium text-accent" : "font-medium text-muted",
           )}
         >
           немає
@@ -83,8 +83,8 @@ function FlowSelector({
             </svg>
             <span
               className={cn(
-                "text-[10.5px]",
-                active ? "font-semibold text-accent" : "font-medium text-muted",
+                "text-[11px]",
+                active ? "font-medium text-accent" : "font-medium text-muted",
               )}
             >
               {FLOW_LABELS[f]}
@@ -104,7 +104,7 @@ function EnergyBars({
   onChange: (v: number | null) => void;
 }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-2">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
@@ -167,7 +167,7 @@ export function DaySheet({
   // стає звіт про те, як воно пройшло. Два повідомлення про одне й те саме
   // поруч тільки змагалися б за увагу.
   const subtitle = (
-    <span className="flex flex-wrap items-center gap-x-1.5">
+    <span className="flex flex-wrap items-center gap-x-2">
       {meta && <span>{meta}</span>}
       {meta && <span aria-hidden>·</span>}
       {saveState === "idle" ? <span>зберігається одразу</span> : <SaveIndicator state={saveState} />}
@@ -214,7 +214,7 @@ export function DaySheet({
           <SectionLabel
             icon="bolt"
             right={
-              <span className="text-[12.5px] font-semibold text-accent">
+              <span className="text-[13px] font-medium text-accent">
                 {draft.energy ? `${draft.energy} / 5` : "—"}
               </span>
             }
@@ -239,11 +239,11 @@ export function DaySheet({
           <button
             type="button"
             onClick={() => setNoteOpen(true)}
-            className="flex items-center justify-between rounded-[13px] border border-line bg-field px-[14px] py-3 active:scale-[.99]"
+            className="flex items-center justify-between rounded-[12px] border border-line bg-field px-[16px] py-3 active:scale-[.99]"
           >
             <span className="text-[14px] font-medium text-muted">Нотатка</span>
             <span className="flex text-accent">
-              <Icon name="plus" size={15} strokeWidth={2} />
+              <Icon name="plus" size={16} strokeWidth={2} />
             </span>
           </button>
         )}

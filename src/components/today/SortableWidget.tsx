@@ -76,7 +76,7 @@ export function SortableWidget({
           {...attributes}
           {...listeners}
         >
-          <Icon name="grip" size={15} strokeWidth={1.8} />
+          <Icon name="grip" size={16} />
         </button>
       )}
     </div>

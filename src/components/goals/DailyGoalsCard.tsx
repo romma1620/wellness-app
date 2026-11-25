@@ -94,7 +94,7 @@ export function DailyGoalsCard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-[10px]">
+      <div className="grid grid-cols-2 gap-[12px]">
         <NumberField
           label="Калорії"
           suffix="ккал"
@@ -126,10 +126,10 @@ export function DailyGoalsCard() {
         />
       </div>
 
-      <Button type="button" onClick={save} loading={saving} className="mt-[14px] text-[14.5px]">
+      <Button type="button" onClick={save} loading={saving} className="mt-[16px] text-[15px]">
         {savedMsg ? (
           <>
-            <Icon name="check" size={15} strokeWidth={2.2} />
+            <Icon name="check" size={16} strokeWidth={2.2} />
             Збережено
           </>
         ) : (
@@ -137,7 +137,7 @@ export function DailyGoalsCard() {
         )}
       </Button>
 
-      <p className="mt-[10px] text-[11px] font-normal leading-[1.5] text-muted">
+      <p className="mt-[12px] text-[11px] font-normal leading-[1.5] text-muted">
         Порожнє поле — кільце в «Щоденнику» лишається без цілі, але показник пишеться далі.
       </p>
     </Card>

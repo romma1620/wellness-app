@@ -50,7 +50,7 @@ export function CodeInput({
         disabled={disabled}
         className="absolute inset-0 z-10 w-full cursor-pointer opacity-0"
       />
-      <div className="pointer-events-none flex justify-center gap-[9px]">
+      <div className="pointer-events-none flex justify-center gap-[8px]">
         {Array.from({ length: OTP_LENGTH }).map((_, i) => {
           const digit = value[i];
           const active = focused && i === activeIndex && value.length < OTP_LENGTH;
@@ -58,7 +58,7 @@ export function CodeInput({
             <div
               key={i}
               className={cn(
-                "flex h-[54px] w-[44px] items-center justify-center rounded-[13px] border bg-field text-[22px] font-semibold text-ink transition-colors",
+                "flex h-[54px] w-[44px] items-center justify-center rounded-[12px] border bg-field text-[24px] font-medium text-ink transition-colors",
                 error
                   ? "border-neg"
                   : active

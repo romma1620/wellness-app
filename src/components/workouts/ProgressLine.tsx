@@ -91,7 +91,7 @@ export function ProgressLine({ data, unit }: { data: ExercisePoint[]; unit: stri
           </circle>
         ))}
       </g>
-      <g fill="var(--muted)" fontSize={10} fontWeight={500} fontFamily="inherit" textAnchor="middle">
+      <g fill="var(--muted)" fontSize={11} fontWeight={400} fontFamily="inherit" textAnchor="middle">
         {coords.map((p, i) =>
           labels.has(i) ? (
             <text key={p.date} x={p.cx} y={H - 6}>

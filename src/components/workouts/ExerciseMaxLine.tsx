@@ -19,8 +19,8 @@ export function ExerciseMaxLine({ max, sets }: { max: ExerciseMax | null; sets: 
 
   if (state.kind === "beaten") {
     return (
-      <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-pos">
-        <Icon name="arrowUp" size={11} strokeWidth={2} />
+      <div className="mt-2 flex items-center gap-1 text-[12px] font-medium text-pos">
+        <Icon name="arrowUp" size={12} strokeWidth={2} />
         Новий рекорд · +{fmt(state.delta, 1)} кг
       </div>
     );

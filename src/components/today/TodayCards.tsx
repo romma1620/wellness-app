@@ -40,7 +40,7 @@ function GoalCheer({ pose, title, text }: { pose: OriPose; title: string; text: 
       title={title}
       text={text}
       size="sm"
-      className="aura-fade mt-[14px] border-t border-line pt-[12px]"
+      className="aura-fade mt-[16px] border-t border-line pt-[12px]"
     />
   );
 }
@@ -66,13 +66,13 @@ export function WeightCard({
           weekDelta != null && Math.abs(weekDelta) >= 0.05 ? (
             <span
               className={cn(
-                "flex items-center gap-1 rounded-full px-[10px] py-1 text-[11.5px] font-semibold",
+                "flex items-center gap-1 rounded-full px-[12px] py-1 text-[12px] font-medium",
                 weekDelta < 0
                   ? "bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] text-pos"
                   : "bg-[color:color-mix(in_oklab,var(--warn)_14%,transparent)] text-warn",
               )}
             >
-              <Icon name={weekDelta < 0 ? "arrowDown" : "arrowUp"} size={11} strokeWidth={2} />
+              <Icon name={weekDelta < 0 ? "arrowDown" : "arrowUp"} size={12} strokeWidth={2} />
               {fmt(Math.abs(weekDelta), 1)} кг за тиждень
             </span>
           ) : undefined
@@ -92,7 +92,7 @@ export function WeightCard({
             <span className="shrink-0 text-[14px] font-medium text-muted">кг</span>
           </div>
           {input.outOfRange && (
-            <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 30–200</div>
+            <div className="mt-1 text-[11px] font-medium text-neg">Допустимо 30–200</div>
           )}
         </div>
         <Sparkline values={spark} />
@@ -138,7 +138,7 @@ export function StepsCard({
             <span className="shrink-0 text-[14px] font-medium text-muted">кроків</span>
           </div>
           {input.outOfRange && (
-            <div className="mt-1 text-[11px] font-semibold text-neg">Допустимо 0–100 000</div>
+            <div className="mt-1 text-[11px] font-medium text-neg">Допустимо 0–100 000</div>
           )}
         </div>
         <Sparkline values={spark} />
@@ -167,12 +167,12 @@ export function WaterCard({
     <Card>
       <SectionLabel
         icon="droplet"
-        className="mb-[14px]"
+        className="mb-[16px]"
         right={
           <span
             className={cn(
-              "flex items-center gap-[5px] text-[13px] font-bold",
-              water.filled >= water.slots ? "text-pos" : "text-accent",
+              "flex items-center gap-[4px] text-[13px] font-medium",
+              water.filled >= water.slots ? "text-pos" : "text-ink",
             )}
           >
             {water.filled >= water.slots && <Icon name="check" size={12} strokeWidth={2.4} />}
@@ -194,7 +194,7 @@ export function NutritionCard({ form, set }: { form: DailyForm; set: FieldSetter
   return (
     <Card>
       <SectionLabel icon="fork">Харчування</SectionLabel>
-      <div className="grid grid-cols-2 gap-[10px]">
+      <div className="grid grid-cols-2 gap-[12px]">
         <NumberField
           label="Калорії"
           suffix="ккал"
@@ -223,9 +223,9 @@ export function NutritionCard({ form, set }: { form: DailyForm; set: FieldSetter
 /** Спорт і догляд — одна картка на дві секції, розділені лінією. */
 export function ActivityCard({ form, set }: { form: DailyForm; set: FieldSetter }) {
   return (
-    <Card className="flex flex-col gap-[14px]">
+    <Card className="flex flex-col gap-[16px]">
       <div>
-        <SectionLabel icon="dumbbell" className="mb-[10px]">
+        <SectionLabel icon="dumbbell" className="mb-[12px]">
           Спорт
         </SectionLabel>
         <TagInput
@@ -234,8 +234,8 @@ export function ActivityCard({ form, set }: { form: DailyForm; set: FieldSetter 
           placeholder="зал, пілатес…"
         />
       </div>
-      <div className="border-t border-line pt-[14px]">
-        <SectionLabel icon="leaf" className="mb-[10px]">
+      <div className="border-t border-line pt-[16px]">
+        <SectionLabel icon="leaf" className="mb-[12px]">
           Догляд за шкірою
         </SectionLabel>
         <PresetChips

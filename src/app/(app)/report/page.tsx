@@ -100,18 +100,18 @@ export default function ReportPage() {
   const emptyWeek = stats?.daysLogged === 0 && gym?.sessions === 0;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle right={<BackLink href="/analytics" />}>Тижневий звіт</PageTitle>
 
       {/* Перемикач тижня */}
-      <Card className="flex items-center justify-between !px-3 !py-[10px]">
+      <Card className="flex items-center justify-between !px-3 !py-[12px]">
         <IconButton
           icon="chevronLeft"
           label="Попередній тиждень"
           className="!bg-field"
           onClick={() => setOffset((o) => o + 1)}
         />
-        <span className="text-[14px] font-bold">{periodLabel("week", offset)}</span>
+        <span className="text-[14px] font-medium">{periodLabel("week", offset)}</span>
         <IconButton
           icon="chevronRight"
           label="Наступний тиждень"
@@ -137,19 +137,19 @@ export default function ReportPage() {
           <Card>
             <SectionLabel icon="scale">Вага</SectionLabel>
             <div className="flex items-end justify-between">
-              <div className="flex items-baseline gap-[6px]">
+              <div className="flex items-baseline gap-[8px]">
                 <span className="text-[34px] font-normal leading-[1.1] tracking-[-.01em]">
                   {fmt(stats.avgWeight, 1)}
                 </span>
                 {stats.avgWeight != null && (
-                  <span className="text-[12.5px] font-medium text-muted">кг у середньому</span>
+                  <span className="text-[13px] font-medium text-muted">кг у середньому</span>
                 )}
               </div>
               {stats.weightDiff != null && (
-                <div className="flex flex-col items-end gap-[3px]">
+                <div className="flex flex-col items-end gap-[4px]">
                   <span
                     className={cn(
-                      "flex items-center gap-[3px] rounded-full px-[9px] py-[3px] text-[11.5px] font-semibold",
+                      "flex items-center gap-[4px] rounded-full px-[8px] py-[4px] text-[12px] font-medium",
                       stats.weightDiff < 0
                         ? "bg-[color:color-mix(in_oklab,var(--pos)_13%,transparent)] text-pos"
                         : stats.weightDiff > 0
@@ -160,7 +160,7 @@ export default function ReportPage() {
                     {stats.weightDiff !== 0 && (
                       <Icon
                         name={stats.weightDiff < 0 ? "arrowDown" : "arrowUp"}
-                        size={10}
+                        size={12}
                         strokeWidth={2.2}
                       />
                     )}
@@ -184,7 +184,7 @@ export default function ReportPage() {
               />
               <HabitStat icon="fork" value={fmtInt(stats.avgKcal)} label="ккал / день" />
             </div>
-            <div className="mt-3 border-t border-line pt-3 text-center text-[11.5px] font-medium text-muted">
+            <div className="mt-3 border-t border-line pt-3 text-center text-[12px] font-medium text-muted">
               Щоденник заповнено {stats.daysLogged} / 7 днів
             </div>
           </Card>
@@ -199,21 +199,21 @@ export default function ReportPage() {
                 <span className="text-[24px] font-normal leading-[1.1] tracking-[-.01em]">
                   {gym.sessions}
                 </span>
-                <span className="text-[12.5px] font-medium text-muted">
+                <span className="text-[13px] font-medium text-muted">
                   {plural(gym.sessions, "сесія", "сесії", "сесій")} · тоннаж {fmtInt(gym.tonnage)} кг
                 </span>
               </div>
             )}
             {weekRecords.length > 0 && (
               <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
-                <div className="flex items-center gap-[6px] text-[11px] font-semibold uppercase tracking-[.09em] text-accent">
+                <div className="flex items-center gap-[8px] text-[13px] font-medium text-accent">
                   <Icon name="arrowUp" size={12} strokeWidth={2} />
                   Нові рекорди тижня
                 </div>
                 {weekRecords.map((r) => (
                   <div key={r.exerciseId} className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate text-[13.5px] font-medium">{r.name}</span>
-                    <span className="shrink-0 text-[13.5px] font-semibold">
+                    <span className="min-w-0 truncate text-[14px] font-medium">{r.name}</span>
+                    <span className="shrink-0 text-[14px] font-medium">
                       {fmt(r.weight, 1)} кг × {r.reps}
                     </span>
                   </div>
@@ -229,7 +229,7 @@ export default function ReportPage() {
                 icon="cycle"
                 right={
                   <span
-                    className="rounded-full px-[9px] py-[3px] text-[10.5px] font-semibold"
+                    className="rounded-full px-[8px] py-[4px] text-[11px] font-medium"
                     style={{
                       color: PHASE_COLORS[overlay.todayPhase],
                       background: `color-mix(in oklab, ${PHASE_COLORS[overlay.todayPhase]} 14%, transparent)`,
@@ -241,10 +241,10 @@ export default function ReportPage() {
               >
                 Цикл
               </SectionLabel>
-              <div className="text-[13.5px] font-semibold text-ink">{tip.title}</div>
-              <p className="mt-1 text-[12.5px] font-normal leading-[1.6] text-muted">{tip.text}</p>
+              <div className="text-[14px] font-medium text-ink">{tip.title}</div>
+              <p className="mt-1 text-[13px] font-normal leading-[1.6] text-muted">{tip.text}</p>
               {overlay.prediction && !overlay.prediction.rangeOnly && (
-                <div className="mt-3 border-t border-line pt-3 text-[11.5px] font-medium text-muted">
+                <div className="mt-3 border-t border-line pt-3 text-[12px] font-medium text-muted">
                   Наступна менструація ~ {shortDate(overlay.prediction.nextStart)}
                 </div>
               )}
@@ -267,12 +267,12 @@ function HabitStat({
   label: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-[6px] rounded-[12px] bg-field px-2 py-3 text-center">
+    <div className="flex flex-col items-center gap-[8px] rounded-[12px] bg-field px-2 py-3 text-center">
       <span className="flex text-accent">
-        <Icon name={icon} size={15} strokeWidth={1.7} />
+        <Icon name={icon} size={16} />
       </span>
       <span className="text-[20px] font-normal leading-[1.1] tracking-[-.01em]">{value}</span>
-      <span className="text-[10.5px] font-medium leading-[1.3] text-muted">{label}</span>
+      <span className="text-[11px] font-medium leading-[1.3] text-muted">{label}</span>
     </div>
   );
 }
