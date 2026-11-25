@@ -109,12 +109,15 @@ export function NumberField({
 
 // ----------------------- WaterDrops -----------------------
 /**
- * Склянки дня як ряд крапель: налита — залита кольором води, порожня — лише
- * приглушений контур. Тап по n-й ставить n, тап по останній налитій знімає її.
+ * Склянки дня як ряд крапель-емодзі: налита — кольорова 💧, порожня — та сама
+ * крапля, знебарвлена і приглушена. Тап по n-й ставить n, тап по останній
+ * налитій знімає її.
  *
- * Краплі діляться шириною картки: на цілі 8 кожна займає до 32px зони тапу, на
- * більшій — стискаються, а не переносяться на другий рядок. SVG тягнеться за
- * боксом сам, тож кегль рахувати не треба.
+ * Обводки навколо краплі нема — мішень це сам гліф, тож 30px зони тапу тримає
+ * обгортка. Краплі діляться шириною картки: на цілі 8 виходить рівно 30px, на
+ * більшій — стискаються, а не переносяться на другий рядок. Емодзі не тягнеться
+ * за боксом, як SVG, тож кегль рахуємо з тієї ж розкладки: ширина ряду це
+ * max-w-app мінус падінги екрана й картки, мінус проміжки між краплями.
  */
 export function WaterDrops({
   value,
@@ -126,8 +129,9 @@ export function WaterDrops({
   onChange: (v: number) => void;
 }) {
   const { slots, filled, over } = waterRow(value, goal);
+  const dropSize = `min(22px, calc((min(480px, 100vw) - ${80 + 6 * (slots - 1)}px) / ${slots} * 0.86))`;
   return (
-    <div className="flex items-center justify-between gap-[8px]">
+    <div className="flex items-center justify-between gap-[6px]">
       {Array.from({ length: slots }).map((_, i) => {
         const n = i + 1;
         const active = n <= filled;
@@ -139,22 +143,17 @@ export function WaterDrops({
             aria-pressed={active}
             onClick={() => onChange(filled === n && over === 0 ? n - 1 : n)}
             className={cn(
-              "flex aspect-square max-w-[32px] flex-1 items-center justify-center transition-transform duration-150 active:scale-90",
-              active ? "text-[color:var(--tint-teal-fg)]" : "text-muted opacity-60",
+              "flex aspect-square max-w-[30px] flex-1 items-center justify-center transition active:scale-90",
+              !active && "opacity-40 grayscale",
             )}
           >
-            <Icon
-              name="droplet"
-              size={24}
-              className="h-auto w-full max-w-[24px]"
-              fill={active ? "currentColor" : "none"}
-            />
+            <span aria-hidden className="leading-none" style={{ fontSize: dropSize }}>
+              💧
+            </span>
           </button>
         );
       })}
-      {over > 0 && (
-        <span className="shrink-0 pl-1 text-[12px] font-medium text-accent">+{over}</span>
-      )}
+      {over > 0 && <span className="shrink-0 pl-1 text-[12px] font-medium text-accent">+{over}</span>}
     </div>
   );
 }
