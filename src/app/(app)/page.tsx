@@ -295,7 +295,7 @@ export default function DiaryPage() {
   const canEdit = !loading && !!profileQ.data;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       {!editing && <Greeting />}
 
       <PageTitle
@@ -311,9 +311,9 @@ export default function DiaryPage() {
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex h-[34px] items-center gap-[6px] rounded-full bg-accent px-[14px] text-[13px] font-semibold text-on-accent transition active:scale-95"
+              className="flex h-[34px] items-center gap-[8px] rounded-full bg-accent px-[16px] text-[13px] font-medium text-on-accent transition active:scale-95"
             >
-              <Icon name="check" size={13} strokeWidth={2.2} />
+              <Icon name="check" size={16} strokeWidth={2.2} />
               Готово
             </button>
           ) : (
@@ -326,7 +326,7 @@ export default function DiaryPage() {
                   aria-label="Змінити порядок карток"
                   className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95"
                 >
-                  <Icon name="grid" size={15} strokeWidth={1.7} />
+                  <Icon name="grid" size={16} />
                 </button>
               )}
               <DateField
@@ -337,7 +337,7 @@ export default function DiaryPage() {
                 className="!w-auto shrink-0"
               >
                 <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95">
-                  <Icon name="calendar" size={15} strokeWidth={1.7} />
+                  <Icon name="calendar" size={16} />
                 </span>
               </DateField>
             </>
@@ -366,7 +366,7 @@ export default function DiaryPage() {
           onDragEnd={onDragEnd}
         >
           <SortableContext items={order} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col gap-[14px]">
+            <div className="flex flex-col gap-[16px]">
               {order.map((id) => (
                 <SortableWidget key={id} id={id} title={WIDGET_TITLES[id]} editing={editing}>
                   {widgets[id]}

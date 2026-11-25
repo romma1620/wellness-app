@@ -160,10 +160,10 @@ export default function InsightsPage() {
   const isEmpty = data !== null && data.days.length === 0 && data.tonnageByDate.size === 0;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle
         subtitle={
-          <p className="text-[12.5px] font-normal text-muted">
+          <p className="text-[13px] font-normal text-muted">
             Що насправді впливає — по твоїх тижнях за останні 6 місяців
           </p>
         }
@@ -203,7 +203,7 @@ export default function InsightsPage() {
 function MethodologyCard() {
   return (
     <Collapsible icon="info" title="Як це порахувано">
-      <div className="flex flex-col gap-2 text-[12.5px] font-normal leading-[1.55] text-muted">
+      <div className="flex flex-col gap-2 text-[13px] font-normal leading-[1.55] text-muted">
         <p>
           Дані згортаються в тижні Пн–Нд за останні {ANALYSIS_WEEKS} завершених тижнів.
           Тиждень враховується, коли метрику заповнено щонайменше 4 дні

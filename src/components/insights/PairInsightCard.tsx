@@ -58,7 +58,7 @@ export function PairInsightCard({
 
   return (
     <Card>
-      <div className="flex items-start gap-[13px]">
+      <div className="flex items-start gap-[12px]">
         <div
           className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
           style={{
@@ -66,14 +66,14 @@ export function PairInsightCard({
             color: copy.hex,
           }}
         >
-          <Icon name={copy.icon} size={17} strokeWidth={1.7} />
+          <Icon name={copy.icon} size={16} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-bold [text-wrap:pretty]">{title}</div>
-          <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
+          <div className="text-[14px] font-medium [text-wrap:pretty]">{title}</div>
+          <div className="mt-1 text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
             {text}
           </div>
-          <div className="mt-[10px] flex items-center justify-between">
+          <div className="mt-[12px] flex items-center justify-between">
             <span className="text-[11px] font-medium text-muted">
               {analysis.state === "collecting"
                 ? `${weeksLabel} з ${analysis.needed}`
@@ -84,11 +84,11 @@ export function PairInsightCard({
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
-                className="flex items-center gap-[3px] text-[12px] font-semibold text-accent"
+                className="flex items-center gap-[4px] text-[12px] font-medium text-accent"
               >
                 Деталі
                 <span className={cn("flex transition-transform", open && "rotate-180")}>
-                  <Icon name="chevronDown" size={13} strokeWidth={1.8} />
+                  <Icon name="chevronDown" size={16} />
                 </span>
               </button>
             )}
@@ -105,7 +105,7 @@ export function PairInsightCard({
             medianX={analysis.state === "link" ? analysis.medianX : undefined}
           />
           {analysis.r != null && (
-            <div className="mt-1.5 text-center text-[11px] font-medium text-muted">
+            <div className="mt-2 text-center text-[11px] font-medium text-muted">
               Звʼязок {STRENGTH_LABELS[strengthOf(analysis.r)]} (r {fmt(analysis.r, 2)})
             </div>
           )}

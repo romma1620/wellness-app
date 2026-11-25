@@ -20,7 +20,7 @@ import { DayPicker, type ClassNames, type DayButtonProps } from "react-day-picke
 import { uk } from "react-day-picker/locale";
 
 // ----------------------- Card -----------------------
-/** Пласка картка редизайну: 20px радіус, поверхня без тіні, 18px відступ. */
+/** Пласка картка редизайну: 20px радіус, поверхня без тіні, 20px відступ. */
 export function Card({
   children,
   className,
@@ -30,12 +30,12 @@ export function Card({
   className?: string;
   as?: "div" | "section" | "form";
 }) {
-  return <Tag className={cn("rounded-xl2 bg-surface p-[18px]", className)}>{children}</Tag>;
+  return <Tag className={cn("rounded-xl2 bg-surface p-[20px]", className)}>{children}</Tag>;
 }
 
 /**
- * Підпис секції: 11px, капітель, розріджений трекінг; іконка перед ним
- * завжди акцентна — так секції впізнаються швидше за текст.
+ * Підпис секції: 13px, звичайний регістр, приглушений. Іконка — того ж
+ * приглушеного кольору: акцент лишається для дії та головної цифри екрана.
  */
 export function SectionLabel({
   children,
@@ -52,13 +52,11 @@ export function SectionLabel({
   const label = (
     <span className="flex items-center gap-2">
       {icon && (
-        <span className="flex text-accent">
-          <Icon name={icon} size={15} />
+        <span className="flex w-4 justify-center text-muted">
+          <Icon name={icon} size={16} />
         </span>
       )}
-      <span className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
-        {children}
-      </span>
+      <span className="text-[13px] font-medium text-muted">{children}</span>
     </span>
   );
   if (right === undefined) return <div className={cn("mb-3", className)}>{label}</div>;
@@ -70,7 +68,7 @@ export function SectionLabel({
   );
 }
 
-/** Заголовок екрана: 24px, з опційним підзаголовком і слотом дій праворуч. */
+/** Заголовок екрана: 28px, з опційним підзаголовком і слотом дій праворуч. */
 export function PageTitle({
   children,
   subtitle,
@@ -85,8 +83,8 @@ export function PageTitle({
   return (
     <div className={cn("flex items-end justify-between gap-3 px-[2px]", className)}>
       <div className="min-w-0">
-        <h1 className="text-[24px] font-bold tracking-[-.01em]">{children}</h1>
-        {subtitle && <div className="mt-[3px] text-[12px] font-medium text-muted">{subtitle}</div>}
+        <h1 className="text-[28px] font-medium leading-[1.15] tracking-[-.01em]">{children}</h1>
+        {subtitle && <div className="mt-1 text-[13px] text-muted">{subtitle}</div>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </div>
@@ -104,13 +102,13 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
   ref,
 ) {
   const base =
-    "inline-flex w-full items-center justify-center gap-2 rounded-[15px] px-4 py-[15px] text-[15px] font-bold transition active:scale-[.98] disabled:opacity-60 disabled:active:scale-100";
+    "inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] px-4 text-[15px] font-medium transition-[transform,background-color,opacity] duration-150 active:scale-[.98] disabled:opacity-60 disabled:active:scale-100";
   const styles = {
     primary: "bg-accent text-on-accent",
-    outline: "border border-line bg-field text-ink text-[14px] font-semibold py-[14px]",
-    ghost: "bg-primary-light text-accent text-[14px] font-semibold py-[14px]",
+    outline: "border border-line bg-field text-ink text-[14px]",
+    ghost: "bg-primary-light text-accent text-[14px]",
     danger:
-      "border border-[color:color-mix(in_oklab,var(--neg)_35%,transparent)] bg-transparent text-neg text-[14px] font-semibold py-[14px]",
+      "border border-[color:color-mix(in_oklab,var(--neg)_35%,transparent)] bg-transparent text-neg text-[14px]",
   }[variant];
   return (
     <button
@@ -145,13 +143,15 @@ export function Pill({
   active?: boolean;
 }) {
   const cls = cn(
-    "flex items-center gap-[6px] rounded-full border px-3 py-[7px] text-[12px] font-semibold transition active:scale-95",
-    active ? "border-transparent bg-primary-light text-accent" : "border-line bg-surface text-accent",
+    "flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-[transform,background-color] duration-150 active:scale-[.97]",
+    active
+      ? "border-transparent bg-primary-light text-accent"
+      : "border-line bg-surface text-ink [&>svg]:text-muted",
     className,
   );
   const inner = (
     <>
-      {icon && <Icon name={icon} size={13} strokeWidth={1.8} />}
+      {icon && <Icon name={icon} size={16} />}
       {children}
     </>
   );
@@ -169,30 +169,34 @@ export function Pill({
   );
 }
 
-/** Кругла 34px кнопка з іконкою (шапка, навігація місяцями). */
+/** Кругла 36px кнопка з іконкою (шапка, навігація місяцями). */
 export const IconButton = forwardRef<
   HTMLButtonElement,
-  ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string; size?: number }
->(function IconButton({ icon, label, size = 15, className, ...rest }, ref) {
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    icon: IconName;
+    label: string;
+    size?: number;
+  }
+>(function IconButton({ icon, label, size = 16, className, ...rest }, ref) {
   return (
     <button
       ref={ref}
       type="button"
       aria-label={label}
       className={cn(
-        "flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95 disabled:opacity-40 disabled:active:scale-100",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition active:scale-95 disabled:opacity-40 disabled:active:scale-100",
         className,
       )}
       {...rest}
     >
-      <Icon name={icon} size={size} strokeWidth={1.7} />
+      <Icon name={icon} size={size} />
     </button>
   );
 });
 
 // ----------------------- Field / Input -----------------------
 export function FieldLabel({ children }: { children: ReactNode }) {
-  return <div className="mb-[6px] text-[11.5px] font-medium text-muted">{children}</div>;
+  return <div className="mb-[8px] text-[12px] font-medium text-muted">{children}</div>;
 }
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -207,7 +211,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-[13px] border bg-field px-[14px] py-3 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
+        "flex items-center gap-2 rounded-[12px] border bg-field px-[16px] py-3 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
         error ? "border-neg" : "border-line",
         className,
       )}
@@ -222,20 +226,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, ...rest }, ref) {
-    return (
-      <textarea
-        ref={ref}
-        className={cn(
-          "w-full resize-none rounded-[13px] border border-line bg-field px-[14px] py-3 text-[13.5px] font-normal leading-[1.6] text-ink outline-none transition-colors placeholder:text-muted focus:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
-          className,
-        )}
-        {...rest}
-      />
-    );
-  },
-);
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, ...rest }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      className={cn(
+        "w-full resize-none rounded-[12px] border border-line bg-field px-[16px] py-3 text-[14px] font-normal leading-[1.6] text-ink outline-none transition-colors placeholder:text-muted focus:border-[color:color-mix(in_oklab,var(--accent)_55%,transparent)]",
+        className,
+      )}
+      {...rest}
+    />
+  );
+});
 
 // ----------------------- DateField -----------------------
 
@@ -263,9 +268,9 @@ function PickerDay({ day, modifiers, className, children, ...rest }: DayButtonPr
       className={cn(
         "mx-auto flex h-[36px] w-[36px] items-center justify-center rounded-full text-[13px] transition",
         selected
-          ? "bg-accent font-bold text-on-accent"
+          ? "bg-accent font-medium text-on-accent"
           : today
-            ? "font-semibold text-accent ring-[1.5px] ring-inset ring-accent"
+            ? "font-medium text-accent ring-[1.5px] ring-inset ring-accent"
             : "font-medium text-ink",
         outside && !selected && "text-muted opacity-35",
         disabled && "cursor-not-allowed opacity-25",
@@ -298,9 +303,9 @@ const PICKER_CLASSES: Partial<ClassNames> = {
   button_next: cn(NAV_BUTTON, "absolute right-0 top-0 z-10"),
   chevron: "h-[16px] w-[16px] fill-current",
   month_caption: "mb-3 flex h-[30px] items-center justify-center",
-  caption_label: "text-[14px] font-bold",
+  caption_label: "text-[14px] font-medium",
   month_grid: "w-full border-collapse",
-  weekday: "pb-1.5 text-center text-[10px] font-semibold uppercase tracking-[.05em] text-muted",
+  weekday: "pb-2 text-center text-[11px] font-medium capitalize text-muted",
   day: "p-0 py-[2px] text-center align-middle",
 };
 
@@ -391,7 +396,7 @@ export function DateField({
               onChange(todayISO());
               setOpen(false);
             }}
-            className="mt-2 shrink-0 rounded-[13px] bg-primary-light py-3 text-center text-[13px] font-bold text-accent active:scale-[.99]"
+            className="mt-2 shrink-0 rounded-[12px] bg-primary-light py-3 text-center text-[13px] font-medium text-accent active:scale-[.99]"
           >
             Сьогодні
           </button>
@@ -426,16 +431,16 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-[6px] rounded-full px-[14px] py-2 text-[12.5px] transition active:scale-95",
+        "flex items-center gap-[8px] rounded-full px-[16px] py-2 text-[13px] transition active:scale-95",
         active
-          ? "bg-primary-light font-semibold text-accent"
+          ? "bg-primary-light font-medium text-accent"
           : dashed
             ? "border border-dashed border-line bg-transparent font-medium text-muted"
             : "border border-line bg-transparent font-medium text-muted",
         className,
       )}
     >
-      {icon && <Icon name={icon} size={11} strokeWidth={2} />}
+      {icon && <Icon name={icon} size={12} strokeWidth={2} />}
       {children}
     </button>
   );
@@ -461,7 +466,7 @@ export function Segmented<T extends string>({
     <div
       className={cn(
         "flex p-1",
-        variant === "surface" ? "rounded-[14px] bg-surface" : "rounded-[13px] border border-line",
+        variant === "surface" ? "rounded-[12px] bg-surface" : "rounded-[12px] border border-line",
       )}
     >
       {options.map((o) => {
@@ -474,9 +479,9 @@ export function Segmented<T extends string>({
             className={cn(
               "flex-1 text-center transition",
               variant === "surface"
-                ? "rounded-[10px] py-[9px] text-[13px]"
-                : "rounded-[9px] py-2 text-[12.5px]",
-              active ? "bg-primary-light font-bold text-accent" : "font-medium text-muted",
+                ? "rounded-[10px] py-[8px] text-[13px]"
+                : "rounded-[8px] py-2 text-[13px]",
+              active ? "bg-primary-light font-medium text-accent" : "font-medium text-muted",
             )}
           >
             {o.label}
@@ -513,7 +518,7 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[27px] w-[46px] shrink-0 rounded-[14px] border transition-colors",
+        "relative h-[27px] w-[46px] shrink-0 rounded-[12px] border transition-colors",
         checked ? "border-transparent bg-accent" : "border-line bg-field",
         disabled && "opacity-50",
       )}
@@ -545,7 +550,7 @@ export function FullLoader({ label = "Завантаження…" }: { label?: 
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted">
       <Spinner className="h-7 w-7 text-accent" />
-      <span className="text-[12.5px] font-medium">{label}</span>
+      <span className="text-[13px] font-medium">{label}</span>
     </div>
   );
 }
@@ -577,13 +582,13 @@ export function EmptyState({
       {mascot ? (
         <Ori pose={mascot} size={88} />
       ) : (
-        <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-primary-light text-accent">
+        <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[12px] bg-primary-light text-accent">
           <Icon name={icon} size={20} />
         </div>
       )}
-      <div className="text-[14.5px] font-bold text-ink">{title}</div>
+      <div className="text-[15px] font-medium text-ink">{title}</div>
       {hint && (
-        <div className="max-w-[260px] text-[12.5px] font-normal leading-[1.55] text-muted">
+        <div className="max-w-[260px] text-[13px] font-normal leading-[1.55] text-muted">
           {hint}
         </div>
       )}
@@ -594,7 +599,7 @@ export function EmptyState({
 // ----------------------- Error banner -----------------------
 export function ErrorBanner({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[13px] border border-neg/35 bg-neg/10 px-4 py-3 text-[13px] font-semibold text-neg">
+    <div className="rounded-[12px] border border-neg/35 bg-neg/10 px-4 py-3 text-[13px] font-medium text-neg">
       {children}
     </div>
   );
@@ -620,25 +625,27 @@ export function Collapsible({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 px-[18px] py-[15px] text-left"
+        className="flex w-full items-center justify-between gap-3 px-[20px] py-[16px] text-left"
         aria-expanded={open}
       >
         <div className="flex min-w-0 items-center gap-2">
           {icon && (
             <span className="flex shrink-0 text-accent">
-              <Icon name={icon} size={15} />
+              <Icon name={icon} size={16} />
             </span>
           )}
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-ink">{title}</div>
-            {subtitle && <div className="mt-0.5 text-[11.5px] font-normal text-muted">{subtitle}</div>}
+            <div className="text-[13px] font-medium text-ink">{title}</div>
+            {subtitle && (
+              <div className="mt-0.5 text-[12px] font-normal text-muted">{subtitle}</div>
+            )}
           </div>
         </div>
         <span className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")}>
-          <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+          <Icon name="chevronDown" size={16} />
         </span>
       </button>
-      {open && <div className="border-t border-line px-[18px] pb-[18px] pt-4">{children}</div>}
+      {open && <div className="border-t border-line px-[20px] pb-[20px] pt-4">{children}</div>}
     </div>
   );
 }
@@ -763,7 +770,7 @@ export function Sheet({
       >
         <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[17px] font-bold text-ink">{title}</div>
+            <div className="text-[17px] font-medium text-ink">{title}</div>
             {subtitle && (
               <div className="mt-0.5 text-[12px] font-medium text-muted">{subtitle}</div>
             )}
@@ -774,7 +781,7 @@ export function Sheet({
             aria-label="Закрити"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-field text-muted active:scale-95"
           >
-            <Icon name="x" size={13} strokeWidth={2} />
+            <Icon name="x" size={16} strokeWidth={2} />
           </button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>

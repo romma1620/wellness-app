@@ -288,11 +288,11 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
   if (loading) return <FullLoader />;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <div className="flex items-center justify-between gap-3 px-[2px]">
         <div className="flex min-w-0 items-center gap-3">
           <BackLink href="/workouts" />
-          <h1 className="truncate text-[24px] font-bold tracking-[-.01em]">
+          <h1 className="truncate text-[24px] font-medium tracking-[-.01em]">
             {workoutId ? "Редагувати" : "Нове тренування"}
           </h1>
         </div>
@@ -309,17 +309,17 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
           onChange={(v) => patch({ date: v || todayISO() })}
           label="Дата тренування"
         >
-          <span className="flex items-center justify-between gap-2 rounded-[13px] border border-line bg-field px-[14px] py-3">
-            <span className="text-[14px] font-semibold text-ink">{humanDate(draft.date)}</span>
+          <span className="flex items-center justify-between gap-2 rounded-[12px] border border-line bg-field px-[16px] py-3">
+            <span className="text-[14px] font-medium text-ink">{humanDate(draft.date)}</span>
             <span aria-hidden className="shrink-0 text-muted">
-              <Icon name="chevronDown" size={16} strokeWidth={1.8} />
+              <Icon name="chevronDown" size={16} />
             </span>
           </span>
         </DateField>
 
         {routines.length > 0 && (
           <>
-            <SectionLabel icon="grid" className="mb-[10px] mt-4">
+            <SectionLabel icon="grid" className="mb-[12px] mt-4">
               Шаблон
             </SectionLabel>
             <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
                 className={MOVE_BTN}
               >
                 <span className="flex rotate-180">
-                  <Icon name="chevronDown" size={15} strokeWidth={1.8} />
+                  <Icon name="chevronDown" size={16} />
                 </span>
               </button>
               <button
@@ -370,7 +370,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
                 aria-label="Вниз"
                 className={MOVE_BTN}
               >
-                <Icon name="chevronDown" size={15} strokeWidth={1.8} />
+                <Icon name="chevronDown" size={16} />
               </button>
             </div>
             <ExerciseMaxLine
@@ -420,9 +420,9 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
               onClick={() =>
                 setDraft((d) => ({ ...d, exercises: d.exercises.filter((e) => e.key !== ex.key) }))
               }
-              className="flex items-center gap-[5px] px-1 text-[12px] font-semibold text-neg"
+              className="flex items-center gap-[4px] px-1 text-[12px] font-medium text-neg"
             >
-              <Icon name="trash" size={12} strokeWidth={1.8} />
+              <Icon name="trash" size={12} />
               Прибрати вправу
             </button>
           </div>
@@ -433,17 +433,17 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
         <button
           type="button"
           onClick={() => setDraft((d) => ({ ...d, exercises: [...d.exercises, newDraftExercise()] }))}
-          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-medium text-accent transition active:scale-[.99]"
         >
-          <Icon name="plus" size={14} strokeWidth={2.2} />
+          <Icon name="plus" size={16} strokeWidth={2.2} />
           Додати вправу
         </button>
         <button
           type="button"
           onClick={() => setPasteOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-semibold text-accent transition active:scale-[.99]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-dashed border-line py-4 text-[14px] font-medium text-accent transition active:scale-[.99]"
         >
-          <Icon name="file" size={14} strokeWidth={2} />
+          <Icon name="file" size={16} strokeWidth={2} />
           Вставити текстом
         </button>
       </div>
@@ -465,7 +465,7 @@ export function WorkoutSessionEditor({ workoutId }: { workoutId: string | null }
 
       {workoutId && (
         <Button type="button" variant="danger" onClick={onDelete}>
-          <Icon name="trash" size={14} strokeWidth={1.8} />
+          <Icon name="trash" size={16} />
           Видалити тренування
         </Button>
       )}

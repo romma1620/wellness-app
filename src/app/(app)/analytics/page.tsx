@@ -358,7 +358,7 @@ export default function AnalyticsPage() {
   const againstLabel = typical && words ? words.against : `Проти ${cmpLabel}`;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle
         right={
           <>
@@ -394,10 +394,10 @@ export default function AnalyticsPage() {
           className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
         >
           <span className="flex flex-col gap-[2px]">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[.09em] text-muted">
+            <span className="text-[13px] font-medium text-muted">
               Період · порівняння
             </span>
-            <span className="text-[13px] font-semibold">
+            <span className="text-[13px] font-medium">
               {typical && words ? words.current : curLabel}
               <span className="font-normal text-muted"> проти </span>
               {typical ? "минулого" : cmpLabel}
@@ -409,7 +409,7 @@ export default function AnalyticsPage() {
               pickerOpen && "rotate-180",
             )}
           >
-            <Icon name="chevronDown" size={18} strokeWidth={1.8} />
+            <Icon name="chevronDown" size={18} />
           </span>
         </button>
         {pickerOpen && (
@@ -436,7 +436,7 @@ export default function AnalyticsPage() {
                     />
                   </label>
                 </div>
-                <div className="mt-1 text-[11.5px] font-normal text-muted">
+                <div className="mt-1 text-[12px] font-normal text-muted">
                   Порівнюється з попереднім відрізком тієї ж довжини: {cmpLabel}
                 </div>
               </>
@@ -482,9 +482,9 @@ export default function AnalyticsPage() {
           {/* Графік ваги */}
           <Card>
             <SectionLabel
-              className="mb-[10px]"
+              className="mb-[12px]"
               right={
-                <div className="flex gap-3 text-[11px] font-medium text-muted">
+                <div className="flex gap-3 text-[13px] font-medium text-muted">
                   <span className="text-accent">— вага</span>
                   <span>–&nbsp;–&nbsp;тренд</span>
                 </div>
@@ -522,10 +522,10 @@ export default function AnalyticsPage() {
           )}
 
           {/* Порівняння */}
-          <div className="px-[2px] text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+          <div className="px-[2px] text-[13px] font-medium text-muted">
             {againstLabel}
           </div>
-          <div className="grid grid-cols-2 gap-[10px]">
+          <div className="grid grid-cols-2 gap-[12px]">
             {METRICS.map((m, idx) => {
               const cur = metricAvg(curLogs, m.key);
               const prev = metricAvg(cmpLogs, m.key);
@@ -538,22 +538,22 @@ export default function AnalyticsPage() {
                 <div
                   key={m.key}
                   className={cn(
-                    "rounded-[18px] bg-surface p-[15px]",
+                    "rounded-[20px] bg-surface p-[16px]",
                     idx === METRICS.length - 1 && "col-span-2",
                   )}
                 >
-                  <div className="text-[11.5px] font-medium text-muted">{m.label}</div>
-                  <div className="mt-[6px] text-[23px] font-normal tracking-[-.01em]">
+                  <div className="text-[12px] font-medium text-muted">{m.label}</div>
+                  <div className="mt-[8px] text-[24px] font-normal tracking-[-.01em]">
                     {m.render(cur)}
                     {m.unit && cur != null && (
-                      <span className="ml-[5px] text-[11.5px] font-medium text-muted">
+                      <span className="ml-[4px] text-[12px] font-medium text-muted">
                         {m.unit}
                       </span>
                     )}
                   </div>
                   <div
                     className={cn(
-                      "mt-1 flex items-center gap-[3px] text-[11.5px] font-semibold",
+                      "mt-1 flex items-center gap-[4px] text-[12px] font-medium",
                       color,
                     )}
                   >
@@ -565,7 +565,7 @@ export default function AnalyticsPage() {
                           <span className="flex">
                             <Icon
                               name={dir === "up" ? "arrowUp" : "arrowDown"}
-                              size={11}
+                              size={12}
                               strokeWidth={2.2}
                             />
                           </span>
@@ -585,10 +585,10 @@ export default function AnalyticsPage() {
           {/* Графік кроків */}
           <Card>
             <SectionLabel
-              className="mb-[10px]"
+              className="mb-[12px]"
               right={
-                <span className="flex items-center gap-[6px] text-[11px] font-medium text-muted">
-                  <span className="inline-block h-[7px] w-[7px] rounded-[2px] bg-accent" />
+                <span className="flex items-center gap-[8px] text-[13px] font-medium text-muted">
+                  <span className="inline-block h-[7px] w-[7px] rounded-[4px] bg-accent" />
                   тис. кроків
                 </span>
               }
@@ -632,10 +632,10 @@ function PeriodStepper({
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-[11.5px] font-medium text-muted">{label}</span>
+      <span className="text-[12px] font-medium text-muted">{label}</span>
       <div className="flex items-center gap-1">
         <IconButton icon="chevronLeft" label="Раніше" onClick={onOlder} />
-        <span className="min-w-[112px] text-center text-[13px] font-semibold">{value}</span>
+        <span className="min-w-[112px] text-center text-[13px] font-medium">{value}</span>
         <IconButton icon="chevronRight" label="Пізніше" onClick={onNewer} disabled={!canNewer} />
       </div>
     </div>

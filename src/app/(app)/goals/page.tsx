@@ -146,7 +146,7 @@ export default function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-[14px]">
+      <div className="flex flex-col gap-[16px]">
         <PageTitle>Цілі</PageTitle>
         <FullLoader />
       </div>
@@ -157,13 +157,13 @@ export default function GoalsPage() {
   const target = profile?.target_weight ?? null;
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle>Цілі</PageTitle>
 
       {/* Поточна vs ціль */}
       <Card className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+          <div className="text-[13px] font-medium text-muted">
             Поточна вага
           </div>
           <div className="mt-2 text-[34px] font-normal leading-[1.1] tracking-[-.01em] text-ink">
@@ -178,9 +178,9 @@ export default function GoalsPage() {
           </div>
         </div>
         <div className="text-right">
-          <div className="flex items-center justify-end gap-[6px] text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+          <div className="flex items-center justify-end gap-[8px] text-[13px] font-medium text-muted">
             <span className="flex text-accent">
-              <Icon name="target" size={13} />
+              <Icon name="target" size={16} />
             </span>
             Ціль
           </div>
@@ -208,9 +208,9 @@ export default function GoalsPage() {
         <button
           type="button"
           onClick={() => setEditor({ id: null, weight: null, gift: "" })}
-          className="flex items-center gap-1 text-[12.5px] font-semibold text-accent"
+          className="flex items-center gap-1 text-[13px] font-medium text-accent"
         >
-          <Icon name="plus" size={13} strokeWidth={2} />
+          <Icon name="plus" size={16} strokeWidth={2} />
           Додати
         </button>
       </div>
@@ -274,7 +274,7 @@ export default function GoalsPage() {
               />
             </div>
           </div>
-          <div className="mt-4 flex flex-col gap-2.5">
+          <div className="mt-4 flex flex-col gap-3">
             <Button type="button" onClick={saveEditor} loading={saving}>
               Зберегти
             </Button>
@@ -288,7 +288,7 @@ export default function GoalsPage() {
                 loading={saving}
                 onClick={() => remove(editor.id as string)}
               >
-                <Icon name="trash" size={14} />
+                <Icon name="trash" size={16} />
                 Видалити сходинку
               </Button>
             )}

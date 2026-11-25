@@ -15,15 +15,15 @@ export function GoalBadge({ value, goal }: { value: number | null; goal: number 
   const frac = goalFraction(value, goal);
   if (goalReached(value, goal)) {
     return (
-      <span className="flex items-center gap-1 rounded-full bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] px-[10px] py-1 text-[11.5px] font-semibold text-pos">
-        <Icon name="check" size={11} strokeWidth={2.4} />
+      <span className="flex items-center gap-1 rounded-full bg-[color:color-mix(in_oklab,var(--pos)_14%,transparent)] px-[12px] py-1 text-[12px] font-medium text-pos">
+        <Icon name="check" size={12} strokeWidth={2.4} />
         {label}
       </span>
     );
   }
 
   return (
-    <span className="flex items-center gap-[6px] rounded-full bg-field px-[10px] py-1 text-[11.5px] font-semibold text-muted">
+    <span className="flex items-center gap-[8px] rounded-full bg-field px-[12px] py-1 text-[12px] font-medium text-muted">
       {goal !== null && (
         <span aria-hidden className="relative flex h-1 w-[44px] shrink-0 items-center">
           <span className="absolute inset-x-0 h-1 rounded-full bg-line" />

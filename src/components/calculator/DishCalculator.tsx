@@ -69,15 +69,15 @@ export function DishCalculator() {
           icon="fork"
           right={
             rawSum > 0 && (
-              <span className="text-[11px] font-semibold text-muted">разом {fmtGrams(rawSum)}</span>
+              <span className="text-[11px] font-medium text-muted">разом {fmtGrams(rawSum)}</span>
             )
           }
         >
           Інгредієнти (сира вага)
         </SectionLabel>
-        <div className="flex flex-col gap-[10px]">
+        <div className="flex flex-col gap-[12px]">
           {ingredients.map((ing, i) => (
-            <div key={ing.id} className="flex items-center gap-[10px]">
+            <div key={ing.id} className="flex items-center gap-[12px]">
               <RowNum>{i + 1}</RowNum>
               <Input
                 className="min-w-0 flex-1"
@@ -118,16 +118,16 @@ export function DishCalculator() {
         <SectionLabel
           icon="grid"
           right={
-            ok && <span className="text-[11px] font-semibold text-muted">частка страви</span>
+            ok && <span className="text-[11px] font-medium text-muted">частка страви</span>
           }
         >
           Готові порції
         </SectionLabel>
-        <div className="flex flex-col gap-[10px]">
+        <div className="flex flex-col gap-[12px]">
           {portions.map((p, i) => {
             const share = shareByIndex.get(i);
             return (
-              <div key={p.id} className="flex items-center gap-[10px]">
+              <div key={p.id} className="flex items-center gap-[12px]">
                 <RowNum>{i + 1}</RowNum>
                 <Input
                   className="min-w-0 flex-1"
@@ -137,7 +137,7 @@ export function DishCalculator() {
                 />
                 <span
                   className={cn(
-                    "w-[56px] shrink-0 text-right text-[16px] font-bold tabular-nums",
+                    "w-[56px] shrink-0 text-right text-[16px] font-medium tabular-nums",
                     share === undefined ? "text-muted" : "text-accent",
                   )}
                 >
@@ -170,7 +170,7 @@ export function DishCalculator() {
             <SectionLabel
               icon="scale"
               right={
-                <span className="text-[11px] font-semibold text-muted">
+                <span className="text-[11px] font-medium text-muted">
                   {fmtInt(p.cooked)} г готової
                 </span>
               }
@@ -210,7 +210,7 @@ export function DishCalculator() {
       )}
 
       <Button type="button" variant="outline" onClick={reset}>
-        <Icon name="trash" size={15} strokeWidth={1.8} />
+        <Icon name="trash" size={16} />
         Очистити
       </Button>
     </>

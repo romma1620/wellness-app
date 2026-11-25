@@ -36,13 +36,13 @@ export function OriMessage({
 }) {
   const lg = size === "lg";
   return (
-    <div className={cn("flex items-center", lg ? "gap-3" : "gap-[10px]", className)}>
+    <div className={cn("flex items-center", lg ? "gap-3" : "gap-[12px]", className)}>
       <Ori pose={pose} size={lg ? 64 : 44} />
       <div className="min-w-0">
-        <p className={cn("font-semibold leading-tight", lg ? "text-[17px]" : "text-[13.5px]")}>
+        <p className={cn("font-medium leading-tight", lg ? "text-[17px]" : "text-[14px]")}>
           {title}
         </p>
-        <p className={cn("mt-[3px] text-muted", lg ? "text-[13px]" : "text-[12px]")}>{text}</p>
+        <p className={cn("mt-[4px] text-muted", lg ? "text-[13px]" : "text-[12px]")}>{text}</p>
       </div>
     </div>
   );

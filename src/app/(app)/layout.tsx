@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <QueryProvider>
         <ThemeProvider initialTheme={theme}>
           <div className="mx-auto min-h-dvh max-w-app bg-bg">
-            <div className="flex flex-col gap-[14px] px-[18px] pb-[130px] pt-[14px]">
+            <div className="flex flex-col gap-[16px] px-[20px] pb-[132px] pt-[16px]">
               <AppHeader />
               <main>{children}</main>
             </div>

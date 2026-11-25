@@ -21,9 +21,9 @@ export function CycleLengthSlider({
 
   return (
     <div>
-      <div className="relative h-[6px] rounded-[3px] bg-line">
+      <div className="relative h-[6px] rounded-[4px] bg-line">
         <div
-          className="absolute inset-y-0 left-0 rounded-[3px] bg-accent"
+          className="absolute inset-y-0 left-0 rounded-[4px] bg-accent"
           style={{ width: `${pct}%` }}
         />
         <div

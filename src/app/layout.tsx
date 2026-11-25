@@ -7,7 +7,7 @@ import "./globals.css";
 
 const madefor = Wix_Madefor_Display({
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });

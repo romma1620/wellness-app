@@ -34,16 +34,27 @@ const Ctx = createContext<ThemeCtx | null>(null);
 
 export const STORAGE_KEY = "aura-theme";
 
+/**
+ * Ставить атрибут теми/режиму. Лише справжня зміна вмикає на ~300мс плавний
+ * перехід кольорів (data-switching у globals.css) — постійний transition на
+ * кожному вузлі гальмував би весь інтерфейс.
+ */
+function setRootAttr(key: "theme" | "mode", value: string) {
+  const root = document.documentElement;
+  if (root.dataset[key] === value) return;
+  root.dataset.switching = "";
+  root.dataset[key] = value;
+  window.setTimeout(() => delete root.dataset.switching, 300);
+}
+
 function apply(theme: ThemeName) {
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.theme = theme;
-  }
+  if (typeof document !== "undefined") setRootAttr("theme", theme);
 }
 
 function applyMode(mode: ThemeMode) {
   if (typeof document === "undefined") return;
   const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.mode = resolveMode(mode, systemDark);
+  setRootAttr("mode", resolveMode(mode, systemDark));
 }
 
 // Режим живе в localStorage (він прив'язаний до пристрою, не до акаунта),

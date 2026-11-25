@@ -110,7 +110,7 @@ export default function WorkoutsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <PageTitle
         right={
           <Pill href="/workouts/routines" icon="grid">
@@ -166,7 +166,7 @@ export default function WorkoutsPage() {
 
           <WorkoutProgress exercises={exercises} loadSets={loadSets} />
 
-          <div className="px-[2px] pt-1 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
+          <div className="px-[2px] pt-1 text-[13px] font-medium text-muted">
             Історія
           </div>
 

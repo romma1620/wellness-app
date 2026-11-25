@@ -79,7 +79,7 @@ export function ScatterChart({
             values: xAxis.ticks,
             format: (v) => (xTickFormat ?? ((n: number) => fmtFixed(n, xAxis.decimals)))(v),
           },
-          tickLabels: { fontSize: 10, fontWeight: 500, opacity: 1 },
+          tickLabels: { fontSize: 11, fontWeight: 400, opacity: 1 },
         },
       },
       y: {
@@ -92,7 +92,7 @@ export function ScatterChart({
             values: yAxis.ticks,
             format: (v) => fmtFixed(v, yAxis.decimals),
           },
-          tickLabels: { fontSize: 10, fontWeight: 500, opacity: 1 },
+          tickLabels: { fontSize: 11, fontWeight: 400, opacity: 1 },
         },
       },
       theme: CHART_THEME,
@@ -108,7 +108,7 @@ export function ScatterChart({
         className="wellness-chart"
         ariaLabel={`Тижні за метрикою ${xLabel}`}
       />
-      <div className="mt-1 pr-1 text-right text-[10px] font-medium text-muted">{xLabel} →</div>
+      <div className="mt-1 pr-1 text-right text-[11px] font-medium text-muted">{xLabel} →</div>
     </div>
   );
 }

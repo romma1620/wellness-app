@@ -20,19 +20,19 @@ export function CycleRow({ date }: { date: string }) {
   return (
     <Link
       href="/cycle"
-      className="mt-[14px] flex w-full items-center gap-2 border-t border-line pt-3 text-left text-ink"
+      className="mt-[16px] flex w-full items-center gap-2 border-t border-line pt-3 text-left text-ink"
     >
       <span
         aria-hidden
         className="h-2 w-2 shrink-0 rounded-full"
         style={{ background: PHASE_COLORS[phase] }}
       />
-      <span className="text-[12px] font-semibold">
+      <span className="text-[12px] font-medium">
         День циклу {day}{" "}
         <span className="font-normal text-muted">· {PHASE_LABELS[phase].toLowerCase()}</span>
       </span>
       <span className="ml-auto flex text-muted">
-        <Icon name="chevronRight" size={14} strokeWidth={1.8} />
+        <Icon name="chevronRight" size={16} />
       </span>
     </Link>
   );
