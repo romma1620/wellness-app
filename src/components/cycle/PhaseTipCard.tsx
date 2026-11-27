@@ -9,16 +9,16 @@ import { PHASE_TIPS } from "@/lib/cycle/tips";
 export function PhaseTipCard({ phase }: { phase: Phase }) {
   const tip = PHASE_TIPS[phase];
   return (
-    <Card className="flex gap-[12px]">
+    <Card className="flex gap-[13px]">
       <div
         className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
         style={{ background: phaseTint(phase), color: PHASE_COLORS[phase] }}
       >
-        <Icon name={tip.icon} size={16} />
+        <Icon name={tip.icon} size={17} strokeWidth={1.6} />
       </div>
       <div>
-        <div className="text-[14px] font-medium text-ink">{tip.title}</div>
-        <div className="mt-1 text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
+        <div className="text-[13.5px] font-bold text-ink">{tip.title}</div>
+        <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           {tip.text}
         </div>
       </div>

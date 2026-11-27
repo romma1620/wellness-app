@@ -268,7 +268,7 @@ export default function CyclePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         <PageTitle>Цикл</PageTitle>
         <CycleSkeleton />
       </div>
@@ -277,7 +277,7 @@ export default function CyclePage() {
 
   if (error && !settings) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         <PageTitle>Цикл</PageTitle>
         <ErrorBanner>{error}</ErrorBanner>
       </div>
@@ -294,7 +294,7 @@ export default function CyclePage() {
 
   return (
     <>
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         <PageTitle
           right={
             <>

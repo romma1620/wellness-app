@@ -18,8 +18,6 @@
    ============================================================ */
 :root {
   --accent: #c9a254;
-  /* Акцент як текст: у світлому режимі темніший відтінок, щоб тримати 4.5:1 */
-  --accent-ink: #846523;
   --primary: var(--accent);
   --primary-light: color-mix(in oklab, var(--accent) 16%, transparent);
 
@@ -30,8 +28,8 @@
   --field: rgba(38, 32, 26, 0.04);
   --line: rgba(38, 32, 26, 0.1);
   --text: #26211c;
-  --muted: #72685f;
-  --on-accent: #26211c;
+  --muted: #8a8078;
+  --on-accent: #ffffff;
   --pos: #3e8a6b;
   --neg: #b55e4b;
   --warn: #a6712f;
@@ -45,19 +43,12 @@
 }
 [data-theme="mint"] {
   --accent: #8fae9b; /* Sage */
-  --accent-ink: #4f7562;
 }
 [data-theme="lavender"] {
   --accent: #a08bc0; /* Mauve */
-  --accent-ink: #715a94;
 }
 [data-theme="pink"] {
   --accent: #c98963; /* Copper */
-  --accent-ink: #99583a;
-}
-/* У темному режимі акцент і так світлий — текстом іде він сам */
-[data-mode="dark"] {
-  --accent-ink: var(--accent);
 }
 
 [data-mode="dark"] {
@@ -133,25 +124,17 @@ html[data-mode="dark"] {
 body {
   background: var(--bg);
   color: var(--text);
-  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Плавний перехід кольорів теми — лише на час перемикання (ThemeProvider
-   ставить data-switching на ~300мс), а не постійно на кожному вузлі */
-[data-switching] body,
-[data-switching] body * {
+/* Плавний перехід кольорів теми */
+body,
+body * {
   transition:
-    background-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Видиме кільце фокусу для клавіатури */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.2s ease;
 }
 
 /* Прибираємо стрілки у number-інпутів (використовуємо inputMode) */
@@ -195,7 +178,7 @@ input[type="number"] {
   }
 }
 .aura-fade {
-  animation: aura-fade-up 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: aura-fade-up 0.3s ease both;
 }
 
 /* Скелетони */
@@ -222,7 +205,7 @@ input[type="number"] {
   }
 }
 .aura-sheet {
-  animation: aura-sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: aura-sheet-up 0.22s ease-out both;
 }
 
 /* Тултипи TanStack Charts у стилі карток застосунку. */
@@ -231,7 +214,7 @@ input[type="number"] {
   --ts-chart-tooltip-border: 1px solid var(--line);
   --ts-chart-tooltip-border-radius: 12px;
   --ts-chart-tooltip-shadow: 0 12px 28px -14px var(--shadow-up);
-  --ts-chart-tooltip-font: 500 12px/1.5 var(--font-sans), system-ui, sans-serif;
+  --ts-chart-tooltip-font: 600 11px/1.45 var(--font-sans), system-ui, sans-serif;
   --ts-chart-tooltip-color: var(--text);
 }
 

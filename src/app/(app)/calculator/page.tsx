@@ -23,7 +23,7 @@ export default function FoodCalculatorPage() {
   const [mode, setMode] = useState<Mode>("product");
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       <PageTitle subtitle={SUBTITLES[mode]} right={<BackLink href="/settings" />}>
         Калькулятор їжі
       </PageTitle>
@@ -31,10 +31,10 @@ export default function FoodCalculatorPage() {
       <Segmented<Mode> options={MODES} value={mode} onChange={setMode} />
 
       {/* Обидва режими лишаються змонтованими: перемикання не губить введене. */}
-      <div className={cn("flex flex-col gap-[16px]", mode !== "product" && "hidden")}>
+      <div className={cn("flex flex-col gap-[14px]", mode !== "product" && "hidden")}>
         <ProductCalculator />
       </div>
-      <div className={cn("flex flex-col gap-[16px]", mode !== "dish" && "hidden")}>
+      <div className={cn("flex flex-col gap-[14px]", mode !== "dish" && "hidden")}>
         <DishCalculator />
       </div>
     </div>

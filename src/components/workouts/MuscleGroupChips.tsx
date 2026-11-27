@@ -16,7 +16,7 @@ export function MuscleGroupChips({
   onChange: (g: MuscleGroup | null) => void;
 }) {
   return (
-    <div className="mt-[12px]">
+    <div className="mt-[10px]">
       <FieldLabel>{"Група м'язів нової вправи"}</FieldLabel>
       <div className="flex flex-wrap gap-2">
         {MUSCLE_GROUPS.map((g) => (

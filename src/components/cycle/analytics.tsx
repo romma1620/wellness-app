@@ -153,13 +153,13 @@ export function PhaseBandsToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <Card className="flex items-center justify-between gap-3 !py-[16px]">
-      <div className="flex items-center gap-3">
+    <Card className="flex items-center justify-between gap-3 !py-[15px]">
+      <div className="flex items-center gap-2.5">
         <span
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ background: PHASE_COLORS.luteal }}
         />
-        <span className="text-[14px] font-medium text-ink">Показувати фази циклу</span>
+        <span className="text-[13.5px] font-semibold text-ink">Показувати фази циклу</span>
       </div>
       <Toggle label="Показувати фази циклу" checked={checked} onChange={onChange} />
     </Card>
@@ -168,14 +168,14 @@ export function PhaseBandsToggle({
 
 export function PhaseLegend() {
   return (
-    <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-2">
+    <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1.5">
       {PHASES.map((p) => (
-        <span key={p} className="flex items-center gap-2">
+        <span key={p} className="flex items-center gap-1.5">
           <span
-            className="h-2 w-2 shrink-0 rounded-[4px]"
+            className="h-2 w-2 shrink-0 rounded-[3px]"
             style={{ background: PHASE_COLORS[p], opacity: 0.55 }}
           />
-          <span className="text-[11px] font-medium" style={{ color: PHASE_COLORS[p] }}>
+          <span className="text-[10px] font-medium" style={{ color: PHASE_COLORS[p] }}>
             {PHASE_SHORT[p]}
           </span>
         </span>
@@ -203,18 +203,18 @@ export function WaterRetentionCard({
   const where = hint.phase === "menstrual" ? "у менструальній фазі" : "у пізній лютеїновій фазі";
 
   return (
-    <Card className="flex gap-[12px]">
+    <Card className="flex gap-[13px]">
       <div
         className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
         style={{ background: phaseTint("late_luteal"), color: PHASE_COLORS.late_luteal }}
       >
-        <Icon name="droplet" size={16} />
+        <Icon name="droplet" size={17} strokeWidth={1.6} />
       </div>
       <div>
-        <div className="text-[14px] font-medium text-ink">
+        <div className="text-[13.5px] font-bold text-ink">
           +{fmt(hint.deltaKg, 1)} кг проти фолікулярної фази
         </div>
-        <div className="mt-1 text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
+        <div className="mt-1 text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
           Ти {where}. Ймовірна затримка води, типово для цих днів. Порівнюй із тим самим
           днем минулого циклу.
         </div>
@@ -253,10 +253,10 @@ export function PhaseWeightCard({
       >
         Середня вага по фазах
       </SectionLabel>
-      <div className="flex flex-col gap-[12px]">
+      <div className="flex flex-col gap-[11px]">
         {stats.map((s) => (
-          <div key={s.phase} className="flex items-center gap-3">
-            <span className="w-[66px] shrink-0 text-[12px] font-medium text-muted">
+          <div key={s.phase} className="flex items-center gap-2.5">
+            <span className="w-[66px] shrink-0 text-[11.5px] font-medium text-muted">
               {PHASE_SHORT[s.phase]}
             </span>
             <div className="h-[8px] flex-1 rounded-[4px] bg-field">
@@ -269,7 +269,7 @@ export function PhaseWeightCard({
                 }}
               />
             </div>
-            <span className="w-11 shrink-0 text-right text-[12px] font-medium text-ink">
+            <span className="w-11 shrink-0 text-right text-[12px] font-semibold text-ink">
               {fmt(s.avg, 1)}
             </span>
           </div>

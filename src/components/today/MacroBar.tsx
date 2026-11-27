@@ -25,7 +25,7 @@ export function MacroBar({
     { pct: c, color: CARBS_COLOR },
   ];
   return (
-    <div className="mt-[16px] border-t border-line pt-3">
+    <div className="mt-[14px] border-t border-line pt-3">
       <div className="flex h-2 gap-[2px] overflow-hidden rounded-full" aria-hidden>
         {segs
           .filter((s) => s.pct > 0)
@@ -37,7 +37,7 @@ export function MacroBar({
             />
           ))}
       </div>
-      <div className="mt-[8px] flex justify-between text-[11px] font-medium text-muted">
+      <div className="mt-[9px] flex justify-between text-[10.5px] font-medium text-muted">
         <span>Білок {p}%</span>
         <span>Жири {f}%</span>
         <span>Вуглеводи {c}%</span>

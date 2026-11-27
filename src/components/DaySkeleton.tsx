@@ -17,7 +17,7 @@ const CHIP_WIDTHS = ["w-[62px]", "w-[58px]", "w-[66px]", "w-[62px]"];
  */
 export function DaySkeleton() {
   return (
-    <div className="flex flex-col gap-[16px]" aria-busy="true">
+    <div className="flex flex-col gap-[14px]" aria-busy="true">
       <span className="sr-only">Завантаження дня</span>
 
       {/* Вага: рядок підпису 22 + 12 + число 44 + графік */}
@@ -46,11 +46,11 @@ export function DaySkeleton() {
 
       {/* Вода: рядок підпису 15 + 14 + ряд крапель 30 */}
       <Card>
-        <div className="mb-[16px] flex items-center justify-between">
+        <div className="mb-[14px] flex items-center justify-between">
           <Skeleton className="h-[15px] w-[52px]" />
           <Skeleton className="h-[16px] w-[92px]" />
         </div>
-        <div className="flex justify-between gap-[8px]">
+        <div className="flex justify-between gap-[6px]">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-[30px] w-[30px] rounded-full" />
           ))}
@@ -61,24 +61,24 @@ export function DaySkeleton() {
           (підпис 14 + 6 + Input 46.5) з gap 10 = 143 */}
       <Card>
         <Skeleton className="mb-3 h-[15px] w-[96px]" />
-        <div className="grid grid-cols-2 gap-[12px]">
+        <div className="grid grid-cols-2 gap-[10px]">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i}>
-              <Skeleton className="mb-[8px] h-[14px] w-[54px]" />
-              <Skeleton className="h-[46.5px] w-full rounded-[12px]" />
+              <Skeleton className="mb-[6px] h-[14px] w-[54px]" />
+              <Skeleton className="h-[46.5px] w-full rounded-[13px]" />
             </div>
           ))}
         </div>
       </Card>
 
       {/* Спорт (заголовок 15 + 10 + чип 34.5) + роздільник + догляд (15 + 10 + чипи 34.5) */}
-      <Card className="flex flex-col gap-[16px]">
+      <Card className="flex flex-col gap-[14px]">
         <div>
-          <Skeleton className="mb-[12px] h-[15px] w-[54px]" />
+          <Skeleton className="mb-[10px] h-[15px] w-[54px]" />
           <Skeleton className="h-[34.5px] w-[92px] rounded-full" />
         </div>
-        <div className="border-t border-line pt-[16px]">
-          <Skeleton className="mb-[12px] h-[15px] w-[128px]" />
+        <div className="border-t border-line pt-[14px]">
+          <Skeleton className="mb-[10px] h-[15px] w-[128px]" />
           <div className="flex flex-wrap gap-2">
             {CHIP_WIDTHS.map((w, i) => (
               <Skeleton key={i} className={`h-[34.5px] rounded-full ${w}`} />
@@ -91,7 +91,7 @@ export function DaySkeleton() {
       {/* Нотатка: заголовок 15 + 12, далі textarea на 3 рядки ~91 */}
       <Card>
         <Skeleton className="mb-3 h-[15px] w-[104px]" />
-        <Skeleton className="h-[91px] w-full rounded-[12px]" />
+        <Skeleton className="h-[91px] w-full rounded-[13px]" />
       </Card>
     </div>
   );

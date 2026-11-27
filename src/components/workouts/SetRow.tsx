@@ -21,7 +21,7 @@ export function SetRow({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex w-5 shrink-0 items-center justify-center text-[12px] font-medium text-muted">
+      <div className="flex w-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
         {index + 1}
       </div>
       <div className="flex-1">
@@ -36,7 +36,7 @@ export function SetRow({
         aria-label="Прибрати підхід"
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition active:scale-90"
       >
-        <Icon name="x" size={16} strokeWidth={2} />
+        <Icon name="x" size={14} strokeWidth={2} />
       </button>
     </div>
   );

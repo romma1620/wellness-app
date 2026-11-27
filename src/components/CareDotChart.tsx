@@ -32,11 +32,11 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap gap-x-3 gap-y-2">
+      <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1.5">
         {rows.map((row) => (
           <span
             key={row.key}
-            className="flex items-center gap-[8px] text-[11px] font-medium text-muted"
+            className="flex items-center gap-[6px] text-[11px] font-medium text-muted"
           >
             <span
               className="h-[9px] w-[9px] shrink-0 rounded-full"
@@ -53,7 +53,7 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
       >
         {rows.map((row) => (
           <Fragment key={row.key}>
-            <div className="truncate pr-2 text-[11px] font-medium text-ink">{row.label}</div>
+            <div className="truncate pr-1.5 text-[11px] font-semibold text-ink">{row.label}</div>
             {dates.map((iso, i) => {
               const on = row.days[i] ?? false;
               const isActive = active?.key === row.key && active.iso === iso;
@@ -85,7 +85,7 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
                 </span>
               );
             })}
-            <div className="pl-1 text-right text-[11px] font-medium text-muted">
+            <div className="pl-1 text-right text-[10.5px] font-semibold text-muted">
               {row.count}
             </div>
           </Fragment>
@@ -95,7 +95,7 @@ export function CareDotChart({ rows, dates }: { rows: CareRow[]; dates: string[]
         {dates.map((iso) => (
           <div
             key={iso}
-            className="pt-1 text-center text-[11px] font-medium leading-none text-muted"
+            className="pt-1 text-center text-[9.5px] font-semibold leading-none text-muted"
           >
             {axisLabel(iso, weekMode)}
           </div>

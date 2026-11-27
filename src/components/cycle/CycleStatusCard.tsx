@@ -3,75 +3,65 @@
 import { phaseTint } from "@/components/cycle/tint";
 import type { Prediction } from "@/lib/cycle/predict";
 import { CONFIDENCE_LABELS, PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
-import { ringSegments } from "@/lib/cycle/ring";
 import { daysBetween, plural, shortDate } from "@/lib/utils";
 
-const SIZE = 88;
-const R = 37;
-const STROKE = 7;
+const SIZE = 78;
+const R = 33;
 const CIRC = 2 * Math.PI * R;
 /** Розрив між дугами, щоб межа фаз читалась як межа, а не як зміна кольору. */
-const GAP = 2;
+const GAP = 3;
 
-/**
- * Кільце всього циклу: кожна фаза — своя дуга у своєму кольорі, прожиті дні
- * насичені, майбутні — блідий слід, сьогодні — мітка на кільці. Видно і де
- * людина зараз, і що чекає далі.
- */
 function Ring({
   cycleDay,
   total,
   periodLength,
+  phase,
 }: {
   cycleDay: number;
   total: number;
   periodLength: number;
+  phase: Phase;
 }) {
-  const { span, segments } = ringSegments(cycleDay, total, periodLength);
+  const span = Math.max(total, cycleDay, 1);
+  const periodArc = (Math.min(periodLength, cycleDay) / span) * CIRC;
+  const sinceArc = (Math.max(0, cycleDay - periodLength) / span) * CIRC;
   const c = SIZE / 2;
-  const dayLen = CIRC / span;
-  const angle = ((cycleDay - 0.5) / span) * 2 * Math.PI - Math.PI / 2;
 
   return (
-    <div className="relative h-[88px] w-[88px] shrink-0">
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden>
-        <g transform={`rotate(-90 ${c} ${c})`}>
-          {segments.map((s) => {
-            // Розрив лише там, де змінюється фаза, а не на межі «сьогодні».
-            const len = Math.max(
-              0.5,
-              (s.to - s.from) * dayLen - (s.past && s.to === cycleDay && s.to < span ? 0 : GAP),
-            );
-            return (
-              <circle
-                key={`${s.phase}-${s.from}`}
-                cx={c}
-                cy={c}
-                r={R}
-                fill="none"
-                stroke={PHASE_COLORS[s.phase]}
-                strokeOpacity={s.past ? 1 : 0.28}
-                strokeWidth={STROKE}
-                strokeDasharray={`${len.toFixed(2)} ${CIRC.toFixed(2)}`}
-                strokeDashoffset={-(s.from * dayLen)}
-              />
-            );
-          })}
-        </g>
+    <div className="relative h-[78px] w-[78px] shrink-0">
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+        <circle cx={c} cy={c} r={R} fill="none" stroke="var(--line)" strokeWidth="6" />
         <circle
-          cx={c + R * Math.cos(angle)}
-          cy={c + R * Math.sin(angle)}
-          r={5}
-          fill="var(--text)"
-          stroke="var(--surface)"
-          strokeWidth={2.5}
+          cx={c}
+          cy={c}
+          r={R}
+          fill="none"
+          stroke={PHASE_COLORS.menstrual}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={`${periodArc.toFixed(1)} ${CIRC.toFixed(1)}`}
+          transform={`rotate(-90 ${c} ${c})`}
         />
+        {sinceArc > 0 && (
+          <circle
+            cx={c}
+            cy={c}
+            r={R}
+            fill="none"
+            stroke={PHASE_COLORS[phase]}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={`${sinceArc.toFixed(1)} ${CIRC.toFixed(1)}`}
+            strokeDashoffset={-(periodArc + GAP)}
+            transform={`rotate(-90 ${c} ${c})`}
+          />
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[15px] font-medium leading-none text-ink">
+        <span className="text-[15px] font-semibold leading-none text-ink">
           {cycleDay}/{total}
         </span>
-        <span className="mt-1 text-[11px] text-muted">днів</span>
+        <span className="mt-[3px] text-[9.5px] font-medium text-muted">днів</span>
       </div>
     </div>
   );
@@ -101,9 +91,11 @@ function forecastText(p: Prediction, today: string): string {
 
 function Tile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex-1 rounded-[12px] bg-field p-[12px] text-center">
-      <div className="text-[14px] font-medium leading-[1.25] text-ink">{value}</div>
-      <div className="mt-[2px] text-[11px] font-medium text-muted">{label}</div>
+    <div className="flex-1 rounded-[12px] bg-field p-[10px] text-center">
+      <div className="text-[14px] font-semibold leading-[1.25] text-ink">{value}</div>
+      <div className="mt-[2px] text-[10px] font-medium uppercase tracking-[.05em] text-muted">
+        {label}
+      </div>
     </div>
   );
 }
@@ -125,21 +117,19 @@ export function CycleStatusCard({
 
   return (
     <div
-      className="rounded-xl2 px-[20px] py-5"
-      style={{
-        background: `linear-gradient(140deg, ${tint} 0%, var(--surface) 65%)`,
-      }}
+      className="rounded-xl2 px-[18px] py-5"
+      style={{ background: `linear-gradient(140deg, ${tint} 0%, var(--surface) 65%)` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {phase && (
-            <div className="flex items-center gap-[8px]">
+            <div className="flex items-center gap-[7px]">
               <span
                 className="h-2 w-2 shrink-0 rounded-full"
                 style={{ background: PHASE_COLORS[phase] }}
               />
               <span
-                className="truncate text-[13px] font-medium"
+                className="truncate text-[11px] font-semibold uppercase tracking-[.09em]"
                 style={{ color: PHASE_COLORS[phase] }}
               >
                 {PHASE_LABELS[phase]}
@@ -149,7 +139,7 @@ export function CycleStatusCard({
           <div className="mt-2 text-[34px] font-normal leading-[1.1] tracking-[-.01em] text-ink">
             {cycleDay !== null ? `День ${cycleDay}` : "Ще без даних"}
           </div>
-          <div className="mt-2 text-[13px] font-normal leading-[1.5] text-muted [text-wrap:pretty]">
+          <div className="mt-2 text-[12.5px] font-normal leading-[1.5] text-muted [text-wrap:pretty]">
             {prediction
               ? forecastText(prediction, today)
               : "Відміть перший день менструації — і зʼявиться прогноз"}
@@ -161,15 +151,16 @@ export function CycleStatusCard({
             cycleDay={cycleDay}
             total={Math.round(prediction.avgLength)}
             periodLength={Math.round(prediction.avgPeriodLength)}
+            phase={phase}
           />
         )}
       </div>
 
       {prediction && (
         <div className="mt-4 flex gap-2">
-          <Tile value={shortDate(prediction.ovulation)} label="Овуляція" />
-          <Tile value={`${Math.round(prediction.avgLength)} дн.`} label="Сер. цикл" />
-          <Tile value={CONFIDENCE_LABELS[prediction.confidence]} label="Точність" />
+          <Tile value={shortDate(prediction.ovulation)} label="овуляція" />
+          <Tile value={`${Math.round(prediction.avgLength)} дн.`} label="сер. цикл" />
+          <Tile value={CONFIDENCE_LABELS[prediction.confidence]} label="точність" />
         </div>
       )}
     </div>
