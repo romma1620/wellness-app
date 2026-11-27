@@ -68,7 +68,7 @@ function Stepper({
   const btn =
     "flex h-7 w-7 items-center justify-center rounded-full border border-line bg-field text-ink transition active:scale-90 disabled:opacity-30 disabled:active:scale-100";
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <button
         type="button"
         className={btn}
@@ -90,7 +90,7 @@ function Stepper({
           <path d="M5 11h12" />
         </svg>
       </button>
-      <span className="min-w-[54px] text-center text-[14px] font-medium text-ink">
+      <span className="min-w-[54px] text-center text-[14px] font-semibold text-ink">
         {value} {suffix}
       </span>
       <button
@@ -100,7 +100,7 @@ function Stepper({
         aria-label={`${label}: більше`}
         onClick={() => onChange(value + 1)}
       >
-        <Icon name="plus" size={16} strokeWidth={2} />
+        <Icon name="plus" size={13} strokeWidth={2} />
       </button>
     </div>
   );
@@ -120,14 +120,14 @@ function Row({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 py-[16px]",
+        "flex items-center justify-between gap-3 py-[14px]",
         !last && "border-b border-line",
       )}
     >
       <div className="min-w-0">
-        <div className="text-[14px] font-medium text-ink">{title}</div>
+        <div className="text-[13.5px] font-semibold text-ink">{title}</div>
         {subtitle && (
-          <div className="mt-0.5 text-[12px] font-normal text-muted">{subtitle}</div>
+          <div className="mt-0.5 text-[11.5px] font-normal text-muted">{subtitle}</div>
         )}
       </div>
       {control}
@@ -217,7 +217,7 @@ export default function CycleSettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       <div className="flex items-center gap-3">
         <BackLink href="/settings" label="Назад до профілю" />
         <PageTitle className="flex-1">Цикл</PageTitle>
@@ -231,8 +231,8 @@ export default function CycleSettingsPage() {
         <>
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[14px] font-medium text-ink">Трекінг циклу</div>
-              <div className="mt-0.5 text-[12px] font-normal text-muted">
+              <div className="text-[13.5px] font-semibold text-ink">Трекінг циклу</div>
+              <div className="mt-0.5 text-[11.5px] font-normal text-muted">
                 вкладка «Цикл» і фази в аналітиці
               </div>
             </div>
@@ -286,8 +286,8 @@ export default function CycleSettingsPage() {
 
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[14px] font-medium text-ink">Фази на графіку ваги</div>
-              <div className="mt-0.5 text-[12px] font-normal text-muted">
+              <div className="text-[13.5px] font-semibold text-ink">Фази на графіку ваги</div>
+              <div className="mt-0.5 text-[11.5px] font-normal text-muted">
                 фонові смуги в «Аналітиці»
               </div>
             </div>
@@ -300,28 +300,28 @@ export default function CycleSettingsPage() {
 
           <Card>
             <SectionLabel icon="file">Дані циклу</SectionLabel>
-            <div className="text-[13px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
+            <div className="text-[12.5px] font-normal leading-[1.55] text-muted [text-wrap:pretty]">
               Вимкнення ховає фічу, але записи лишаються. Видалення прибирає їх назавжди —
               без відновлення.
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-3.5 flex gap-2.5">
               <Button
                 type="button"
                 variant="outline"
                 loading={busy === "export"}
                 onClick={exportCsv}
-                className="!py-[12px] !text-[14px]"
+                className="!py-[12px] !text-[13.5px]"
               >
-                <Icon name="download" size={16} />
+                <Icon name="download" size={15} strokeWidth={1.8} />
                 Експорт CSV
               </Button>
               <Button
                 type="button"
                 variant="danger"
                 onClick={() => setConfirmOpen(true)}
-                className="!py-[12px] !text-[14px]"
+                className="!py-[12px] !text-[13.5px]"
               >
-                <Icon name="trash" size={16} />
+                <Icon name="trash" size={15} strokeWidth={1.8} />
                 Видалити все
               </Button>
             </div>
@@ -338,7 +338,7 @@ export default function CycleSettingsPage() {
             аналітиці рахувати буде нізвідки. Відновити це неможливо — якщо потрібна копія,
             спершу зроби експорт CSV.
           </p>
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 flex flex-col gap-2.5">
             <Button
               type="button"
               variant="danger"

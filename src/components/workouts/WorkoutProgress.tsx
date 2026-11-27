@@ -94,11 +94,11 @@ export function WorkoutProgress({
 
       <ExercisePicker exercises={exercises} value={exId} onChange={setExId} />
 
-      <div className="mt-[12px]">
+      <div className="mt-[10px]">
         <Segmented variant="outline" options={METRIC_OPTS} value={metric} onChange={setMetric} />
       </div>
 
-      <div className="mt-[16px]">
+      <div className="mt-[14px]">
         {loading ? (
           <div className="flex h-[150px] items-center justify-center">
             <Spinner className="h-6 w-6 text-accent" />
@@ -128,7 +128,7 @@ export function WorkoutProgress({
               better="up"
             />
           </div>
-          <div className="mt-[12px] text-center text-[11px] font-medium text-muted">
+          <div className="mt-[10px] text-center text-[11px] font-medium text-muted">
             {shortDate(compare.current.date)}
             {compare.previous ? ` проти ${shortDate(compare.previous.date)}` : " · перша сесія"}
           </div>
@@ -155,15 +155,15 @@ function CompareCard({
   const diff = current != null && previous != null ? current - previous : null;
   const good = diff == null ? null : better === "up" ? diff >= 0 : diff <= 0;
   return (
-    <div className="rounded-[12px] bg-field p-[12px]">
-      <div className="text-[11px] font-medium text-muted">{title}</div>
-      <div className="mt-[8px] flex items-baseline gap-[4px]">
-        <span className="text-[24px] font-normal">{f(current)}</span>
-        <span className="text-[12px] font-medium text-muted">{unit}</span>
+    <div className="rounded-[13px] bg-field p-[13px]">
+      <div className="text-[11px] font-semibold uppercase tracking-[.09em] text-muted">{title}</div>
+      <div className="mt-[6px] flex items-baseline gap-[5px]">
+        <span className="text-[22px] font-normal">{f(current)}</span>
+        <span className="text-[11.5px] font-medium text-muted">{unit}</span>
         {diff != null && Math.abs(diff) >= 0.05 ? (
           <span
             className={cn(
-              "ml-auto flex items-center gap-[4px] text-[12px] font-medium",
+              "ml-auto flex items-center gap-[3px] text-[11.5px] font-semibold",
               good ? "text-pos" : "text-neg",
             )}
           >
@@ -171,7 +171,7 @@ function CompareCard({
             {fmt(Math.abs(diff), 1)}
           </span>
         ) : (
-          <span className="ml-auto text-[12px] font-medium text-muted">—</span>
+          <span className="ml-auto text-[11.5px] font-semibold text-muted">—</span>
         )}
       </div>
     </div>

@@ -83,10 +83,7 @@ export function NumberField({
   /** Для цілих полів («numeric») — інакше клавіатура пропонує кому. */
   inputMode?: "decimal" | "numeric";
 }) {
-  const { outOfRange, inputProps } = useDecimalBuffer(value, onChange, {
-    min,
-    max,
-  });
+  const { outOfRange, inputProps } = useDecimalBuffer(value, onChange, { min, max });
 
   return (
     <div>
@@ -99,7 +96,7 @@ export function NumberField({
         inputMode={inputMode ?? inputProps.inputMode}
       />
       {outOfRange && (
-        <div className="mt-1 text-[11px] font-medium text-neg">
+        <div className="mt-1 text-[11px] font-semibold text-neg">
           Допустимо {min}–{max}
         </div>
       )}
@@ -129,7 +126,7 @@ export function WaterDrops({
   onChange: (v: number) => void;
 }) {
   const { slots, filled, over } = waterRow(value, goal);
-  const dropSize = `min(22px, calc((min(480px, 100vw) - ${80 + 6 * (slots - 1)}px) / ${slots} * 0.86))`;
+  const dropSize = `min(22px, calc((min(480px, 100vw) - ${72 + 6 * (slots - 1)}px) / ${slots} * 0.86))`;
   return (
     <div className="flex items-center justify-between gap-[6px]">
       {Array.from({ length: slots }).map((_, i) => {
@@ -153,7 +150,7 @@ export function WaterDrops({
           </button>
         );
       })}
-      {over > 0 && <span className="shrink-0 pl-1 text-[12px] font-medium text-accent">+{over}</span>}
+      {over > 0 && <span className="shrink-0 pl-1 text-[12px] font-bold text-accent">+{over}</span>}
     </div>
   );
 }
@@ -196,7 +193,7 @@ function AddChip({
   }
 
   return (
-    <span className="flex items-center gap-[8px] rounded-full border border-line bg-field pl-[16px] pr-1">
+    <span className="flex items-center gap-[6px] rounded-full border border-line bg-field pl-[14px] pr-1">
       <input
         ref={inputRef}
         value={draft}
@@ -214,7 +211,7 @@ function AddChip({
           if (!draft.trim()) setOpen(false);
         }}
         placeholder={placeholder}
-        className="w-[110px] bg-transparent py-2 text-[13px] font-medium text-ink outline-none placeholder:text-muted"
+        className="w-[110px] bg-transparent py-2 text-[12.5px] font-medium text-ink outline-none placeholder:text-muted"
       />
       <button
         type="button"
@@ -276,7 +273,7 @@ export function PresetChips({
       {custom.map((c) => (
         <Chip key={c} active onClick={() => toggle(c)}>
           {c}
-          <Icon name="x" size={12} strokeWidth={2} />
+          <Icon name="x" size={11} strokeWidth={2} />
         </Chip>
       ))}
       <AddChip label={addLabel} placeholder={addPlaceholder} onAdd={addCustom} />
@@ -310,7 +307,7 @@ export function TagInput({
       {tags.map((t) => (
         <Chip key={t} active onClick={() => remove(t)}>
           {t}
-          <Icon name="x" size={12} strokeWidth={2} />
+          <Icon name="x" size={11} strokeWidth={2} />
         </Chip>
       ))}
       <AddChip label={addLabel} placeholder={placeholder} onAdd={add} />
@@ -341,11 +338,11 @@ export function SaveIndicator({ state }: { state: SaveState }) {
     <span
       role="status"
       className={cn(
-        "flex h-[26px] items-center gap-[4px] rounded-full px-[12px] text-[11px] font-medium",
+        "flex h-[26px] items-center gap-[5px] rounded-full px-[10px] text-[10.5px] font-semibold",
         cls,
       )}
     >
-      {icon && <Icon name={icon} size={12} strokeWidth={2.2} />}
+      {icon && <Icon name={icon} size={11} strokeWidth={2.2} />}
       {text}
     </span>
   );

@@ -24,7 +24,7 @@ export function AppHeader() {
 
   return (
     <div className="flex items-center justify-between px-1 py-[2px]">
-      <div className="flex items-center gap-[8px]">
+      <div className="flex items-center gap-[7px]">
         <span className="text-[13px] font-bold uppercase tracking-[.3em]">aura</span>
         <span className="h-[5px] w-[5px] rounded-full bg-accent" />
       </div>
@@ -34,7 +34,7 @@ export function AppHeader() {
         aria-label={resolved === "dark" ? "Увімкнути світлу тему" : "Увімкнути темну тему"}
         className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-line bg-surface text-muted active:scale-95"
       >
-        <Icon name={resolved === "dark" ? "sun" : "moon"} size={16} />
+        <Icon name={resolved === "dark" ? "sun" : "moon"} size={16} strokeWidth={1.7} />
       </button>
     </div>
   );

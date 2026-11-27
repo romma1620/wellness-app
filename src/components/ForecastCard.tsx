@@ -78,15 +78,15 @@ export function ForecastCard() {
     <Card>
       <SectionLabel
         icon="target"
-        className="mb-[8px]"
+        className="mb-[6px]"
         right={
           <span
             className={cn(
-              "flex items-center gap-1 text-[12px] font-medium",
+              "flex items-center gap-1 text-[11.5px] font-semibold",
               losing ? "text-pos" : "text-muted",
             )}
           >
-            <Icon name={losing ? "arrowDown" : "arrowUp"} size={12} strokeWidth={2} />
+            <Icon name={losing ? "arrowDown" : "arrowUp"} size={11} strokeWidth={2} />
             {fmt(Math.abs(view.perWeek), 2)} кг/тиж
           </span>
         }
@@ -97,23 +97,23 @@ export function ForecastCard() {
         {rows.map((r) => (
           <div
             key={r.label}
-            className="flex items-center justify-between gap-3 border-b border-line py-[12px] last:border-b-0 last:pb-0"
+            className="flex items-center justify-between gap-3 border-b border-line py-[11px] last:border-b-0 last:pb-0"
           >
             <div className="min-w-0">
-              <div className="text-[14px] font-medium">{r.label}</div>
+              <div className="text-[13.5px] font-semibold">{r.label}</div>
               {r.sub && (
                 <div className="mt-[2px] truncate text-[12px] font-normal text-muted">{r.sub}</div>
               )}
             </div>
             <div className="shrink-0 text-right">
               {r.eta.days === 0 ? (
-                <div className="flex items-center gap-1 text-[14px] font-medium text-pos">
+                <div className="flex items-center gap-1 text-[13.5px] font-semibold text-pos">
                   <Icon name="check" size={12} strokeWidth={2} />
                   вже досягнуто
                 </div>
               ) : (
                 <>
-                  <div className="text-[14px] font-medium text-accent">
+                  <div className="text-[13.5px] font-semibold text-accent">
                     ~ {shortDate(r.eta.date)}
                   </div>
                   <div className="mt-[2px] text-[11px] font-normal text-muted">

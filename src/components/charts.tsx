@@ -4,17 +4,7 @@ import { useMemo, useState } from "react";
 import { axisFor, niceAxis, sparklinePoints } from "@/lib/chart-scale";
 import { PHASE_COLORS, PHASE_LABELS, type Phase } from "@/lib/cycle/types";
 import { fmt, fmtFixed, fmtInt } from "@/lib/utils";
-import {
-  areaY,
-  bandX,
-  barY,
-  defineChart,
-  dot,
-  lineY,
-  rect,
-  ruleX,
-  whenFocused,
-} from "@tanstack/charts";
+import { bandX, barY, defineChart, dot, lineY, rect, ruleX, whenFocused } from "@tanstack/charts";
 import { d3Curve } from "@tanstack/charts/d3/shape";
 import { decorative } from "@tanstack/charts/mark/decorative";
 import { Chart } from "@tanstack/charts/react/tooltip";
@@ -54,28 +44,8 @@ const CHART_THEME = {
   grid: "var(--line)",
 };
 
-/** Підписи осей редизайну: 11px, вага 400, приглушені. */
-const TICK_LABELS = { fontSize: 11, fontWeight: 400, opacity: 1 } as const;
-
-/**
- * Вертикальне згасання акценту під лінією ваги. Градієнт оголошено в окремому
- * нульовому SVG: id у SVG спільні для документа, тож fill="url(#…)" у графіку
- * його знаходить. Кілька графіків на сторінці дають однакові дублікати — це
- * нешкідливо.
- */
-const WEIGHT_FADE_ID = "aura-weight-fade";
-function WeightFadeDefs() {
-  return (
-    <svg width={0} height={0} className="absolute" aria-hidden focusable="false">
-      <defs>
-        <linearGradient id={WEIGHT_FADE_ID} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={{ stopColor: "var(--accent)", stopOpacity: 0.26 }} />
-          <stop offset="1" style={{ stopColor: "var(--accent)", stopOpacity: 0 }} />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
+/** Підписи осей редизайну: 10px, вага 500, приглушені. */
+const TICK_LABELS = { fontSize: 10, fontWeight: 500, opacity: 1 } as const;
 
 /** Той самий вигін, що recharts type="monotone". */
 const monotone = d3Curve(curveMonotoneX);
@@ -151,26 +121,14 @@ export function WeightChart({
               }),
             ]
           : []),
-        // Площа під вагою — від низу осі до лінії, тим самим вигином.
-        decorative(
-          areaY(weightPoints, {
-            id: "weight-area",
-            x: "label",
-            y1: yLo,
-            y2: "weight",
-            fill: `url(#${WEIGHT_FADE_ID})`,
-            fillOpacity: 1,
-            curve: monotone,
-          }),
-        ),
         lineY(maPoints, {
           id: "ma",
           x: "label",
           y: "ma",
           stroke: "var(--muted)",
-          strokeWidth: 1.5,
+          strokeWidth: 1.8,
           strokeOpacity: 0.7,
-          strokeDasharray: "4 4",
+          strokeDasharray: "5 6",
           curve: monotone,
         }),
         lineY(weightPoints, {
@@ -182,23 +140,7 @@ export function WeightChart({
           curve: monotone,
         }),
         decorative(
-          dot(weightPoints, {
-            x: "label",
-            y: "weight",
-            r: 2.5,
-            fill: "var(--accent)",
-          }),
-        ),
-        // Останнє зважування — головна точка графіка: більша, з кільцем поверхні.
-        decorative(
-          dot(weightPoints.slice(-1), {
-            x: "label",
-            y: "weight",
-            r: 5,
-            fill: "var(--accent)",
-            stroke: "var(--surface)",
-            strokeWidth: 2.5,
-          }),
+          dot(weightPoints, { x: "label", y: "weight", r: 3, fill: "var(--accent)" }),
         ),
         whenFocused(
           dot(weightPoints, {
@@ -221,10 +163,7 @@ export function WeightChart({
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            ...TICK_LABELS,
-            thin: { minGap: 12, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 12, priority: "ends" } },
         },
       },
       y: {
@@ -248,41 +187,40 @@ export function WeightChart({
   }, [data, bands, cycleStarts]);
 
   return (
-    <>
-      <WeightFadeDefs />
-      <Chart
-        definition={definition}
-        height={176}
-        className="wellness-chart"
-        ariaLabel="Динаміка ваги"
-        renderTooltipBody={({ points }) => {
-          // Фаза лежить у самій точці даних, тому досить першої точки групи.
-          const p = points[0];
-          if (!p) return null;
-          const d = p.datum as WeightPoint;
-          const phase = d.phase ?? null;
-          return (
-            <div>
-              <div className="text-muted">{d.label}</div>
-              {d.weight != null && <div className="text-accent">Вага {fmt(d.weight, 1)} кг</div>}
-              {d.ma != null && <div className="text-muted">Тренд {fmt(d.ma, 1)} кг</div>}
-              {phase && (
-                <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
-                  {d.cycleDay != null && `День циклу ${d.cycleDay} · `}
-                  {PHASE_LABELS[phase]}
-                </div>
-              )}
-            </div>
-          );
-        }}
-      />
-    </>
+    <Chart
+      definition={definition}
+      height={160}
+      className="wellness-chart"
+      ariaLabel="Динаміка ваги"
+      renderTooltipBody={({ points }) => {
+        // Фаза лежить у самій точці даних, тому досить першої точки групи.
+        const p = points[0];
+        if (!p) return null;
+        const d = p.datum as WeightPoint;
+        const phase = d.phase ?? null;
+        return (
+          <div>
+            <div className="text-muted">{d.label}</div>
+            {d.weight != null && <div className="text-accent">Вага {fmt(d.weight, 1)} кг</div>}
+            {d.ma != null && <div className="text-muted">Тренд {fmt(d.ma, 1)} кг</div>}
+            {phase && (
+              <div className="mt-0.5" style={{ color: PHASE_COLORS[phase] }}>
+                {d.cycleDay != null && `День циклу ${d.cycleDay} · `}
+                {PHASE_LABELS[phase]}
+              </div>
+            )}
+          </div>
+        );
+      }}
+    />
   );
 }
 
 export function StepsBars({ data }: { data: { label: string; steps: number | null }[] }) {
   const definition = useMemo(() => {
-    const points = data.filter((d): d is { label: string; steps: number } => d.steps != null);
+    const points = data.filter(
+      (d): d is { label: string; steps: number } => d.steps != null,
+    );
     if (points.length === 0) return null;
     // Вісь рахуємо в тисячах — саме в них підписані тіки, тож і округлення має бути там.
     const maxK = Math.max(...points.map((d) => d.steps)) / 1000;
@@ -301,25 +239,16 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
         barY(points, {
           x: "label",
           y: "steps",
-          // Один акцент на графік: останній день — акцентом, решта — нейтраль.
-          fill: (d) =>
-            d.label === points[points.length - 1].label
-              ? "var(--accent)"
-              : "color-mix(in oklab, var(--text) 22%, transparent)",
-          radius: 4,
+          fill: "var(--accent)",
+          radius: 5,
         }),
       ],
       x: {
-        scale: scaleBand<string>()
-          .domain(data.map((d) => d.label))
-          .padding(0.22),
+        scale: scaleBand<string>().domain(data.map((d) => d.label)).padding(0.22),
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            ...TICK_LABELS,
-            thin: { minGap: 12, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 12, priority: "ends" } },
         },
       },
       y: {
@@ -343,7 +272,7 @@ export function StepsBars({ data }: { data: { label: string; steps: number | nul
   }, [data]);
 
   if (!definition) {
-    return <div className="py-6 text-center text-[13px] text-muted">Немає даних</div>;
+    return <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>;
   }
   // Легенду («тис. кроків») малює шапка картки, що викликає графік.
   return (
@@ -376,7 +305,7 @@ export function Sparkline({ values }: { values: number[] }) {
   }
   const pts = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} className="mt-2">
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} className="mt-1.5">
       <polyline
         points={pts}
         fill="none"
@@ -408,7 +337,9 @@ export function MetricLine({
   const definition = useMemo(() => {
     // Замість recharts connectNulls: марки отримують лише заповнені дні,
     // а повний список міток фіксує вісь X явним доменом.
-    const points = stableData.filter((d): d is { label: string; value: number } => d.value != null);
+    const points = stableData.filter(
+      (d): d is { label: string; value: number } => d.value != null,
+    );
     if (points.length === 0) return null;
     const vals = points.map((p) => p.value);
     const axis = niceAxis(Math.min(...vals), Math.max(...vals));
@@ -422,7 +353,9 @@ export function MetricLine({
           curve: monotone,
         }),
         // Статичні точки — декоративні, щоб не дублювати точки взаємодії лінії.
-        decorative(dot(points, { x: "label", y: "value", r: 3, fill: "var(--accent)" })),
+        decorative(
+          dot(points, { x: "label", y: "value", r: 3, fill: "var(--accent)" }),
+        ),
         // Аналог recharts activeDot: кільце над точкою під курсором.
         whenFocused(
           dot(points, {
@@ -437,16 +370,11 @@ export function MetricLine({
         ),
       ],
       x: {
-        scale: scalePoint<string>()
-          .domain(stableData.map((d) => d.label))
-          .padding(0.5),
+        scale: scalePoint<string>().domain(stableData.map((d) => d.label)).padding(0.5),
         axis: {
           line: false,
           ticks: { size: 0 },
-          tickLabels: {
-            ...TICK_LABELS,
-            thin: { minGap: 16, priority: "ends" },
-          },
+          tickLabels: { ...TICK_LABELS, thin: { minGap: 16, priority: "ends" } },
         },
       },
       y: {
@@ -470,7 +398,9 @@ export function MetricLine({
   }, [stableData]);
 
   if (!definition) {
-    return <div className="py-6 text-center text-[13px] text-muted">Немає даних</div>;
+    return (
+      <div className="py-6 text-center text-[12px] font-semibold text-muted">Немає даних</div>
+    );
   }
   return (
     <Chart

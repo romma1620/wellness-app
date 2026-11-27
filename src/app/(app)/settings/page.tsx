@@ -136,7 +136,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         <PageTitle>Профіль</PageTitle>
         <FullLoader />
       </div>
@@ -147,13 +147,13 @@ export default function SettingsPage() {
   const initial = (name || profile?.name || "").trim().charAt(0).toUpperCase();
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       <PageTitle>Профіль</PageTitle>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* Аватар */}
-      <div className="flex flex-col items-center gap-[12px] py-[8px]">
+      <div className="flex flex-col items-center gap-[10px] py-[6px]">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
@@ -172,14 +172,14 @@ export default function SettingsPage() {
             {uploading ? (
               <Spinner className="h-3.5 w-3.5" />
             ) : (
-              <Icon name="camera" size={16} />
+              <Icon name="camera" size={14} strokeWidth={1.8} />
             )}
           </span>
         </button>
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="text-[13px] font-medium text-accent"
+          className="text-[12.5px] font-semibold text-accent"
         >
           Змінити фото
         </button>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
             <FieldLabel>Імʼя</FieldLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Твоє імʼя" />
           </div>
-          <div className="grid grid-cols-2 gap-[12px]">
+          <div className="grid grid-cols-2 gap-[10px]">
             <div>
               <FieldLabel>Зріст</FieldLabel>
               <Input
@@ -219,11 +219,11 @@ export default function SettingsPage() {
             type="button"
             onClick={saveProfile}
             loading={saving}
-            className="mt-[2px] text-[15px]"
+            className="mt-[2px] text-[14.5px]"
           >
             {savedMsg ? (
               <>
-                <Icon name="check" size={16} strokeWidth={2.2} />
+                <Icon name="check" size={15} strokeWidth={2.2} />
                 Збережено
               </>
             ) : (
@@ -263,8 +263,8 @@ export default function SettingsPage() {
                 />
                 <span
                   className={cn(
-                    "text-[12px]",
-                    active ? "font-medium text-accent" : "font-medium text-muted",
+                    "text-[11.5px]",
+                    active ? "font-bold text-accent" : "font-medium text-muted",
                   )}
                 >
                   {a.label}
@@ -273,7 +273,7 @@ export default function SettingsPage() {
             );
           })}
         </div>
-        <div className="mt-[20px]">
+        <div className="mt-[18px]">
           <FieldLabel>Режим</FieldLabel>
           <Segmented variant="outline" options={MODE_OPTIONS} value={mode} onChange={setMode} />
           <p className="mt-2 text-[11px] font-normal text-muted">
@@ -286,10 +286,10 @@ export default function SettingsPage() {
       <Card>
         <SectionLabel>Експорт даних</SectionLabel>
         <Button type="button" variant="outline" onClick={() => setExportOpen(true)}>
-          <Icon name="download" size={16} />
+          <Icon name="download" size={16} strokeWidth={1.8} />
           Завантажити CSV
         </Button>
-        <p className="mt-[12px] text-center text-[12px] font-normal text-muted">
+        <p className="mt-[10px] text-center text-[11.5px] font-normal text-muted">
           Щоденник, заміри й тренування одним файлом
         </p>
       </Card>
@@ -322,11 +322,11 @@ export default function SettingsPage() {
 
       {/* Логаут */}
       <Button type="button" variant="danger" onClick={logout}>
-        <Icon name="logout" size={16} />
+        <Icon name="logout" size={15} strokeWidth={1.8} />
         Вийти з акаунта
       </Button>
 
-      <p className="pb-2 text-center text-[11px] font-normal text-muted">
+      <p className="pb-2 text-center text-[10.5px] font-normal uppercase tracking-[.08em] text-muted">
         aura · v2.0
       </p>
 
@@ -354,17 +354,17 @@ function SettingsLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-[12px] rounded-[16px] bg-surface px-4 py-[16px] active:scale-[.99]"
+      className="flex items-center gap-[13px] rounded-[16px] bg-surface px-4 py-[15px] active:scale-[.99]"
     >
       <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
-        <Icon name={icon} size={16} />
+        <Icon name={icon} size={17} strokeWidth={1.8} />
       </span>
       <span className="flex flex-col gap-[1px]">
-        <span className="text-[14px] font-medium">{title}</span>
-        <span className="text-[12px] font-normal text-muted">{subtitle}</span>
+        <span className="text-[14px] font-semibold">{title}</span>
+        <span className="text-[11.5px] font-normal text-muted">{subtitle}</span>
       </span>
       <span className="ml-auto flex text-muted">
-        <Icon name="chevronRight" size={16} />
+        <Icon name="chevronRight" size={16} strokeWidth={1.8} />
       </span>
     </Link>
   );

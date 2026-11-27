@@ -187,7 +187,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
 
 export function Icon({
   name,
-  size = 16,
+  size = 15,
   strokeWidth = 1.6,
   ...rest
 }: { name: IconName; size?: number; strokeWidth?: number } & Omit<

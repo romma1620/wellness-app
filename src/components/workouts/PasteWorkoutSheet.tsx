@@ -52,22 +52,22 @@ export function PasteWorkoutSheet({
         />
 
         {(count > 0 || result.skipped.length > 0) && (
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             {result.exercises.map((p, i) => (
               <div
                 key={i}
-                className="flex items-start justify-between gap-3 rounded-[12px] bg-field px-3 py-2"
+                className="flex items-start justify-between gap-3 rounded-[11px] bg-field px-3 py-2"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[14px] font-medium text-ink">{p.name}</div>
+                  <div className="truncate text-[13.5px] font-semibold text-ink">{p.name}</div>
                   {p.note && (
-                    <div className="truncate text-[12px] font-medium text-muted">{p.note}</div>
+                    <div className="truncate text-[11.5px] font-medium text-muted">{p.note}</div>
                   )}
                   {!known.has(p.name.trim().toLowerCase()) && (
-                    <div className="text-[11px] font-medium text-accent">нова вправа</div>
+                    <div className="text-[11px] font-semibold text-accent">нова вправа</div>
                   )}
                 </div>
-                <div className="shrink-0 text-[13px] font-medium tabular-nums text-muted">
+                <div className="shrink-0 text-[12.5px] font-semibold tabular-nums text-muted">
                   {parsedSummary(p)}
                 </div>
               </div>
@@ -75,9 +75,9 @@ export function PasteWorkoutSheet({
             {result.skipped.map((line, i) => (
               <div
                 key={`s${i}`}
-                className="flex items-center gap-2 rounded-[12px] px-3 py-[8px] text-[12px] font-medium text-neg"
+                className="flex items-center gap-2 rounded-[11px] px-3 py-[6px] text-[12px] font-medium text-neg"
               >
-                <Icon name="info" size={12} />
+                <Icon name="info" size={12} strokeWidth={1.8} />
                 <span className="min-w-0 truncate">Не розпізнано: {line}</span>
               </div>
             ))}

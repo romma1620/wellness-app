@@ -29,16 +29,16 @@ export function WorkoutList({
   const totalOf = new Map(totals.map((t) => [t.month, t]));
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       {groups.map((group) => {
         const total = totalOf.get(group.month);
         return (
           // не Card: рядки йдуть впритул до країв, а Card має вбудований відступ
           <div key={group.month} className="overflow-hidden rounded-xl2 bg-surface">
-            <div className="flex items-baseline justify-between px-[20px] pb-[12px] pt-4">
-              <div className="text-[15px] font-medium text-ink">{monthLabel(group.month)}</div>
+            <div className="flex items-baseline justify-between px-[18px] pb-[10px] pt-4">
+              <div className="text-[14.5px] font-bold text-ink">{monthLabel(group.month)}</div>
               {total && (
-                <div className="text-[12px] font-medium text-muted">
+                <div className="text-[11.5px] font-medium text-muted">
                   {total.sessions} {plural(total.sessions, "сесія", "сесії", "сесій")} ·{" "}
                   {fmtThousands(total.tonnage)} т
                 </div>
@@ -48,26 +48,26 @@ export function WorkoutList({
               <Link
                 key={w.id}
                 href={`/workouts/${w.id}`}
-                className="flex items-center gap-3 border-t border-line px-[20px] py-3 text-ink transition active:bg-field"
+                className="flex items-center gap-3 border-t border-line px-[18px] py-3 text-ink transition active:bg-field"
               >
-                <div className="flex h-[44px] w-[40px] shrink-0 flex-col items-center justify-center rounded-[12px] border border-line bg-field">
-                  <div className="text-[14px] font-medium leading-[1.2]">
+                <div className="flex h-[44px] w-[40px] shrink-0 flex-col items-center justify-center rounded-[11px] border border-line bg-field">
+                  <div className="text-[14px] font-bold leading-[1.2]">
                     {parseISODate(w.date).getDate()}
                   </div>
-                  <div className="text-[11px] font-medium leading-[1.2] text-muted">
+                  <div className="text-[9.5px] font-medium leading-[1.2] text-muted">
                     {weekdayShort(w.date)}
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-medium">
+                  <div className="truncate text-[13.5px] font-semibold">
                     {w.name ?? "Тренування"}
                   </div>
-                  <div className="mt-[2px] text-[12px] font-normal text-muted">
+                  <div className="mt-[2px] text-[11.5px] font-normal text-muted">
                     {w.exerciseCount} {plural(w.exerciseCount, "вправа", "вправи", "вправ")}
                   </div>
                 </div>
                 <span aria-hidden className="shrink-0 text-muted">
-                  <Icon name="chevronRight" size={16} />
+                  <Icon name="chevronRight" size={16} strokeWidth={1.8} />
                 </span>
               </Link>
             ))}

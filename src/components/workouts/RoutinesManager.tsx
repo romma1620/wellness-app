@@ -190,7 +190,7 @@ export function RoutinesManager() {
     <div className="flex items-center justify-between gap-3 px-[2px]">
       <div className="flex min-w-0 items-center gap-3">
         <BackLink href="/workouts" />
-        <h1 className="truncate text-[24px] font-medium tracking-[-.01em]">Шаблони</h1>
+        <h1 className="truncate text-[24px] font-bold tracking-[-.01em]">Шаблони</h1>
       </div>
       {!loading && !editor && (
         <Pill icon="plus" onClick={() => openEditor(null)}>
@@ -202,7 +202,7 @@ export function RoutinesManager() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         {header}
         <FullLoader />
       </div>
@@ -210,7 +210,7 @@ export function RoutinesManager() {
   }
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       {header}
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
@@ -221,7 +221,7 @@ export function RoutinesManager() {
             icon="grid"
             right={
               editorStat ? (
-                <Link href={`/workouts/routines/${editor.id}`} className="text-[12px] font-medium text-accent">
+                <Link href={`/workouts/routines/${editor.id}`} className="text-[12px] font-semibold text-accent">
                   Статистика
                 </Link>
               ) : undefined
@@ -230,7 +230,7 @@ export function RoutinesManager() {
             {editor.id ? "Редагувати шаблон" : "Новий шаблон"}
           </SectionLabel>
           {editorStat && (
-            <div className="mb-3 rounded-[12px] bg-field px-[12px] py-[12px] text-[12px] font-medium leading-[1.5] text-muted">
+            <div className="mb-3 rounded-[13px] bg-field px-[13px] py-[11px] text-[12px] font-medium leading-[1.5] text-muted">
               За цим шаблоном уже {editorStat.sessions}{" "}
               {plural(editorStat.sessions, "сесія", "сесії", "сесій")} {spanLabel(editorStat, today)}. Зміна
               складу вплине на його статистику — для нової програми краще дублюй шаблон.
@@ -268,14 +268,14 @@ export function RoutinesManager() {
                   </div>
                   <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label="Вгору" className={ROW_BTN}>
                     <span className="flex rotate-180">
-                      <Icon name="chevronDown" size={16} />
+                      <Icon name="chevronDown" size={15} strokeWidth={1.8} />
                     </span>
                   </button>
                   <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === editor.rows.length - 1} aria-label="Вниз" className={ROW_BTN}>
-                    <Icon name="chevronDown" size={16} />
+                    <Icon name="chevronDown" size={15} strokeWidth={1.8} />
                   </button>
                   <button type="button" onClick={() => setEditor((s) => (s ? { ...s, rows: s.rows.filter((x) => x.key !== r.key) } : s))} aria-label="Прибрати" className={ROW_BTN}>
-                    <Icon name="x" size={16} strokeWidth={2} />
+                    <Icon name="x" size={14} strokeWidth={2} />
                   </button>
                 </div>
                 {isNewName(r) && (
@@ -307,18 +307,18 @@ export function RoutinesManager() {
           </div>
           {editor.id && (
             <Button type="button" variant="ghost" className="mt-3" onClick={duplicate}>
-              <Icon name="plus" size={16} />
+              <Icon name="plus" size={14} strokeWidth={1.8} />
               Дублювати
             </Button>
           )}
           {editor.id && (
             <Button type="button" variant="danger" className="mt-3" onClick={() => remove(editor.id!)}>
-              <Icon name="trash" size={16} />
+              <Icon name="trash" size={14} strokeWidth={1.8} />
               Видалити шаблон
             </Button>
           )}
           {editorStat && (
-            <div className="mt-2 text-center text-[12px] font-medium text-muted">
+            <div className="mt-2 text-center text-[11.5px] font-medium text-muted">
               Сесії й статистика шаблону збережуться в архіві.
             </div>
           )}
@@ -339,14 +339,14 @@ export function RoutinesManager() {
                 <button
                   type="button"
                   onClick={() => openEditor(r)}
-                  className="flex min-w-0 flex-1 items-center gap-3 py-[12px] pl-[20px] pr-2 text-left transition active:bg-field"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-[13px] pl-[18px] pr-2 text-left transition active:bg-field"
                 >
                   <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-accent">
-                    <Icon name="dumbbell" size={16} />
+                    <Icon name="dumbbell" size={17} strokeWidth={1.7} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-medium text-ink">{r.name}</span>
-                    <span className="mt-[2px] block truncate text-[12px] font-normal text-muted">
+                    <span className="block truncate text-[13.5px] font-semibold text-ink">{r.name}</span>
+                    <span className="mt-[2px] block truncate text-[11.5px] font-normal text-muted">
                       {counts[r.id] ?? 0} {plural(counts[r.id] ?? 0, "вправа", "вправи", "вправ")}
                       {st && (
                         <>
@@ -363,13 +363,13 @@ export function RoutinesManager() {
                   <Link
                     href={`/workouts/routines/${r.id}`}
                     aria-label={`Статистика: ${r.name}`}
-                    className="mr-[12px] flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] text-accent transition active:bg-field"
+                    className="mr-[10px] flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] text-accent transition active:bg-field"
                   >
-                    <Icon name="bars" size={16} />
+                    <Icon name="bars" size={17} strokeWidth={1.8} />
                   </Link>
                 ) : (
-                  <span aria-hidden className="mr-[20px] shrink-0 text-muted">
-                    <Icon name="chevronRight" size={16} />
+                  <span aria-hidden className="mr-[18px] shrink-0 text-muted">
+                    <Icon name="chevronRight" size={16} strokeWidth={1.8} />
                   </span>
                 )}
               </div>
@@ -380,24 +380,24 @@ export function RoutinesManager() {
 
       {archived.length > 0 && !editor && (
         <div className="overflow-hidden rounded-xl2 bg-surface">
-          <div className="px-[20px] pb-[12px] pt-4 text-[13px] font-medium text-muted">
+          <div className="px-[18px] pb-[10px] pt-4 text-[11px] font-semibold uppercase tracking-[.09em] text-muted">
             Архів
           </div>
           {archived.map((st) => (
             <Link
               key={st.routineId}
               href={`/workouts/routines/${st.routineId}`}
-              className="flex items-center gap-3 border-t border-line px-[20px] py-3 text-ink transition active:bg-field"
+              className="flex items-center gap-3 border-t border-line px-[18px] py-3 text-ink transition active:bg-field"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-medium">{st.name}</span>
-                <span className="mt-[2px] block truncate text-[12px] font-normal text-muted">
+                <span className="block truncate text-[13.5px] font-semibold">{st.name}</span>
+                <span className="mt-[2px] block truncate text-[11.5px] font-normal text-muted">
                   {spanLabel(st, today)} · {durationLabel(st.firstDate, st.lastDate)} · {st.sessions}{" "}
                   {plural(st.sessions, "сесія", "сесії", "сесій")}
                 </span>
               </span>
               <span aria-hidden className="shrink-0 text-muted">
-                <Icon name="chevronRight" size={16} />
+                <Icon name="chevronRight" size={16} strokeWidth={1.8} />
               </span>
             </Link>
           ))}

@@ -73,11 +73,11 @@ export function ConfirmCodeScreen({
   }
 
   return (
-    <div className="flex w-full flex-col gap-[16px]">
-      <p className="text-center text-[14px] font-normal leading-[1.55] text-muted">
+    <div className="flex w-full flex-col gap-[14px]">
+      <p className="text-center text-[13.5px] font-normal leading-[1.55] text-muted">
         Ми надіслали 6-значний код на
         <br />
-        <span className="font-medium text-ink">{email}</span>
+        <span className="font-semibold text-ink">{email}</span>
       </p>
 
       <CodeInput
@@ -107,7 +107,7 @@ export function ConfirmCodeScreen({
         type="button"
         onClick={resend}
         disabled={left > 0 || resending}
-        className="py-1 text-center text-[13px] font-medium text-accent disabled:text-muted"
+        className="py-1 text-center text-[13px] font-semibold text-accent disabled:text-muted"
       >
         {resending
           ? "Надсилаємо…"
@@ -121,7 +121,7 @@ export function ConfirmCodeScreen({
         onClick={onBack}
         className="flex items-center justify-center gap-1 py-1 text-center text-[13px] font-medium text-muted"
       >
-        <Icon name="chevronLeft" size={16} />
+        <Icon name="chevronLeft" size={13} strokeWidth={1.8} />
         Назад до входу
       </button>
     </div>

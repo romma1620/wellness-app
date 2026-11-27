@@ -47,13 +47,13 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
   const header = (title: string) => (
     <div className="flex min-w-0 items-center gap-3 px-[2px]">
       <BackLink href="/workouts" />
-      <h1 className="truncate text-[24px] font-medium tracking-[-.01em]">{title}</h1>
+      <h1 className="truncate text-[24px] font-bold tracking-[-.01em]">{title}</h1>
     </div>
   );
 
   if (q.isPending) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         {header("Шаблон")}
         <FullLoader />
       </div>
@@ -62,7 +62,7 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
 
   if (q.isError || !q.data.routine) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         {header("Шаблон")}
         <ErrorBanner>
           {q.isError ? "Не вдалося завантажити статистику." : "Шаблон не знайдено."}
@@ -77,7 +77,7 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
 
   if (!stat) {
     return (
-      <div className="flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[14px]">
         {header(routine.name)}
         <EmptyState
           icon="dumbbell"
@@ -99,28 +99,28 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
   const progress = exerciseProgress(workouts);
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-[14px]">
       {header(routine.name)}
 
       <Card>
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "rounded-full px-[12px] py-[4px] text-[11px] font-medium",
+              "rounded-full px-[10px] py-[3px] text-[11px] font-semibold",
               active ? "bg-primary-light text-accent" : "bg-field text-muted",
             )}
           >
             {stat.archived ? "В архіві" : active ? "Активний" : "Завершений"}
           </span>
         </div>
-        <div className="mt-3 text-[15px] font-medium text-ink">
+        <div className="mt-3 text-[15px] font-semibold text-ink">
           {active
             ? `Займаєшся з ${shortDate(stat.firstDate)}`
             : stat.firstDate === stat.lastDate
               ? `Одна сесія ${shortDate(stat.firstDate)}`
               : `З ${shortDate(stat.firstDate)} по ${shortDate(stat.lastDate)}`}
         </div>
-        <div className="mt-[4px] text-[12px] font-medium text-muted">
+        <div className="mt-[3px] text-[12px] font-medium text-muted">
           {durationLabel(stat.firstDate, end)}
         </div>
 
@@ -139,7 +139,7 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
       {progress.length > 0 && (
         // не Card: рядки йдуть впритул до країв, як у WorkoutList
         <div className="overflow-hidden rounded-xl2 bg-surface">
-          <div className="px-[20px] pb-[12px] pt-4">
+          <div className="px-[18px] pb-[10px] pt-4">
             <SectionLabel icon="bars" className="mb-0">
               Прогрес з першої сесії
             </SectionLabel>
@@ -156,9 +156,9 @@ export function RoutineStatsView({ routineId }: { routineId: string }) {
 /** Число зверху, підпис під ним: капітель у третині ширини переносилась би. */
 function Tile({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
-    <div className="rounded-[12px] bg-field p-[12px]">
+    <div className="rounded-[13px] bg-field p-[11px]">
       <div className="flex items-baseline gap-[4px]">
-        <span className="text-[20px] font-normal">{value}</span>
+        <span className="text-[19px] font-normal">{value}</span>
         {unit && <span className="text-[11px] font-medium text-muted">{unit}</span>}
       </div>
       <div className="mt-[2px] text-[11px] font-medium text-muted">{label}</div>
@@ -174,10 +174,10 @@ function pointLabel(p: ProgressPoint): string {
 function ProgressRow({ p, name }: { p: ExerciseProgress; name: string }) {
   const delta = progressDelta(p);
   return (
-    <div className="flex items-center gap-3 border-t border-line px-[20px] py-3">
+    <div className="flex items-center gap-3 border-t border-line px-[18px] py-3">
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[14px] font-medium text-ink">{name}</div>
-        <div className="mt-[2px] truncate text-[12px] font-normal text-muted">
+        <div className="truncate text-[13.5px] font-semibold text-ink">{name}</div>
+        <div className="mt-[2px] truncate text-[11.5px] font-normal text-muted">
           {p.sessions > 1
             ? `${pointLabel(p.first)} → ${pointLabel(p.last)}`
             : pointLabel(p.first)}{" "}
@@ -187,7 +187,7 @@ function ProgressRow({ p, name }: { p: ExerciseProgress; name: string }) {
       {delta && Math.abs(delta.value) >= 0.05 ? (
         <span
           className={cn(
-            "flex shrink-0 items-center gap-[4px] text-[12px] font-medium",
+            "flex shrink-0 items-center gap-[3px] text-[12px] font-semibold",
             delta.value > 0 ? "text-pos" : "text-neg",
           )}
         >
@@ -195,7 +195,7 @@ function ProgressRow({ p, name }: { p: ExerciseProgress; name: string }) {
           {fmt(Math.abs(delta.value), 1)} {delta.unit}
         </span>
       ) : (
-        <span className="shrink-0 text-[12px] font-medium text-muted">—</span>
+        <span className="shrink-0 text-[12px] font-semibold text-muted">—</span>
       )}
     </div>
   );

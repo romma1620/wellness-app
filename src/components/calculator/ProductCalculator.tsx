@@ -68,7 +68,7 @@ export function ProductCalculator() {
           {GROUPS.map((g) => (
             <div key={g.group}>
               <FieldLabel>{g.label}</FieldLabel>
-              <div className="flex flex-wrap gap-[8px]">
+              <div className="flex flex-wrap gap-[6px]">
                 {FOOD_PRESETS.filter((p) => p.group === g.group).map((p) => (
                   <Chip key={p.id} active={p.id === presetId} onClick={() => setPresetId(p.id)}>
                     {p.label}
@@ -91,7 +91,7 @@ export function ProductCalculator() {
           icon="grid"
           right={
             ok && (
-              <span className="text-[11px] font-medium text-muted">
+              <span className="text-[11px] font-semibold text-muted">
                 {grain ? "сухої" : "сирої"} на порцію
               </span>
             )
@@ -99,11 +99,11 @@ export function ProductCalculator() {
         >
           Готові порції
         </SectionLabel>
-        <div className="flex flex-col gap-[12px]">
+        <div className="flex flex-col gap-[10px]">
           {portions.map((p, i) => {
             const r = rawByIndex.get(i);
             return (
-              <div key={p.id} className="flex items-center gap-[12px]">
+              <div key={p.id} className="flex items-center gap-[10px]">
                 <RowNum>{i + 1}</RowNum>
                 <Input
                   className="min-w-0 flex-1"
@@ -113,7 +113,7 @@ export function ProductCalculator() {
                 />
                 <span
                   className={cn(
-                    "w-[72px] shrink-0 text-right text-[16px] font-medium tabular-nums",
+                    "w-[72px] shrink-0 text-right text-[16px] font-bold tabular-nums",
                     r === undefined ? "text-muted" : "text-accent",
                   )}
                 >
@@ -139,7 +139,7 @@ export function ProductCalculator() {
         <Card>
           <SectionLabel icon="info">Підсумок</SectionLabel>
           {ok.estimated && (
-            <p className="mb-3 rounded-[12px] bg-primary-light px-3 py-[12px] text-[12px] font-medium leading-[1.5] text-accent">
+            <p className="mb-3 rounded-[12px] bg-primary-light px-3 py-[10px] text-[12px] font-medium leading-[1.5] text-accent">
               {grain ? "Суху" : "Сиру"} вагу не вказано — рахую орієнтовно за типовим коефіцієнтом для «
               {preset.label.toLowerCase()}». Для точності зваж продукт до готування.
             </p>
@@ -168,7 +168,7 @@ export function ProductCalculator() {
       )}
 
       <Button type="button" variant="outline" onClick={reset}>
-        <Icon name="trash" size={16} />
+        <Icon name="trash" size={15} strokeWidth={1.8} />
         Очистити
       </Button>
     </>

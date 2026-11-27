@@ -21,12 +21,6 @@ const config: Config = {
         warn: "var(--warn)",
         neg: "var(--neg)",
       },
-      // Акцент як текст має власний, темніший у світлому режимі, відтінок —
-      // text-accent/text-primary лишаються читабельними на білому.
-      textColor: {
-        accent: "var(--accent-ink)",
-        primary: { DEFAULT: "var(--accent-ink)", light: "var(--primary-light)" },
-      },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
